@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-marketplace.json",
+  "name": "nautilai",
+  "owner": {
+    "name": "Randall Noval",
+    "email": "randall@starfysh.net"
+  },
+  "description": "Starfysh's collection of Claude Code plugins — AI coding agents, skills, and commands.",
+  "plugins": [
+    {
+      "name": "commitcraft",
+      "source": "./commitcraft",
+      "description": "AI git workflow toolkit: conventional commits, issue validation, PR creation, and release guidance.",
+      "version": "2.0.0",
+      "author": { "name": "Randall Noval" },
+      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/commitcraft#readme",
+      "license": "MIT"
+    }
+  ]
+}
