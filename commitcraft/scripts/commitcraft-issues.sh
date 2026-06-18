@@ -14,7 +14,64 @@
 
 set -euo pipefail
 
-# Prerequisites
+# --ref-only: skip gh validation (labels/acceptance criteria) and just emit a
+# footer reference from the branch. Used on the push hot path — no network call.
+REF_ONLY=false
+if [ "${1:-}" = "--ref-only" ]; then
+    REF_ONLY=true
+fi
+
+# Determine which tracker this repo uses (recorded by `commitcraft setup`).
+# Default to github so existing repos behave exactly as before.
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+TRACKER=$(jq -r '.ticket_tool // "github"' "$REPO_ROOT/.commitcraft.json" 2>/dev/null || echo "github")
+BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+
+# Ticket tracking disabled — nothing to validate or link.
+if [ "$TRACKER" = "none" ]; then
+    echo "STATUS: NO_ISSUE"
+    echo "BRANCH: $BRANCH"
+    echo "INFO: ticket tracking disabled (ticket_tool: none)"
+    exit 0
+fi
+
+# Linear / Jira: extract a KEY-123 reference from the branch. There is no
+# GitHub-style API validation here — emit a reference the commit footer can use.
+if [ "$TRACKER" = "linear" ] || [ "$TRACKER" = "jira" ]; then
+    KEY=$(echo "$BRANCH" | grep -oiE '[A-Z]+-[0-9]+' | head -1 || echo "")
+    if [ -n "$KEY" ]; then
+        KEY=$(echo "$KEY" | tr '[:lower:]' '[:upper:]')
+        echo "STATUS: REFERENCE"
+        echo "ISSUE: $KEY"
+        echo "REF: Refs $KEY"
+        echo "TRACKER: $TRACKER"
+    else
+        echo "STATUS: NO_ISSUE"
+        echo "BRANCH: $BRANCH"
+        echo "INFO: no $TRACKER key (e.g. ABC-123) in branch name"
+    fi
+    exit 0
+fi
+
+# GitHub ref-only: pull the issue number from the branch, emit a footer ref,
+# and skip the gh validation entirely (no network).
+if [ "$REF_ONLY" = "true" ]; then
+    ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+$' | head -1 || echo "")
+    if [ -z "$ISSUE_NUM" ]; then
+        ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+' | head -1 || echo "")
+    fi
+    if [ -n "$ISSUE_NUM" ]; then
+        echo "STATUS: REFERENCE"
+        echo "ISSUE: $ISSUE_NUM"
+        echo "REF: Refs #$ISSUE_NUM"
+    else
+        echo "STATUS: NO_ISSUE"
+        echo "BRANCH: $BRANCH"
+    fi
+    exit 0
+fi
+
+# Default tracker: GitHub Issues (requires gh).
 if ! command -v gh &>/dev/null; then
     echo "STATUS: ERROR"
     echo "ERROR: gh CLI not installed"
@@ -29,8 +86,7 @@ if ! gh auth status &>/dev/null 2>&1; then
     exit 0
 fi
 
-# Extract issue from branch name
-BRANCH=$(git branch --show-current 2>/dev/null || echo "")
+# Extract issue number from branch name.
 # Try to extract from end first (e.g., feature/description-305), then any number
 ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+$' | head -1 || echo "")
 if [ -z "$ISSUE_NUM" ]; then
@@ -93,4 +149,5 @@ echo "STATUS: OK"
 echo "ISSUE: $ISSUE_NUM"
 echo "TITLE: $TITLE"
 echo "STATE: $STATE"
+echo "REF: Refs #$ISSUE_NUM"
 exit 0

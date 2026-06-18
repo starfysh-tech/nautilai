@@ -1,17 +1,30 @@
 # Release Workflow
 
-## Phase 1: Release-Please Gate
+## Phase 1: Release-Please Gate (the single path when installed)
 
-Check for active release-please PRs:
+When release-please is installed, it is **the** release path — never cut a manual
+tag alongside it, or the version and CHANGELOG diverge. Detect it first:
 
 ```bash
-gh pr list --label "autorelease: pending" --json number,title,url --limit 5
+test -f .github/workflows/release-please.yml && echo "RP_INSTALLED" || echo "RP_ABSENT"
 ```
 
-- If PRs found: display them to the user via `AskUserQuestion` with options to review, merge, or skip
-- If no PRs (empty array): continue to Phase 2
+- **`RP_INSTALLED`** → defer to release-please and **stop here** (do not run Phases 2-5):
 
-## Phase 2: Run Analysis
+  ```bash
+  gh pr list --label "autorelease: pending" --json number,title,url --limit 5
+  ```
+
+  - PRs found → display via `AskUserQuestion` with options to review/merge the release PR. Merging it cuts the release.
+  - No PRs → tell the user: "release-please manages releases here and nothing is pending. Push conventional commits to `main` and it will open a release PR." Stop.
+  - **Only** proceed to Phase 2 if the user *explicitly* asks for a manual release despite release-please being installed (warn about divergence first).
+
+- **`RP_ABSENT`** → no automated path exists. Tell the user: "release-please not installed — using the manual tag/release path. Run `commitcraft setup --section release` to automate this." Continue to Phase 2.
+
+## Phase 2: Run Analysis (manual path only)
+
+> Phases 2-5 are the **manual release path** — reached only when release-please is
+> absent (or the user explicitly overrode it in Phase 1).
 
 Run the release analyzer:
 
@@ -44,7 +57,7 @@ Stop here.
 
 ### If script exits with error
 
-Display the error output to the user (not on main, dirty tree, gh not authenticated, etc.) and stop.
+Display the error output to the user (not on main, dirty tree) and stop. Note: missing/unauthenticated `gh` is now a **warning**, not an error — the script reports `GH_AVAILABLE: false` and still computes the version. If `GH_AVAILABLE` is false, warn that publishing the GitHub release (Phase 5) will require `gh auth login` even though analysis succeeded.
 
 ## Phase 3: Generate Release Notes
 
