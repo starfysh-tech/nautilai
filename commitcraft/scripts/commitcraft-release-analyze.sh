@@ -23,21 +23,15 @@ fi
 
 echo "✓ On main branch"
 
-# Check for gh CLI
+# Check for gh CLI — analysis is pure git; gh is only needed later to publish the
+# release (gh release create). Warn but do not abort, so version analysis still works.
+GH_AVAILABLE=true
 if ! command -v gh &> /dev/null; then
-    echo "✗ GitHub CLI (gh) not found"
-    echo ""
-    echo "Install: brew install gh"
-    echo "Then authenticate: gh auth login"
-    exit 1
-fi
-
-# Check gh authentication
-if ! gh auth status &> /dev/null; then
-    echo "✗ GitHub CLI not authenticated"
-    echo ""
-    echo "Run: gh auth login"
-    exit 1
+    GH_AVAILABLE=false
+    echo "⚠  GitHub CLI (gh) not found — analysis will proceed; publishing a release needs: brew install gh"
+elif ! gh auth status &> /dev/null; then
+    GH_AVAILABLE=false
+    echo "⚠  GitHub CLI not authenticated — analysis will proceed; publishing needs: gh auth login"
 fi
 
 # Check for clean working tree
@@ -49,7 +43,7 @@ if [ -n "$(git status --porcelain)" ]; then
 fi
 
 echo "✓ Working tree is clean"
-echo "✓ GitHub CLI authenticated"
+echo "GH_AVAILABLE: $GH_AVAILABLE"
 echo ""
 
 # Get latest v-prefixed semver tag (ignores bare numeric tags like 1.1.0)
