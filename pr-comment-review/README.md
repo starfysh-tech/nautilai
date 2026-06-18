@@ -1,0 +1,44 @@
+# PR Comment Review
+
+Process and address review comments on the current pull request — fetch the threads, categorize them, implement the agreed fixes behind approval gates, push, and reply inline.
+
+Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
+
+## Install
+
+```text
+/plugin marketplace add starfysh-tech/nautilai
+/plugin install pr-comment-review@nautilai
+```
+
+Requires the [`gh` CLI](https://cli.github.com/) authenticated to your repo. If you also have a GitHub MCP server configured, it's used preferentially; otherwise the skill falls back to `gh`.
+
+## Use
+
+```text
+/pr-comment-review
+```
+
+User-invoked only — the agent won't auto-fire it.
+
+## What it does
+
+This is the **responsive** half of the review loop. Something else generates the review — a human, the built-in `/review`, or `pr-review-toolkit`'s `/review-pr` — and this skill **addresses** it:
+
+1. **Fetches** all feedback on the current PR — inline review threads, formal reviews, and general comments.
+2. **Categorizes** each as actionable, issue, question, or suggestion, and verifies claims against the code (a comment can be a false positive worth refuting rather than "fixing").
+3. **Implements** the agreed fixes behind two approval gates (scope, then push), runs your project's check command, then **pushes and replies** to each thread inline.
+
+### Portable by design — graceful degradation
+
+| Step | Preferred | Fallback |
+|---|---|---|
+| GitHub reads/replies | `mcp__github__*` | `gh` CLI |
+| Push | `/commitcraft push` (if installed) | plain `git push` |
+| Checks | detected runner (mise / npm / make / cargo / pytest…) | skip with confirmation |
+
+It complements `pr-review-toolkit` rather than duplicating it: that one *generates* reviews; this one *resolves* them.
+
+## License
+
+MIT

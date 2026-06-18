@@ -39,6 +39,17 @@
       },
       "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-adoption-audit#readme",
       "license": "MIT"
+    },
+    {
+      "name": "pr-comment-review",
+      "source": "./pr-comment-review",
+      "description": "Process and address review comments on the current pull request — fetch the threads, categorize, implement agreed fixes behind approval gates, push, and reply inline.",
+      "version": "2.2.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/pr-comment-review#readme",
+      "license": "MIT"
     }
   ]
 }

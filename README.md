@@ -34,6 +34,7 @@ After installing, reload plugins if prompted, then invoke the plugin's skill.
 | **commitcraft** | AI git workflow toolkit — conventional commits, issue validation, PR creation, and release guidance. | `/plugin install commitcraft@nautilai` | [commitcraft/](./commitcraft/README.md) |
 | **handoff** | Compact the current conversation into a handoff document so a fresh agent can pick up the work, referencing artifacts by path rather than restating them. | `/plugin install handoff@nautilai` | [handoff/](./handoff/README.md) |
 | **cc-adoption-audit** | Audit your Claude Code setup against available features — surface what you're not using but should, setup gaps, and recently shipped features you haven't adopted. | `/plugin install cc-adoption-audit@nautilai` | [cc-adoption-audit/](./cc-adoption-audit/README.md) |
+| **pr-comment-review** | Process and address review comments on the current PR — fetch threads, categorize, implement fixes behind approval gates, push, and reply inline. | `/plugin install pr-comment-review@nautilai` | [pr-comment-review/](./pr-comment-review/README.md) |
 
 _More plugins will surface here over time._
 
@@ -54,6 +55,10 @@ nautilai/
 ├── cc-adoption-audit/        # Reframed adoption audit
 │   ├── .claude-plugin/plugin.json
 │   ├── skills/cc-adoption-audit/SKILL.md
+│   └── README.md
+├── pr-comment-review/        # Addresses PR review comments
+│   ├── .claude-plugin/plugin.json
+│   ├── skills/pr-comment-review/SKILL.md
 │   └── README.md
 └── README.md                 # You are here
 ```
