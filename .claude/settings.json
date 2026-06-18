@@ -1,0 +1,24 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); f=$(printf \"%s\" \"$input\" | jq -r \".tool_input.file_path // .tool_response.filePath // empty\"); case \"$f\" in */.claude-plugin/*.json) jq -e . \"$f\" >/dev/null 2>&1 || printf '{\"decision\":\"block\",\"reason\":\"Invalid JSON in %s — fix the manifest before continuing.\"}' \"$f\";; esac",
+            "statusMessage": "Validating plugin manifest JSON..."
+          },
+          {
+            "type": "command",
+            "command": "input=$(cat); f=$(printf \"%s\" \"$input\" | jq -r \".tool_input.file_path // .tool_response.filePath // empty\"); case \"$f\" in *.sh) out=$(shellcheck -S error \"$f\" 2>&1) || jq -n --arg f \"$f\" --arg c \"$out\" '{hookSpecificOutput:{hookEventName:\"PostToolUse\",additionalContext:(\"shellcheck flagged \\($f):\\n\"+$c)}}';; esac",
+            "statusMessage": "Running shellcheck..."
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "commitcraft@nautilai": true
+  }
+}
