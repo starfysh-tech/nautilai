@@ -13,6 +13,10 @@
         { "type": "refactor", "section": "Refactoring", "hidden": true },
         { "type": "test", "section": "Tests", "hidden": true },
         { "type": "ci", "section": "CI/CD", "hidden": true }
+      ],
+      "extra-files": [
+        { "type": "json", "path": "commitcraft/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[0].version" }
       ]
     }
   }
