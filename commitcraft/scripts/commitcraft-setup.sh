@@ -1277,8 +1277,20 @@ apply_branch_protection() {
     [[ -f ".github/workflows/gitleaks.yml" ]] && contexts+=("gitleaks")
 
     local contexts_json="[]"
-    if [[ ${#contexts[@]} -gt 0 ]] && command -v jq &>/dev/null; then
-        contexts_json=$(printf '%s\n' "${contexts[@]}" | jq -R . | jq -cs .)
+    if [[ ${#contexts[@]} -gt 0 ]]; then
+        if command -v jq &>/dev/null; then
+            contexts_json=$(printf '%s\n' "${contexts[@]}" | jq -R . | jq -cs .)
+        else
+            # Pure-bash fallback so a missing jq doesn't silently apply hollow
+            # protection (no required checks) while the message claims they were set.
+            # Context names are simple workflow ids, so no escaping is needed.
+            local parts=() ctx
+            for ctx in "${contexts[@]}"; do
+                parts+=("\"$ctx\"")
+            done
+            local IFS=","
+            contexts_json="[${parts[*]}]"
+        fi
     fi
 
     # PR reviews: a count of 0 means "don't require reviews" (null), which suits
@@ -1299,11 +1311,15 @@ apply_branch_protection() {
 JSON
 )
 
-    if echo "$payload" | gh api -X PUT "repos/$REPO_PATH/branches/$branch/protection" --input - >/dev/null 2>&1; then
+    # Capture stderr (stdout discarded) so a failed API call can be diagnosed —
+    # branch protection often fails on plan limits, missing admin, or bad scopes.
+    local api_err
+    if api_err=$(echo "$payload" | gh api -X PUT "repos/$REPO_PATH/branches/$branch/protection" --input - 2>&1 >/dev/null); then
         log_success "Branch protection applied to '$branch' (required checks: ${contexts[*]:-none}, PR reviews: $BP_REVIEWS, enforce_admins: $BP_ENFORCE_ADMINS)"
         STATE_branch_protection="CONFIGURED"
     else
-        log_error "Could not apply branch protection — needs admin rights and an authenticated gh. Configure manually via the URL above."
+        log_error "Could not apply branch protection: ${api_err:-unknown error}"
+        log_error "Needs admin rights and an authenticated gh, or configure manually via the URL above."
     fi
 }
 
