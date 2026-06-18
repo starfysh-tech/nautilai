@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `<plugin>/skills/<name>/SKILL.md` + `workflows/*.md` — skill definitions.
 - `<plugin>/{scripts,templates}/` — bundled shell scripts and config templates copied into end-user repos.
 
-Adding a plugin means creating its directory **and** registering it in `marketplace.json` — keep `version`, `name`, and `description` in sync between `plugin.json` and the marketplace entry.
+Adding a plugin means creating its directory **and** registering it in `marketplace.json`. Keep `name` and `description` in sync between `plugin.json` and the marketplace entry; the `version` is kept in sync automatically by release-please `extra-files` (add an entry for the new plugin's `plugin.json` and its `marketplace.json` index — the `.claude/skills/new-plugin` skill scaffolds all of this).
 
 ## Validation
 
@@ -25,7 +25,9 @@ claude plugin validate ./<plugin> --strict
 
 ## Versioning
 
-Versions are managed by **release-please** (config in `commitcraft/templates/release-please-config.json`). Do not hand-edit the `version` field in `plugin.json` / `marketplace.json` to cut a release — let release-please bump it from conventional commits.
+Versions are managed by **release-please** — this repo's own config is the root `release-please-config.json` + `.release-please-manifest.json`. All plugins share one **linked** repo version: release-please's `extra-files` entries fan each bump into every `plugin.json` and its `marketplace.json` entry. Do not hand-edit the `version` field to cut a release — let release-please bump it from conventional commits.
+
+> Note: `commitcraft/templates/release-please-config.json` is a *template CommitCraft ships into end-user repos* during `setup` — it is **not** nautilai's own release config. Don't edit it to manage this repo's versions.
 
 ## Commit & git conventions
 
