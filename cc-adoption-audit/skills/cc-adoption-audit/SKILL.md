@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # CC Adoption Audit
 
-You are running an adoption audit: compare what this user has set up against the **available** Claude Code feature surface, then recommend what to adopt and which setup gaps to close. Be focused and actionable — this is a prioritized audit, not an exhaustive feature dump. For "what's new in Claude Code" specifically, point the user at `/explain-cc-changes`; this audit is about fit against what's available, not release notes.
+You are running an adoption audit: compare what this user has set up against the **available** Claude Code feature surface, then recommend what to adopt and which setup gaps to close. Be focused and actionable — this is a prioritized audit, not an exhaustive feature dump. It covers both what you should adopt from the full feature surface **and** what shipped recently that you haven't picked up yet.
 
 ## Anti-hallucination rule
 
@@ -18,9 +18,10 @@ Every feature you describe as "available" must come from a source you actually f
 1. `WebFetch https://code.claude.com/docs/llms.txt` — the authoritative, self-updating docs index. Parse each line of the form `- [title](url): description` into your feature inventory. The titles + descriptions alone usually enumerate the surface; this is your anti-hallucination anchor.
 2. Drill into specific pages only when you need detail to justify a recommendation (use the `.md` form):
    `features-overview.md`, `slash-commands.md`, `hooks.md`, `skills.md`, `settings.md`, `plugins-reference.md`, `changelog.md`, `whats-new/index.md` under `https://code.claude.com/docs/en/`.
-3. Freshness stamp:
-   - `WebFetch https://api.github.com/repos/anthropics/claude-code/releases/latest` → record `tag_name` + `published_at` (latest available version).
+3. Freshness + recent window:
+   - `WebFetch https://api.github.com/repos/anthropics/claude-code/releases?per_page=30` → the newest entry's `tag_name` + `published_at` is the latest available version; entries with `published_at` within the last ~30 days of today are the **recent launches**.
    - `claude --version` (Bash) → the user's installed version. **Comparing the user's version to latest is itself a finding** — flag it if they're behind.
+4. Recent launch detail: `WebFetch https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md` → the per-version feature bullets. Map the in-window versions from step 3 to their changelog entries to get the feature text for the "What's new" section. (Stateless: always the last ~30 days — no per-run memory.)
 
 ## Step 2 — What you have (this environment)
 
@@ -49,6 +50,7 @@ Keep it concise and prioritized:
 - **Profile** — your CC version (vs latest), detected stack, and what's installed/configured.
 - **Adoption recommendations** — ranked P1/P2/P3 by fit and payoff; each with the exact command/config to act on it.
 - **Setup gaps** — ranked, each actionable.
-- **Freshness** — "Audited against Claude Code `<tag_name>` (published `<published_at>`); your version: `<claude --version>`. Docs index fetched today. For what's new specifically, run `/explain-cc-changes`."
+- **What's new (last ~30 days)** — notable features from the recent launches (Step 1.3–1.4) as *feature → why it matters → how to use it*. Cross-reference Step 2 and **highlight the ones you haven't adopted yet** — those are also adoption candidates. Keep it to high-impact items, not a full changelog dump; if nothing notable shipped in the window, say so in one line.
+- **Freshness** — "Audited against Claude Code `<tag_name>` (published `<published_at>`); your version: `<claude --version>`. Docs index + changelog fetched today."
 
 End by offering to set up any of the recommendations.

@@ -33,7 +33,7 @@ After installing, reload plugins if prompted, then invoke the plugin's skill.
 |---|---|---|---|
 | **commitcraft** | AI git workflow toolkit — conventional commits, issue validation, PR creation, and release guidance. | `/plugin install commitcraft@nautilai` | [commitcraft/](./commitcraft/README.md) |
 | **handoff** | Compact the current conversation into a handoff document so a fresh agent can pick up the work, referencing artifacts by path rather than restating them. | `/plugin install handoff@nautilai` | [handoff/](./handoff/README.md) |
-| **cc-adoption-audit** | Audit your Claude Code setup against available features and surface what you're not using but should, plus setup gaps. | `/plugin install cc-adoption-audit@nautilai` | [cc-adoption-audit/](./cc-adoption-audit/README.md) |
+| **cc-adoption-audit** | Audit your Claude Code setup against available features — surface what you're not using but should, setup gaps, and recently shipped features you haven't adopted. | `/plugin install cc-adoption-audit@nautilai` | [cc-adoption-audit/](./cc-adoption-audit/README.md) |
 
 _More plugins will surface here over time._
 
