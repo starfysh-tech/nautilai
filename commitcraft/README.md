@@ -14,12 +14,12 @@ Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
 Then, in any git repo, invoke a workflow:
 
 ```text
-/commitcraft:commitcraft commit     # AI-generated conventional commit
-/commitcraft:commitcraft push       # Commit + push with issue tracking
-/commitcraft:commitcraft pr         # Create PR with AI-generated description
-/commitcraft:commitcraft release    # Semantic version bump and release guidance
-/commitcraft:commitcraft setup      # Interactive tooling configuration
-/commitcraft:commitcraft check      # Validate current configuration
+/commitcraft commit     # AI-generated conventional commit
+/commitcraft push       # commit + push with issue tracking
+/commitcraft pr         # PR with an AI-generated description
+/commitcraft release    # semantic version bump + release notes
+/commitcraft setup      # configure tooling (runs in chat)
+/commitcraft check      # validate configuration
 ```
 
 CommitCraft also triggers from natural language — "commit my changes", "open a PR",
@@ -35,6 +35,12 @@ CommitCraft also triggers from natural language — "commit my changes", "open a
 | `release` | Guides semantic versioning via release-please (if configured) or manual tag workflow |
 | `setup` | Interactive 8-component tooling setup (commitlint, gitleaks, pre-commit, signing, release-please, CI, issue tracker, branch protection — the last can be provisioned via the GitHub API so CI checks actually gate merges) |
 | `check` | Validates installed tooling and reports configuration status |
+
+> **`setup` runs in chat** — Claude gathers your choices via prompts and applies them with
+> non-interactive flags, so there's no drop-out to a shell: `--yes` (accept defaults),
+> `--ticket <github\|linear\|jira\|none>`, `--apply-branch-protection`, `--pr-reviews <N>`
+> (`0` = no required reviews, for solo repos), and `--no-enforce-admins`. The script is
+> still fully interactive when you run it directly.
 
 ## Architecture
 
@@ -57,8 +63,8 @@ correctly regardless of where the plugin cache lives.
 
 ## Behavioral conventions
 
+- **Conventional commits** — `<type>(<scope>): <subject>`; subject ≤50 chars, lowercase, no emoji; body lines ≤72 chars. Enforced by the commitlint hook locally **and** in CI (see `.commitlintrc.yml`)
 - **No `git add -A`** — each file is staged individually (`git add <file>`)
-- **No emoji prefixes** in commit messages
 - **No attribution footers** (no `Co-Authored-By` or similar)
 - **Never `--no-verify`** — hook failures are hard stops, not bypasses
 - **Branch from main** — the commit workflow auto-creates feature branches when on `main`
@@ -80,9 +86,10 @@ correctly regardless of where the plugin cache lives.
 **`setup --check` reports missing tools**
 Some tools are optional. Workflows continue without full tooling — missing checks are skipped.
 
-**`gh` not authenticated**
-Issue validation and PR creation require `gh auth login`. Issue steps are skipped and PR
-creation fails with a clear error otherwise.
+**`gh` not authenticated or absent**
+`commit` and `push` degrade gracefully — issue validation is skipped with a warning and the
+workflow continues (no hard stop). `pr` creation and GitHub-Issues linking still need
+`gh auth login`; the `linear`/`jira`/`none` trackers don't use `gh` at all.
 
 **Wrong subcommand**
 Use lowercase: `commit`, `push`, `pr`, `release`, `setup`, `check`. An unrecognized

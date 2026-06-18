@@ -28,9 +28,9 @@ Reload plugins if prompted, then invoke the plugin's skill.
 /commitcraft commit     # AI-generated conventional commit
 /commitcraft push       # commit + push with issue tracking
 /commitcraft pr         # PR with an AI-generated description
-/commitcraft setup      # configure tooling — runs in chat
+/commitcraft release    # semantic version bump + release notes
+/commitcraft setup      # configure tooling (runs in chat)
 /commitcraft check      # validate configuration
-/commitcraft release    # semantic version + release notes
 ```
 
 ## Links
