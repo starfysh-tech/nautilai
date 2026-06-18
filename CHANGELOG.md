@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.0](https://github.com/starfysh-tech/nautilai/compare/v2.1.0...v2.2.0) (2026-06-18)
+
+
+### Features
+
+* add handoff plugin and one-click command copy ([5a59fef](https://github.com/starfysh-tech/nautilai/commit/5a59fefacbf20063861b0568a1617081b7b568fe))
+* add handoff plugin and one-click command copy ([4313dd4](https://github.com/starfysh-tech/nautilai/commit/4313dd4bc9573d2d05febdc946304e90c9a395e9))
+
 ## [2.1.0](https://github.com/starfysh-tech/nautilai/compare/v2.0.0...v2.1.0) (2026-06-18)
 
 
