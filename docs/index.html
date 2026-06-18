@@ -92,11 +92,11 @@
   .nav-cta svg { width: 16px; height: 16px; }
 
   /* Hero — the one place symmetry is earned */
-  .hero { position: relative; padding: var(--s-hero) 0 var(--s-section); text-align: center; }
+  .hero { position: relative; padding-top: var(--s-hero); padding-bottom: var(--s-section); text-align: center; }
   .spiral {
-    width: clamp(108px, 22vw, 164px); height: clamp(108px, 22vw, 164px);
-    margin: 0 auto var(--s-4);
-    filter: drop-shadow(0 0 26px rgba(45, 212, 191, 0.45));
+    width: clamp(64px, 12vw, 88px); height: clamp(64px, 12vw, 88px);
+    margin: 0 auto 14px;
+    filter: drop-shadow(0 0 16px rgba(45, 212, 191, 0.35));
   }
   .spiral path { animation: spin 60s linear infinite; transform-origin: center; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -153,7 +153,7 @@
   .comment { color: var(--muted-dim); }
 
   /* Section architecture: left-aligned spine, real edges */
-  section.block { padding: var(--s-section) 0; }
+  section.block { padding-top: var(--s-section); padding-bottom: var(--s-section); }
   .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border) 18%, var(--border) 82%, transparent); }
   .sec-head { margin-bottom: var(--s-6); }
   .sec-head h2 { font-size: clamp(1.6rem, 3.6vw, 2.25rem); font-weight: 700; letter-spacing: -0.03em; margin: 0 0 10px; }
@@ -239,7 +239,6 @@
       <path d="M 61.10 60.00 L 61.11 60.16 L 61.04 60.59 L 60.80 61.00 L 60.34 61.33 L 59.68 61.45 L 59.05 61.27 L 58.50 60.82 L 58.17 60.14 L 58.12 59.61 L 58.38 58.70 L 58.99 58.01 L 59.78 57.64 L 60.70 57.57 L 61.65 57.87 L 62.55 58.65 L 63.06 59.66 L 63.17 60.55 L 63.03 61.49 L 62.52 62.52 L 61.66 63.39 L 60.50 63.95 L 59.15 64.12 L 57.74 63.83 L 56.43 63.05 L 55.39 61.83 L 54.82 60.49 L 54.64 58.98 L 54.91 57.41 L 55.80 55.66 L 57.04 54.41 L 58.95 53.40 L 61.21 53.04 L 63.59 53.46 L 66.12 54.94 L 68.05 57.39 L 69.02 61.00 L 68.88 63.20 L 67.78 66.24 L 65.65 68.90 L 62.60 70.83 L 58.89 71.71 L 54.89 71.32 L 51.01 69.57 L 47.74 66.49 L 45.53 62.29 L 44.76 58.08 L 45.43 52.86 L 47.88 47.88 L 52.03 43.74 L 57.60 41.02 L 64.10 40.19 L 70.87 41.62 L 77.15 45.35 L 82.16 51.23 L 85.15 58.81 L 85.72 64.91 L 84.03 73.71 L 79.33 81.92 L 71.81 88.52 L 62.05 92.55 L 51.54 93.34 L 41.13 90.80 L 31.41 85.16 L 23.29 75.89 L 18.40 65.25 L 16.59 53.13 L 18.97 38.27 L 25.49 27.00" stroke="url(#g-hero)" stroke-width="5" stroke-linecap="round"/>
     </svg>
 
-    <span class="eyebrow"><span class="dot"></span> Claude Code plugin marketplace</span>
     <h1 class="title">nautilai</h1>
     <p class="lede">A <b>Starfysh</b> reef of Claude Code plugins — AI coding agents, skills, and commands. One spiral shell per plugin.</p>
 
