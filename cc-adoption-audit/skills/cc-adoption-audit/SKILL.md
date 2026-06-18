@@ -24,12 +24,12 @@ Every feature you describe as "available" must come from a source you actually f
 
 ## Step 2 — What you have (this environment)
 
-Read these **directly** with Read/Glob/Grep (not shell text-munging). Report what's missing as "not found", never as silent absence. Config lives under `$HOME/.claude/` on macOS/Linux and `%USERPROFILE%\.claude\` on Windows.
+First resolve the absolute home directory (`echo "$HOME"` via Bash, or `%USERPROFILE%` on Windows) — Read/Glob/Grep require absolute paths and do **not** expand `~` or `$HOME`. Use that resolved path for every read below. Report what's missing as "not found", never as silent absence. Config lives under `<home>/.claude/` on macOS/Linux and `%USERPROFILE%\.claude\` on Windows.
 
-- **Global config:** `~/.claude/settings.json`, `~/.claude/CLAUDE.md`, `~/.claude.json` (user-level plugins/MCP live here).
+- **Global config:** `<home>/.claude/settings.json`, `<home>/.claude/CLAUDE.md`, `<home>/.claude.json` (user-level plugins/MCP live here).
 - **Project config:** `.claude/settings.json`, `.claude/settings.local.json`, `./CLAUDE.md`, `./CLAUDE.local.md`.
-- **Installed extensions:** dirs under `~/.claude/plugins/`, `~/.claude/skills/`, `~/.claude/commands/`, `~/.claude/agents/`, and the project's `.claude/skills|commands|agents/`.
-- **MCP servers:** entries in `~/.claude.json` and project `.mcp.json`.
+- **Installed extensions:** dirs under `<home>/.claude/plugins/`, `<home>/.claude/skills/`, `<home>/.claude/commands/`, `<home>/.claude/agents/`, and the project's `.claude/skills|commands|agents/`.
+- **MCP servers:** entries in `<home>/.claude.json` and project `.mcp.json`.
 - **Hooks:** the `hooks` block in the settings files.
 - **Stack (generic, via Glob — do not assume Node):** `package.json`, `pyproject.toml`, `go.mod`, `Cargo.toml`, `pom.xml`, `Gemfile`, `.github/workflows/`, `Dockerfile`, plus any CI/deploy config present.
 
