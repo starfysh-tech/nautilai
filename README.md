@@ -29,9 +29,10 @@ After installing, reload plugins if prompted, then invoke the plugin's skill.
 
 ## Plugins
 
-| Plugin | Description | Docs |
-|---|---|---|
-| **commitcraft** | AI git workflow toolkit — conventional commits, issue validation, PR creation, and release guidance. | [commitcraft/](./commitcraft/README.md) |
+| Plugin | Description | Install | Docs |
+|---|---|---|---|
+| **commitcraft** | AI git workflow toolkit — conventional commits, issue validation, PR creation, and release guidance. | `/plugin install commitcraft@nautilai` | [commitcraft/](./commitcraft/README.md) |
+| **handoff** | Compact the current conversation into a handoff document so a fresh agent can pick up the work, referencing artifacts by path rather than restating them. | `/plugin install handoff@nautilai` | [handoff/](./handoff/README.md) |
 
 _More plugins will surface here over time._
 
@@ -44,6 +45,10 @@ nautilai/
 ├── commitcraft/              # One plugin = one top-level directory
 │   ├── .claude-plugin/plugin.json
 │   ├── skills/ scripts/ templates/
+│   └── README.md
+├── handoff/                  # Each plugin is self-contained
+│   ├── .claude-plugin/plugin.json
+│   ├── skills/handoff/SKILL.md
 │   └── README.md
 └── README.md                 # You are here
 ```
