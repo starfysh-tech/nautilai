@@ -796,17 +796,21 @@ setup_commitlint() {
         cp "$TEMPLATES_DIR/commitlint.config.js" "$REPO_ROOT/"
         log_success "Created commitlint.config.js"
 
-        # Set up husky commit-msg hook
-        if ! grep -q "husky" package.json 2>/dev/null; then
-            npm install --save-dev husky
-            npx husky init
+        # Set up husky commit-msg hook (requires Node/npm)
+        if ! command -v npm &>/dev/null; then
+            log_warn "npm not found — skipping husky hook. Install Node and re-run, or use the pre-commit framework."
+        else
+            if ! grep -q "husky" package.json 2>/dev/null; then
+                npm install --save-dev husky
+                npx husky init
+            fi
+
+            echo 'npx --no -- commitlint --edit "$1"' > .husky/commit-msg
+            chmod +x .husky/commit-msg
+            log_success "Created husky commit-msg hook"
+
+            HOOK_MANAGER="husky"
         fi
-
-        echo 'npx --no -- commitlint --edit "$1"' > .husky/commit-msg
-        chmod +x .husky/commit-msg
-        log_success "Created husky commit-msg hook"
-
-        HOOK_MANAGER="husky"
 
     elif [[ " ${ECOSYSTEMS[*]} " =~ " python " ]]; then
         log_info "Installing commitizen for Python ecosystem..."
@@ -976,6 +980,10 @@ setup_precommit_hooks() {
     fi
 
     if [[ "$HOOK_MANAGER" == "husky" ]]; then
+        if ! command -v npm &>/dev/null; then
+            log_warn "npm not found — cannot install husky. Install Node, or choose the pre-commit framework."
+            return
+        fi
         if ! grep -q "husky" package.json 2>/dev/null; then
             log_info "Installing husky..."
             npm install --save-dev husky
@@ -1057,6 +1065,10 @@ setup_signed_commits() {
             ssh_key=$(ls ~/.ssh/*.pub | head -n1)
             log_info "Using SSH key: $ssh_key"
         else
+            if ! command -v ssh-keygen &>/dev/null; then
+                log_warn "ssh-keygen not found — cannot generate an SSH key. Install OpenSSH or add a key, then re-run signing setup."
+                return
+            fi
             log_info "Generating new SSH key..."
             ssh-keygen -t ed25519 -C "$(git config user.email)"
             ssh_key="${HOME}/.ssh/id_ed25519.pub"
