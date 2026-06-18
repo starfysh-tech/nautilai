@@ -17,6 +17,17 @@
       },
       "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/commitcraft#readme",
       "license": "MIT"
+    },
+    {
+      "name": "handoff",
+      "source": "./handoff",
+      "description": "Compact the current conversation into a handoff document so a fresh agent can pick up the work, referencing existing artifacts by path rather than restating them.",
+      "version": "2.1.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/handoff#readme",
+      "license": "MIT"
     }
   ]
 }

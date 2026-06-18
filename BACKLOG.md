@@ -1,0 +1,19 @@
+# Backlog
+
+Tracked, non-urgent work for the nautilai marketplace and its plugins.
+
+## CommitCraft
+
+- **Restructure dispatch from one arg-driven skill to plugin commands.**
+  Today CommitCraft is a single skill named `commitcraft`, so it surfaces as the doubled
+  id `commitcraft:commitcraft` and subcommands ride in as an argument
+  (`/commitcraft commit`). Splitting the workflows into plugin commands
+  (`commands/commit.md`, `commands/pr.md`, …) would invoke as `/commitcraft:commit`,
+  `/commitcraft:pr`, etc. — one namespace level, no name repeat, subcommands mapped to real
+  files.
+  - **Why:** cleaner invocation and discoverability; removes the cosmetic `:commitcraft`
+    repeat.
+  - **Cost / risk:** a real refactor of how CommitCraft routes subcommands; the shared
+    `AskUserQuestion`-first preamble and execution policy would need to live in each command
+    or a shared include. Not worth doing on its own — fold into the next substantive
+    CommitCraft change.
