@@ -7,8 +7,12 @@ repos:
     hooks:
       - id: gitleaks
 
-  - repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.29.1
+  # Validate commit messages with commitlint using the repo's .commitlintrc.yml,
+  # so local enforcement matches the commitlint CI workflow exactly (commitizen
+  # was more lenient than CI, letting non-conforming messages through locally).
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.25.0
     hooks:
-      - id: commitizen
+      - id: commitlint
         stages: [commit-msg]
+        additional_dependencies: ['@commitlint/config-conventional']
