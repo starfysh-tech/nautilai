@@ -7,41 +7,38 @@ Execute Phases 1-3 from commit workflow (Environment Check, Auto-Stage, Branch C
 After running `git status --porcelain`:
 
 - **If working tree is clean** (no output from git status):
-  - Check for unpushed commits: `git rev-list @{upstream}..HEAD --count 2>/dev/null || echo 0`
-  - If count > 0 → skip directly to Phase 6 (Push only, no commit needed)
-  - If count = 0 and no upstream branch → HARD STOP (nothing to commit or push)
-  - If count = 0 and upstream exists → HARD STOP (everything is up to date)
+  - Count commits not yet on any remote: `git rev-list HEAD --not --remotes --count`
+    (this is correct even on a brand-new branch with no upstream, where
+    `@{upstream}..HEAD` would wrongly resolve to 0).
+  - If count > 0 → skip directly to Phase 6 (Push only, no commit needed). Phase 6
+    already pushes with `-u` when there's no upstream, so a new branch is handled.
+  - If count = 0 → HARD STOP (everything is already pushed / up to date).
 
 - **If working tree has changes** (git status produced output):
   - Continue to auto-stage and commit (Phases 2-5), then push (Phase 6)
   - This applies even if there are also unpushed commits — stage, commit, then push all
 
-Run validation:
-
-```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/commitcraft-setup.sh --check
-```
-
 Then follow commit workflow Phases 2-3 for auto-staging and branch check.
+
+> No pre-flight tooling scan on the push path — the pre-commit hooks enforce
+> format and secrets at commit time regardless of what a scan would report.
+> Run `/commitcraft check` on demand for a full tooling report.
 
 ## Phase 3: Issue Context
 
-Run issue validation:
+Extract the issue reference only — no validation, no network call. Full validation
+(blocking labels, acceptance criteria) happens at PR time, not on every push.
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/commitcraft-issues.sh
+${CLAUDE_PLUGIN_ROOT}/scripts/commitcraft-issues.sh --ref-only
 ```
 
-Parse output. Handle per blocker table:
+Parse output:
 
 | STATUS | Action |
 |---|---|
-| `OK` | Continue, capture issue number for commit footer |
-| `BLOCKED` | HARD STOP — display blocking labels, exit |
-| `INCOMPLETE` | WARN — display unchecked items, auto-continue |
-| `NOT_FOUND` | WARN — display "Issue #X not found", continue |
-| `NO_ISSUE` | WARN — display "no linked issue found", auto-continue |
-| `ERROR` | HARD STOP — display error (gh CLI missing/not authenticated), exit |
+| `REFERENCE` | Capture the `REF:` line for the commit footer |
+| `NO_ISSUE` | No footer ref; auto-continue |
 
 ## Phase 4: AI Commit Message Generation
 
@@ -59,17 +56,13 @@ git diff --cached
 
 <body>
 
-Refs #<issue>
+<REF line from Phase 3>
 ```
 
-**Rules:**
-- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `revert`
-- Subject: imperative mood, ≤50 chars, lowercase
-- Body: explain WHY not WHAT, ≤72 chars per line, can be multi-paragraph
-- Scope: optional, single word (e.g., `api`, `ui`, `docs`)
-- No emoji
-- Footer: `Refs #<issue>` only if issue found in Phase 3
-- No attribution footers (no Co-Authored-By or similar lines)
+**Rules:** Follow commit workflow Phase 4 for format and type rules — the
+commit-msg hook (commitlint, per `.commitlintrc.yml`) is the enforcer, so generate
+a compliant draft and let the hook reject anything off. Push-specific additions:
+- Footer: use the `REF:` line captured in Phase 3 verbatim (e.g. `Refs #12` for GitHub, `Refs ENG-12` for Linear/Jira). Omit if Phase 3 produced no `REF:` line.
 
 ## Phase 5: Commit
 
@@ -139,7 +132,8 @@ git push origin $(git branch --show-current)
 
 ## Phase 7: Issue Comment
 
-Only if issue found in Phase 3 (STATUS = OK).
+Only if Phase 3 returned `STATUS: REFERENCE` with a **numeric** `ISSUE` (GitHub).
+Skip for Linear/Jira keys (`gh issue comment` doesn't apply) and when there's no ref.
 
 1. Capture commit hash and subject:
 
@@ -149,10 +143,11 @@ SUBJECT=$(git log -1 --format=%s)
 BRANCH=$(git branch --show-current)
 ```
 
-2. Post comment:
+2. Post comment (best-effort — the ref-only path didn't verify the issue exists, so
+   treat a failure as non-fatal and just note it):
 
 ```bash
-gh issue comment <NUM> --body "Commit $HASH pushed on \`$BRANCH\`: $SUBJECT"
+gh issue comment <NUM> --body "Commit $HASH pushed on \`$BRANCH\`: $SUBJECT" || echo "Issue comment skipped (issue #<NUM> not found or gh unavailable)"
 ```
 
 3. Display confirmation.

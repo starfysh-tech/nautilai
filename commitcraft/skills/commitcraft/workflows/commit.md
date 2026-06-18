@@ -2,20 +2,9 @@
 
 ## Phase 1: Environment Check
 
-Run validation:
-
-```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/commitcraft-setup.sh --check
-```
-
-Parse output. If critical items missing (commitlint, gitleaks, precommit_hooks), display warning:
-
-```
-⚠ Tooling incomplete - some checks will be skipped
-Run /commitcraft setup for full configuration
-```
-
-Continue regardless of status.
+No pre-flight tooling scan — the pre-commit hooks enforce format and secrets at
+commit time (Phase 5). A missing hook just means nothing fires, which is a setup
+concern, not a commit-time one. Run `/commitcraft check` on demand for a full report.
 
 ## Phase 2: Stage Changes
 
@@ -107,25 +96,14 @@ git diff --cached
 <body>
 ```
 
-**Rules:**
+**Rules** (the commit-msg hook, commitlint per `.commitlintrc.yml`, is the enforcer —
+generate a compliant draft and let the hook reject anything off):
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `revert`
-- Subject: imperative mood, ≤50 chars, lowercase
-- Body: explain WHY not WHAT, ≤72 chars per line, can be multi-paragraph
-- Scope: optional, single word (e.g., `api`, `ui`, `docs`)
-- No emoji
-- No attribution footers (no Co-Authored-By or similar lines)
+- Subject: imperative, ≤50 chars, lowercase, no emoji. Scope optional, single word.
+- Body: explain WHY not WHAT, ≤72 chars/line; skip if the change is self-evident.
+- No attribution footers (no Co-Authored-By or similar).
 
-**Subject examples:**
-- `feat(api): add user authentication endpoint`
-- `fix(ui): correct button alignment in modal`
-- `docs: update installation instructions`
-- `refactor(core): simplify error handling logic`
-
-**Body guidelines:**
-- Focus on motivation and context
-- Reference related issues/PRs if relevant
-- Explain non-obvious decisions
-- Skip if change is self-evident
+Example: `feat(api): add user authentication endpoint`
 
 ## Phase 5: Commit
 

@@ -85,42 +85,38 @@ Generate conventional commit-style title from commits:
 - Summary: imperative mood, ≤70 chars, lowercase
 - Scope: optional, single word from commits
 
-## Phase 5: Check for Linked Issue
+## Phase 5: Determine Issue Link (no prompt — pick a sensible default)
 
-Run issue validation:
+Run full issue validation (PR time is where it belongs):
 
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/scripts/commitcraft-issues.sh
 ```
 
-Parse output and determine issue linkage:
+Pick the default link **without prompting** — it's confirmed once in Phase 6:
 
-| STATUS | Action |
+| STATUS | Default link in PR Summary |
 |---|---|
-| `OK` | Propose `Closes #<num>` in PR Summary. For multiple issues, use `Closes #A, closes #B, closes #C` (keyword before EACH number — GitHub requires this). |
-| `INCOMPLETE` | Propose `Closes #<num>` with warning: "Issue has N unchecked acceptance criteria" |
-| `BLOCKED` | WARN — "Issue #X has blocking labels", fall through to ask |
-| `NOT_FOUND` | WARN — "Branch suggests #X but issue not found", fall through to ask |
-| `NO_ISSUE` | Fall through to ask |
-| `ERROR` | WARN — display error, fall through to ask |
+| `OK` | `Closes #<num>`. Multiple issues → `Closes #A, closes #B` (keyword before EACH number). |
+| `REFERENCE` | The `REF:` line verbatim (e.g. `Refs ENG-123`). Never `Closes #` — close keywords don't apply to external trackers. |
+| `INCOMPLETE` | `Closes #<num>` — note "N unchecked acceptance criteria" inline in the summary. |
+| `BLOCKED` | No close keyword; note "issue #X has blocking labels" inline. |
+| `NOT_FOUND` / `NO_ISSUE` / `ERROR` | No issue link. |
 
-**For OK/INCOMPLETE:** Ask via `AskUserQuestion`:
-- "Link issue #<num> (<title>)?" → Closes #N / Refs #N / Skip
+## Phase 6: Confirm & Create (single prompt)
 
-**For all other statuses:** Ask via `AskUserQuestion`:
-- "Issue number to close with this PR? (or skip)" → User types number / Skip
+Present the complete proposed PR — title, body, and the issue link from Phase 5 —
+in **one** `AskUserQuestion`:
 
-## Phase 6: Create PR
+- "Create this PR?" → **Create** / **Create draft** / **Edit** / **Skip**
+  - **Edit** covers changing the issue link, title, or body — only then ask what to change. Don't pre-emptively prompt for any of them.
 
-Ask user via `AskUserQuestion`:
-- "Create pull request?" → Yes / Yes (draft) / Skip
-
-If user chooses to create:
+On Create / Create draft:
 
 ```bash
 gh pr create --title "<type>(<scope>): <summary>" --body "$(cat <<'EOF'
 ## Summary
-[Generated summary with issue reference if found]
+[Generated summary with the Phase 5 issue link if any]
 
 ## Changes
 - **Component:** Description
@@ -131,10 +127,7 @@ EOF
 )"
 ```
 
-Add flags:
-- `--draft` if user selected draft
-
-Capture PR URL from output.
+Add `--draft` if draft was selected. Capture the PR URL from output.
 
 ## Phase 7: Final Report
 

@@ -33,7 +33,7 @@ CommitCraft also triggers from natural language — "commit my changes", "open a
 | `push` | Full commit + push with issue validation, branch tracking, and post-push issue comments |
 | `pr` | Creates a PR with AI-generated description, issue linking, draft support |
 | `release` | Guides semantic versioning via release-please (if configured) or manual tag workflow |
-| `setup` | Interactive 7-component tooling setup (commitlint, gitleaks, pre-commit, signing, release-please, CI, branch protection) |
+| `setup` | Interactive 8-component tooling setup (commitlint, gitleaks, pre-commit, signing, release-please, CI, issue tracker, branch protection — the last can be provisioned via the GitHub API so CI checks actually gate merges) |
 | `check` | Validates installed tooling and reports configuration status |
 
 ## Architecture
@@ -46,7 +46,7 @@ commitcraft/                          # ${CLAUDE_PLUGIN_ROOT}
 │   └── workflows/                    # commit, push, pr, release, setup, check
 ├── scripts/
 │   ├── commitcraft-setup.sh          # Interactive tooling setup + --check mode
-│   ├── commitcraft-issues.sh         # Branch-based GitHub issue validation
+│   ├── commitcraft-issues.sh         # Branch-based issue validation (GitHub/Linear/Jira/none)
 │   └── commitcraft-release-analyze.sh# Semantic version analysis (fallback release)
 └── templates/                        # commitlint, gitleaks, pre-commit, release-please configs
 ```
@@ -67,8 +67,11 @@ correctly regardless of where the plugin cache lives.
 
 - Claude Code with plugin support
 - `git`
-- `gh` (authenticated via `gh auth login`) for issue validation and PR creation —
-  workflows degrade gracefully when it is absent
+- `gh` (authenticated via `gh auth login`) for GitHub-Issues validation, PR creation, and
+  optional branch-protection provisioning — workflows degrade gracefully when it is absent
+  (a missing `gh` warns and continues rather than blocking commit/push/analysis)
+- The issue tracker is configurable via `setup` (`github` | `linear` | `jira` | `none`);
+  Linear/Jira reference keys from the branch name (e.g. `Refs ENG-123`) and need no `gh`
 - Optional per-repo tooling (commitlint, gitleaks, pre-commit, release-please),
   configured by the `setup` workflow
 
