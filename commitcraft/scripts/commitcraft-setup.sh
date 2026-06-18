@@ -39,6 +39,13 @@ SECTION_NAME=""
 REPO_ROOT=""
 REPO_PATH=""
 HOOK_MANAGER=""
+TICKET_TOOL=""
+# Non-interactive driving (lets an agent run setup from chat without a TTY)
+ASSUME_DEFAULTS=false   # --yes: accept each prompt's default instead of reading
+TICKET_TOOL_ARG=""      # --ticket <github|linear|jira|none>
+APPLY_BP=false          # --apply-branch-protection
+BP_REVIEWS=1            # --pr-reviews N (0 = don't require PR reviews; good for solo repos)
+BP_ENFORCE_ADMINS=true  # --no-enforce-admins flips this off
 
 # ============================================================================
 # Utility Functions
@@ -87,12 +94,22 @@ ask_yes_no() {
         return 1
     fi
 
+    # Non-interactive: take the prompt's own default, echo the decision for visibility.
+    if [[ "$ASSUME_DEFAULTS" == "true" ]]; then
+        if [[ "$default" == "y" ]]; then
+            echo "$prompt [Y/n] y (auto)"
+            return 0
+        fi
+        echo "$prompt [y/N] n (auto)"
+        return 1
+    fi
+
     local choice
     if [[ "$default" == "y" ]]; then
-        read -rp "$prompt [Y/n] " choice
+        read -rp "$prompt [Y/n] " choice || true
         choice="${choice:-y}"
     else
-        read -rp "$prompt [y/N] " choice
+        read -rp "$prompt [y/N] " choice || true
         choice="${choice:-n}"
     fi
 
@@ -114,9 +131,36 @@ parse_args() {
                 SECTION_NAME="$2"
                 shift 2
                 ;;
+            --yes|-y)
+                ASSUME_DEFAULTS=true
+                shift
+                ;;
+            --ticket)
+                TICKET_TOOL_ARG="$2"
+                case "$TICKET_TOOL_ARG" in
+                    github|linear|jira|none) ;;
+                    *) log_error "Invalid --ticket '$TICKET_TOOL_ARG' (expected github|linear|jira|none)"; exit 1 ;;
+                esac
+                shift 2
+                ;;
+            --apply-branch-protection)
+                APPLY_BP=true
+                shift
+                ;;
+            --pr-reviews)
+                BP_REVIEWS="$2"
+                case "$BP_REVIEWS" in
+                    ''|*[!0-9]*) log_error "Invalid --pr-reviews '$BP_REVIEWS' (expected a non-negative integer)"; exit 1 ;;
+                esac
+                shift 2
+                ;;
+            --no-enforce-admins)
+                BP_ENFORCE_ADMINS=false
+                shift
+                ;;
             *)
                 log_error "Unknown argument: $1"
-                echo "Usage: $0 [--check] [--section NAME]"
+                echo "Usage: $0 [--check] [--section NAME] [--yes] [--ticket TOOL] [--apply-branch-protection]"
                 exit 1
                 ;;
         esac
@@ -518,8 +562,11 @@ check_branch_protection() {
     # Extract owner/repo from URL and store globally
     REPO_PATH=$(echo "$remote_url" | sed -E 's#.*github\.com[:/]##' | sed 's/\.git$//')
 
+    local default_branch
+    default_branch=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "main")
+
     local api_response
-    api_response=$(gh api "repos/$REPO_PATH/branches/main/protection" 2>/dev/null || echo "")
+    api_response=$(gh api "repos/$REPO_PATH/branches/${default_branch:-main}/protection" 2>/dev/null || echo "")
 
     if [[ -n "$api_response" ]]; then
         status="CONFIGURED"
@@ -555,6 +602,15 @@ check_branch_protection() {
         fi
         if [[ "$linear_history" == "true" ]]; then
             detail_parts+=("linear history: yes")
+        fi
+
+        # Flag installed CI workflows that exist but aren't required checks —
+        # they run but can't actually block a merge.
+        local not_required=()
+        [[ -f ".github/workflows/commitlint.yml" ]] && [[ "$status_checks" != *commitlint* ]] && not_required+=("commitlint")
+        [[ -f ".github/workflows/gitleaks.yml" ]] && [[ "$status_checks" != *gitleaks* ]] && not_required+=("gitleaks")
+        if [[ ${#not_required[@]} -gt 0 ]]; then
+            detail_parts+=("NOT REQUIRED (runs but doesn't gate): ${not_required[*]}")
         fi
 
         if [[ ${#detail_parts[@]} -gt 0 ]]; then
@@ -905,7 +961,7 @@ setup_precommit_hooks() {
         echo "Which hook manager do you prefer?"
         echo "1) husky (Node-centric)"
         echo "2) pre-commit framework (Python-centric, language-agnostic)"
-        read -rp "Choice [1]: " choice
+        read -rp "Choice [1]: " choice || true
         choice="${choice:-1}"
 
         if [[ "$choice" == "2" ]]; then
@@ -981,7 +1037,7 @@ setup_signed_commits() {
         has_ssh_keys=true
     fi
 
-    if gpg --list-secret-keys &>/dev/null | grep -q "sec"; then
+    if gpg --list-secret-keys 2>/dev/null | grep -q "sec"; then
         has_gpg_keys=true
     fi
 
@@ -991,7 +1047,7 @@ setup_signed_commits() {
     echo "Choose signing method:"
     echo "1) SSH signing (simpler, recommended)"
     echo "2) GPG signing (traditional)"
-    read -rp "Choice [1]: " choice
+    read -rp "Choice [1]: " choice || true
     choice="${choice:-1}"
 
     if [[ "$choice" == "1" ]]; then
@@ -1069,7 +1125,7 @@ setup_release_please() {
     fi
 
     echo "Detected release type: $release_type"
-    read -rp "Press Enter to use '$release_type', or enter type [node/python/go/rust/simple]: " user_type
+    read -rp "Press Enter to use '$release_type', or enter type [node/python/go/rust/simple]: " user_type || true
 
     # Validate release type input
     if [[ -n "$user_type" ]]; then
@@ -1084,7 +1140,7 @@ setup_release_please() {
     fi
 
     # Ask for initial version
-    read -rp "Initial version [0.0.0]: " initial_version
+    read -rp "Initial version [0.0.0]: " initial_version || true
 
     # Validate version input (basic semver pattern: N.N.N)
     if [[ -n "$initial_version" ]]; then
@@ -1146,13 +1202,115 @@ setup_ci_workflows() {
 }
 
 # ============================================================================
-# Section 7: Branch Protection Recommendations
+# Section 7: Issue Tracker
 # ============================================================================
+
+# Record which ticket tool the repo uses so commit/PR workflows format issue
+# references correctly (GitHub #123, Linear/Jira KEY-123, or none).
+setup_ticket_tool() {
+    echo ""
+    echo "=========================================="
+    echo "  Section 7: Issue Tracker"
+    echo "=========================================="
+    echo ""
+
+    # Read any existing choice as the default.
+    local current="github"
+    if [[ -f "$REPO_ROOT/.commitcraft.json" ]] && command -v jq &>/dev/null; then
+        current=$(jq -r '.ticket_tool // "github"' "$REPO_ROOT/.commitcraft.json" 2>/dev/null || echo "github")
+    fi
+
+    # Non-interactive: take the value from --ticket and skip the prompt.
+    if [[ -n "$TICKET_TOOL_ARG" ]]; then
+        TICKET_TOOL="$TICKET_TOOL_ARG"
+        log_success "Issue tracker: $TICKET_TOOL (--ticket)"
+        return
+    fi
+
+    echo "Which issue tracker does this repo use? Commit/PR footers link to it."
+    echo "  1) github  — GitHub Issues, validated via gh (Closes #123)"
+    echo "  2) linear  — reference Linear keys from the branch (Refs ENG-123)"
+    echo "  3) jira    — reference Jira keys from the branch (Refs PROJ-123)"
+    echo "  4) none    — no issue linking"
+    echo ""
+
+    local choice
+    read -rp "Select [1-4] (current: $current): " choice || true
+    case "$choice" in
+        1) TICKET_TOOL="github" ;;
+        2) TICKET_TOOL="linear" ;;
+        3) TICKET_TOOL="jira" ;;
+        4) TICKET_TOOL="none" ;;
+        "") TICKET_TOOL="$current" ;;
+        *)
+            log_warn "Unrecognized choice — keeping '$current'"
+            TICKET_TOOL="$current"
+            ;;
+    esac
+
+    log_success "Issue tracker: $TICKET_TOOL"
+}
+
+# ============================================================================
+# Section 8: Branch Protection Recommendations
+# ============================================================================
+
+# Resolve the repo's default branch (gh first, then git remote HEAD, then "main").
+detect_default_branch() {
+    local branch=""
+    if command -v gh &>/dev/null; then
+        branch=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "")
+    fi
+    if [[ -z "$branch" ]]; then
+        branch=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || echo "")
+    fi
+    echo "${branch:-main}"
+}
+
+# Provision branch protection via the GitHub API so installed CI checks actually
+# gate merges. Required checks are derived from the workflows setup installed —
+# a check that isn't listed here runs but can't block a merge.
+apply_branch_protection() {
+    local branch="$1"
+    local contexts=()
+    [[ -f ".github/workflows/commitlint.yml" ]] && contexts+=("commitlint")
+    [[ -f ".github/workflows/gitleaks.yml" ]] && contexts+=("gitleaks")
+
+    local contexts_json="[]"
+    if [[ ${#contexts[@]} -gt 0 ]] && command -v jq &>/dev/null; then
+        contexts_json=$(printf '%s\n' "${contexts[@]}" | jq -R . | jq -cs .)
+    fi
+
+    # PR reviews: a count of 0 means "don't require reviews" (null), which suits
+    # solo/marketplace repos where no second approver exists.
+    local reviews_json="null"
+    if [[ "$BP_REVIEWS" -gt 0 ]]; then
+        reviews_json="{ \"required_approving_review_count\": $BP_REVIEWS }"
+    fi
+
+    local payload
+    payload=$(cat <<JSON
+{
+  "required_status_checks": { "strict": true, "contexts": $contexts_json },
+  "enforce_admins": $BP_ENFORCE_ADMINS,
+  "required_pull_request_reviews": $reviews_json,
+  "restrictions": null
+}
+JSON
+)
+
+    if echo "$payload" | gh api -X PUT "repos/$REPO_PATH/branches/$branch/protection" --input - >/dev/null 2>&1; then
+        log_success "Branch protection applied to '$branch' (required checks: ${contexts[*]:-none}, PR reviews: $BP_REVIEWS, enforce_admins: $BP_ENFORCE_ADMINS)"
+        STATE_branch_protection="CONFIGURED"
+    else
+        log_error "Could not apply branch protection — needs admin rights and an authenticated gh. Configure manually via the URL above."
+    fi
+}
 
 recommend_branch_protection() {
     echo ""
     echo "=========================================="
-    echo "  Section 7: Branch Protection"
+    echo "  Section 8: Branch Protection"
     echo "=========================================="
     echo ""
 
@@ -1161,7 +1319,10 @@ recommend_branch_protection() {
         return
     fi
 
-    if [[ "${STATE_branch_protection}" == "CONFIGURED" ]]; then
+    # An explicit --apply-branch-protection must proceed even if a protection
+    # object already exists — it may be hollow (no required checks), which is
+    # exactly the case the apply is meant to fix.
+    if [[ "${STATE_branch_protection}" == "CONFIGURED" ]] && [[ "$APPLY_BP" != "true" ]]; then
         log_success "Branch protection already configured"
         return
     fi
@@ -1198,8 +1359,22 @@ recommend_branch_protection() {
         log_info "  Branch protection: https://github.com/{owner}/{repo}/settings/branches"
         log_info "  Rulesets (modern): https://github.com/{owner}/{repo}/settings/rules"
     fi
+    echo ""
 
-    log_warn "Automatic configuration via API not yet implemented"
+    # Offer to provision protection via the API so the installed CI checks
+    # actually gate merges (otherwise they only run and report).
+    if command -v gh &>/dev/null && [[ -n "$REPO_PATH" ]]; then
+        # --apply-branch-protection drives this non-interactively; otherwise ask.
+        if [[ "$APPLY_BP" == "true" ]] || ask_yes_no "Apply branch protection now via the GitHub API (requires admin on the repo)?" "n"; then
+            local branch
+            branch=$(detect_default_branch)
+            apply_branch_protection "$branch"
+            return
+        fi
+        log_info "Skipped — checks will run but won't block merges until they're marked required."
+    else
+        log_info "Automatic configuration needs the gh CLI and a GitHub remote — apply manually via the URL above."
+    fi
 }
 
 # ============================================================================
@@ -1242,12 +1417,23 @@ write_commitcraft_config() {
     local timestamp
     timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
+    # Preserve an existing ticket_tool when this run didn't touch that section.
+    local ticket_tool="$TICKET_TOOL"
+    if [[ -z "$ticket_tool" ]]; then
+        if [[ -f "$REPO_ROOT/.commitcraft.json" ]] && command -v jq &>/dev/null; then
+            ticket_tool=$(jq -r '.ticket_tool // "github"' "$REPO_ROOT/.commitcraft.json" 2>/dev/null || echo "github")
+        else
+            ticket_tool="github"
+        fi
+    fi
+
     cat > "$REPO_ROOT/.commitcraft.json" <<EOF
 {
   "version": "$SCRIPT_VERSION",
   "configured_at": "$timestamp",
   "ecosystems": [$(printf '"%s",' "${ECOSYSTEMS[@]}" | sed 's/,$//')],
   "hook_manager": "$HOOK_MANAGER",
+  "ticket_tool": "$ticket_tool",
   "components": {
     "commitlint": "${STATE_commitlint}",
     "gitleaks": "${STATE_gitleaks}",
@@ -1288,6 +1474,7 @@ main() {
             signing) setup_signed_commits ;;
             release) setup_release_please ;;
             ci) setup_ci_workflows ;;
+            ticket|tracker) setup_ticket_tool ;;
             branch-protection) recommend_branch_protection ;;
             *)
                 log_error "Unknown section: $SECTION_NAME"
@@ -1301,6 +1488,7 @@ main() {
         setup_signed_commits
         setup_release_please
         setup_ci_workflows
+        setup_ticket_tool
         recommend_branch_protection
     fi
 
