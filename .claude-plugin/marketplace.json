@@ -61,6 +61,17 @@
       },
       "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-validate-hooks#readme",
       "license": "MIT"
+    },
+    {
+      "name": "cc-skill-audit",
+      "source": "./cc-skill-audit",
+      "description": "Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues.",
+      "version": "2.2.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-skill-audit#readme",
+      "license": "MIT"
     }
   ]
 }

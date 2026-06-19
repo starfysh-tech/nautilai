@@ -24,7 +24,9 @@
         { "type": "json", "path": "pr-comment-review/.claude-plugin/plugin.json", "jsonpath": "$.version" },
         { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[3].version" },
         { "type": "json", "path": "cc-validate-hooks/.claude-plugin/plugin.json", "jsonpath": "$.version" },
-        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[4].version" }
+        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[4].version" },
+        { "type": "json", "path": "cc-skill-audit/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[5].version" }
       ]
     }
   }
