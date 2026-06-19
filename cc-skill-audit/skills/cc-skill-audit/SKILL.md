@@ -2,7 +2,7 @@
 name: cc-skill-audit
 description: Audit existing Claude Code skills against Anthropic's authoring guidance. Use when reviewing a SKILL.md's quality, diagnosing why a skill under- or over-triggers, tightening a description for better trigger reliability, restructuring a bloated SKILL.md, checking a skill for cross-surface portability or security before sharing, or sweeping a skills directory (including installed plugins) for skills that need work.
 argument-hint: "[skill-name-or-path]"
-allowed-tools: [Read, Edit, Glob, Grep, Bash, WebFetch]
+allowed-tools: [Read, Edit, Glob, Grep, Bash(python3:*), Bash(grep:*), Bash(ls:*), Bash(git:*), WebFetch]
 ---
 
 # Auditing Skills

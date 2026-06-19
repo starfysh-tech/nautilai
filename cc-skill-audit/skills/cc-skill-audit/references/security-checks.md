@@ -80,7 +80,7 @@ A skill that includes content designed to be processed by Claude shouldn't itsel
 ## Medium-severity checks
 
 ### 9. No unnecessary permissions
-If the skill uses `allowed-tools`, it should request only what it needs. Flag if the list is broader than the skill actually uses.
+If the skill uses `allowed-tools`, it should request only what it needs. Flag if the list is broader than the skill actually uses. Prefer scoped `Bash(<cmd>:*)` patterns over bare `Bash` to limit the permission surface to specific commands.
 
 ### 10. No PII, PHI, or secrets in examples
 If the skill includes example data, the data should be synthetic. Real names, real addresses, real medical records, real account numbers, real credentials: none of these should appear in a skill, even in examples or test fixtures.

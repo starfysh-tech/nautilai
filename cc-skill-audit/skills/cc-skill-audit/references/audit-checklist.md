@@ -44,7 +44,7 @@ For each finding, score severity:
 **Severity if invalid**: Blocker.
 
 ### 1.5 Optional frontmatter fields
-- [ ] If `allowed-tools` is set, it lists tools that actually exist (and only the ones the skill uses — see security check 9)
+- [ ] If `allowed-tools` is set, it lists tools that actually exist (and only the ones the skill uses — see security check 9), preferring scoped `Bash(<cmd>:*)` patterns over bare `Bash`
 - [ ] If `disable-model-invocation: true` is set, the skill is meant to be user-invoked only (slash command style). Confirm this matches the user's intent.
 - [ ] No unknown frontmatter keys (a typo in a field name will be silently ignored)
 
