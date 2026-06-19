@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# phi-scan git pre-commit hook.
+#
+# Scans staged files for PHI (HIPAA Safe Harbor) via phi_check.py and blocks the
+# commit if any non-test PHI is found.
+#
+# Install: copy THIS file and phi_check.py into your repo's .git/hooks/, then
+# `chmod +x .git/hooks/pre-commit` (see the phi-scan plugin README, or let the
+# /phi-scan skill install it for you).
+#
+# Opt-in branch protection: export PHI_SCAN_BLOCK_DEFAULT_BRANCH=1 to also reject
+# direct commits to main/master. Off by default — it's an opinionated policy, not
+# a PHI concern.
+set -uo pipefail
+
+# --- Opt-in: block direct commits to the default branch ---
+if [[ -n "${PHI_SCAN_BLOCK_DEFAULT_BRANCH:-}" ]]; then
+  branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo)"
+  if [[ "$branch" == "main" || "$branch" == "master" ]]; then
+    echo "phi-scan: direct commits to '$branch' are blocked (PHI_SCAN_BLOCK_DEFAULT_BRANCH set). Use a feature branch."
+    exit 1
+  fi
+fi
+
+# --- Locate the scanner: next to this hook first, then common bin dirs ---
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$HOOK_DIR/phi_check.py" ]]; then
+  PHI_CHECK="$HOOK_DIR/phi_check.py"
+elif [[ -f "$HOME/.local/bin/phi_check.py" ]]; then
+  PHI_CHECK="$HOME/.local/bin/phi_check.py"
+elif [[ -f "/usr/local/bin/phi_check.py" ]]; then
+  PHI_CHECK="/usr/local/bin/phi_check.py"
+else
+  echo "phi-scan: phi_check.py not found next to the hook or in ~/.local/bin or /usr/local/bin; skipping PHI scan."
+  exit 0
+fi
+
+# --- Resolve a Python interpreter ---
+PYTHON="$(command -v python3 || command -v python || true)"
+if [[ -z "$PYTHON" ]]; then
+  echo "phi-scan: python3 (or python) not found; skipping PHI scan."
+  exit 0
+fi
+
+# Default (no args) = scan staged files; exits non-zero on real PHI, blocking the commit.
+"$PYTHON" "$PHI_CHECK" "$@"
+exit $?

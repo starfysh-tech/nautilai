@@ -37,6 +37,7 @@ After installing, reload plugins if prompted, then invoke the plugin's skill.
 | **pr-comment-review** | Process and address review comments on the current PR — fetch threads, categorize, implement fixes behind approval gates, push, and reply inline. | `/plugin install pr-comment-review@nautilai` | [pr-comment-review/](./pr-comment-review/README.md) |
 | **cc-validate-hooks** | Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional `--fix`. | `/plugin install cc-validate-hooks@nautilai` | [cc-validate-hooks/](./cc-validate-hooks/README.md) |
 | **cc-skill-audit** | Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues. | `/plugin install cc-skill-audit@nautilai` | [cc-skill-audit/](./cc-skill-audit/README.md) |
+| **phi-scan** | Scan a repo for Protected Health Information (PHI under HIPAA Safe Harbor) — SSNs, emails, phones, IPs, dates, restricted ZIPs — then AI-triage findings to filter false positives. Optional Django/React OWASP grep pass when that stack is detected. | `/plugin install phi-scan@nautilai` | [phi-scan/](./phi-scan/README.md) |
 
 _More plugins will surface here over time._
 
@@ -69,6 +70,11 @@ nautilai/
 ├── cc-skill-audit/           # Audits skills against authoring guidance
 │   ├── .claude-plugin/plugin.json
 │   ├── skills/cc-skill-audit/SKILL.md + references/
+│   └── README.md
+├── phi-scan/                 # Scans for PHI (HIPAA) + optional OWASP
+│   ├── .claude-plugin/plugin.json
+│   ├── skills/phi-scan/SKILL.md + references/
+│   ├── scripts/phi_check.py
 │   └── README.md
 └── README.md                 # You are here
 ```
