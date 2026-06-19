@@ -35,6 +35,7 @@ After installing, reload plugins if prompted, then invoke the plugin's skill.
 | **handoff** | Compact the current conversation into a handoff document so a fresh agent can pick up the work, referencing artifacts by path rather than restating them. | `/plugin install handoff@nautilai` | [handoff/](./handoff/README.md) |
 | **cc-adoption-audit** | Audit your Claude Code setup against available features — surface what you're not using but should, setup gaps, and recently shipped features you haven't adopted. | `/plugin install cc-adoption-audit@nautilai` | [cc-adoption-audit/](./cc-adoption-audit/README.md) |
 | **pr-comment-review** | Process and address review comments on the current PR — fetch threads, categorize, implement fixes behind approval gates, push, and reply inline. | `/plugin install pr-comment-review@nautilai` | [pr-comment-review/](./pr-comment-review/README.md) |
+| **cc-validate-hooks** | Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional `--fix`. | `/plugin install cc-validate-hooks@nautilai` | [cc-validate-hooks/](./cc-validate-hooks/README.md) |
 
 _More plugins will surface here over time._
 
@@ -59,6 +60,10 @@ nautilai/
 ├── pr-comment-review/        # Addresses PR review comments
 │   ├── .claude-plugin/plugin.json
 │   ├── skills/pr-comment-review/SKILL.md
+│   └── README.md
+├── cc-validate-hooks/              # Validates local hooks config
+│   ├── .claude-plugin/plugin.json
+│   ├── skills/cc-validate-hooks/SKILL.md
 │   └── README.md
 └── README.md                 # You are here
 ```

@@ -50,6 +50,17 @@
       },
       "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/pr-comment-review#readme",
       "license": "MIT"
+    },
+    {
+      "name": "cc-validate-hooks",
+      "source": "./cc-validate-hooks",
+      "description": "Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix.",
+      "version": "2.2.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-validate-hooks#readme",
+      "license": "MIT"
     }
   ]
 }
