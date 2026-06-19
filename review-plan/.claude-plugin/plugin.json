@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "review-plan",
+  "displayName": "Review Plan",
+  "version": "2.2.0",
+  "description": "Adversarially validate an implementation plan against the actual codebase — surface risks, breaking changes, gaps, and simplifications before you build. Uses built-in agents by default and opportunistically taps review/Codex plugins when installed.",
+  "author": {
+    "name": "Randall Noval",
+    "email": "randall@starfysh.net",
+    "url": "https://github.com/starfysh-tech"
+  },
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/review-plan#readme",
+  "repository": "https://github.com/starfysh-tech/nautilai",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "planning",
+    "review",
+    "validation",
+    "plan-mode"
+  ],
+  "skills": "./skills/"
+}

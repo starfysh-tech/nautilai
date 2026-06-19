@@ -83,6 +83,17 @@
       },
       "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/phi-scan#readme",
       "license": "MIT"
+    },
+    {
+      "name": "review-plan",
+      "source": "./review-plan",
+      "description": "Adversarially validate an implementation plan against the actual codebase before building it — surface risks, breaking changes, gaps, and simplifications, then write findings back into the plan. Built-in agents by default; taps review/Codex plugins when installed.",
+      "version": "2.2.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/review-plan#readme",
+      "license": "MIT"
     }
   ]
 }
