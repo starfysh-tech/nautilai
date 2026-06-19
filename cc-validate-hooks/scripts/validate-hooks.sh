@@ -89,7 +89,7 @@ else
   echo "Validation failed with $ERRORS error(s)"
   if [[ "$FIX_MODE" == "False" ]]; then
     echo ""
-    echo "Run '/cc-validate --fix' to attempt automatic fixes"
+    echo "Run '/cc-validate-hooks --fix' to attempt automatic fixes"
   fi
   exit 1
 fi

@@ -39,7 +39,15 @@ modified = False
 with open(file_path, "r") as f:
     config: Any = json.load(f)
 
+if not isinstance(config, dict):
+    print("❌ ERROR: settings.json root must be a JSON object")
+    sys.exit(1)
+
 hooks: Any = config.get("hooks", {})
+
+if not isinstance(hooks, dict):
+    print("❌ ERROR: 'hooks' must be a JSON object")
+    sys.exit(1)
 
 if not hooks:
     print("ℹ️  INFO: no `hooks` configured in this file")
@@ -79,7 +87,10 @@ for event_name, matchers in hooks.items():
                           f"'matcher: \"{matcher}\"' will be ignored")
                     warnings += 1
 
-            if isinstance(matcher, str) and matcher and matcher != "*":
+            if not isinstance(matcher, str):
+                print(f"❌ ERROR: '{event_name}[{i}].matcher' must be a string")
+                errors += 1
+            elif matcher and matcher != "*":
                 try:
                     re.compile(matcher)
                 except re.error as e:
