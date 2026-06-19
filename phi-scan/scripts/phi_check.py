@@ -20,6 +20,7 @@ Exit codes:
 """
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -39,12 +40,14 @@ RESTRICTED_ZIP_PREFIXES = frozenset([
 ])
 
 # Markers that indicate a finding is synthetic/test data rather than real PHI.
+# NOTE: deliberately excludes bare "test"/"sample" — they're common clinical
+# words ("lab test", "blood sample") and matching them line-wide would silently
+# suppress real PHI. Software test files are filtered by path instead (see
+# SKIP_PATTERNS and is_test_data's path check).
 TEST_DATA_MARKERS = (
-    r"\btest\b",
     r"\bmock\b",
     r"\bfake\b",
     r"\bexample\b",
-    r"\bsample\b",
     r"\bdummy\b",
     r"\bplaceholder\b",
     r"\bNOTE:",
@@ -173,7 +176,7 @@ def should_scan_file(file_path: str) -> bool:
 def scan_line(line: str, line_number: int, file_path: str) -> Iterator[Finding]:
     """Scan a single line for PHI patterns."""
     # Inline suppression: skip lines marked as safe
-    if re.search(r"#\s*phi-safe|//\s*phi-safe|<!--\s*phi-safe\s*-->", line):
+    if re.search(r"#\s*phi-safe|//\s*phi-safe|--\s*phi-safe|<!--\s*phi-safe\s*-->|/\*\s*phi-safe\s*\*/", line):
         return
 
     for identifier_type, pattern in PATTERNS.items():
@@ -221,7 +224,7 @@ def get_staged_files() -> list[str]:
             check=True
         )
         return [f.strip() for f in result.stdout.splitlines() if f.strip()]
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return []
 
 
@@ -235,16 +238,28 @@ def get_staged_content(file_path: str) -> str | None:
             check=True
         )
         return result.stdout
-    except subprocess.CalledProcessError:
+    except (subprocess.CalledProcessError, FileNotFoundError):
         return None
 
 
+# Directory names pruned during the walk so we never descend into them.
+PRUNE_DIRS = frozenset([
+    "node_modules", ".git", "__pycache__", ".venv", "venv",
+    "dist", "build",
+])
+
+
 def get_all_files(directory: str = ".") -> list[str]:
-    """Get all scannable files in directory."""
+    """Get all scannable files in directory.
+
+    Prunes large/irrelevant directories in-place so they're never traversed
+    (much faster than walking everything and filtering after the fact).
+    """
     files = []
-    for path in Path(directory).rglob("*"):
-        if path.is_file():
-            str_path = str(path)
+    for root, dirs, filenames in os.walk(directory):
+        dirs[:] = [d for d in dirs if d not in PRUNE_DIRS]
+        for filename in filenames:
+            str_path = os.path.join(root, filename)
             if not should_skip_file(str_path) and should_scan_file(str_path):
                 files.append(str_path)
     return files

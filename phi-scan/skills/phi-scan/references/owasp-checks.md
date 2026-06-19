@@ -11,7 +11,7 @@ Set `TARGET_PATH` to the scanned path (default `.`).
 ## 1. Hardcoded secrets & API keys (any stack)
 
 ```bash
-grep -rn "api[_-]key\|API[_-]KEY\|secret[_-]key\|SECRET[_-]KEY\|password\s*=\|token\s*=" "$TARGET_PATH" --include="*.py" --include="*.ts" --include="*.tsx"
+grep -rnE "api[_-]key|API[_-]KEY|secret[_-]key|SECRET[_-]KEY|password[[:space:]]*=|token[[:space:]]*=" "$TARGET_PATH" --include="*.py" --include="*.ts" --include="*.tsx"
 ```
 
 Flag: secrets in code rather than env vars; API keys in committed config; passwords in fixtures that aren't obvious test data.
@@ -19,8 +19,8 @@ Flag: secrets in code rather than env vars; API keys in committed config; passwo
 ## 2. SQL injection (Django)
 
 ```bash
-grep -rn "\.raw(\|\.execute(\|executemany(\|cursor\.execute" "$TARGET_PATH" --include="*.py"
-grep -rn "SELECT.*%s\|INSERT.*%s\|UPDATE.*%s" "$TARGET_PATH" --include="*.py"
+grep -rnE "\.raw\(|\.execute\(|executemany\(|cursor\.execute" "$TARGET_PATH" --include="*.py"
+grep -rnE "SELECT.*%s|INSERT.*%s|UPDATE.*%s" "$TARGET_PATH" --include="*.py"
 ```
 
 Flag: string interpolation (f-strings, `%`) or user input in raw SQL with no parameterization. The Django ORM's normal query methods are parameterized — only raw SQL is in scope here, so don't flag ordinary ORM calls.
@@ -29,10 +29,10 @@ Flag: string interpolation (f-strings, `%`) or user input in raw SQL with no par
 
 ```bash
 # Django: |safe filter, mark_safe()
-grep -rn "|\s*safe\|mark_safe(" "$TARGET_PATH" --include="*.html" --include="*.py"
+grep -rnE "\|[[:space:]]*safe|mark_safe\(" "$TARGET_PATH" --include="*.html" --include="*.py"
 
 # React: dangerouslySetInnerHTML / innerHTML
-grep -rn "innerHTML\|dangerouslySetInnerHTML" "$TARGET_PATH" --include="*.tsx" --include="*.ts" --include="*.jsx"
+grep -rnE "innerHTML|dangerouslySetInnerHTML" "$TARGET_PATH" --include="*.tsx" --include="*.ts" --include="*.jsx"
 ```
 
 Flag: user-controlled input rendered through `|safe`, `mark_safe()`, `innerHTML`, or `dangerouslySetInnerHTML` without sanitization.
@@ -40,8 +40,8 @@ Flag: user-controlled input rendered through `|safe`, `mark_safe()`, `innerHTML`
 ## 4. Authorization gaps (Django REST)
 
 ```bash
-grep -rn "class.*ViewSet\|class.*APIView" "$TARGET_PATH" --include="*.py" -A 10 | grep -v "permission_classes"
-grep -rn "#.*@login_required\|#.*IsAuthenticated" "$TARGET_PATH" --include="*.py"
+grep -rnE "class.*ViewSet|class.*APIView" "$TARGET_PATH" --include="*.py" -A 10 | grep -v "permission_classes"
+grep -rnE "#.*@login_required|#.*IsAuthenticated" "$TARGET_PATH" --include="*.py"
 ```
 
 Flag: DRF `ViewSet`/`APIView` classes with no `permission_classes`, or commented-out auth decorators. Verify by reading — a global default permission class (set in `settings.py`) can make a missing per-view one a non-issue.
@@ -49,7 +49,7 @@ Flag: DRF `ViewSet`/`APIView` classes with no `permission_classes`, or commented
 ## 5. Sensitive data in logs (any stack)
 
 ```bash
-grep -rn "log.*password\|log.*token\|log.*secret\|logger\..*patient" "$TARGET_PATH" --include="*.py" --include="*.ts" -i
+grep -rnE "log.*password|log.*token|log.*secret|logger\..*patient" "$TARGET_PATH" --include="*.py" --include="*.ts" -i
 ```
 
 Flag: passwords, tokens, or PHI in log statements; exception handlers logging full request bodies.
