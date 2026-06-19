@@ -72,6 +72,17 @@
       },
       "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-skill-audit#readme",
       "license": "MIT"
+    },
+    {
+      "name": "phi-scan",
+      "source": "./phi-scan",
+      "description": "Scan a repo for Protected Health Information (PHI under HIPAA Safe Harbor) — SSNs, emails, phones, IPs, dates, restricted ZIPs — then AI-triage findings to filter false positives. Optionally runs Django/React OWASP grep checks when that stack is detected.",
+      "version": "2.2.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/phi-scan#readme",
+      "license": "MIT"
     }
   ]
 }
