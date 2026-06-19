@@ -38,6 +38,7 @@ After installing, reload plugins if prompted, then invoke the plugin's skill.
 | **cc-validate-hooks** | Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional `--fix`. | `/plugin install cc-validate-hooks@nautilai` | [cc-validate-hooks/](./cc-validate-hooks/README.md) |
 | **cc-skill-audit** | Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues. | `/plugin install cc-skill-audit@nautilai` | [cc-skill-audit/](./cc-skill-audit/README.md) |
 | **phi-scan** | Scan a repo for Protected Health Information (PHI under HIPAA Safe Harbor) — SSNs, emails, phones, IPs, dates, restricted ZIPs — then AI-triage findings to filter false positives. Optional Django/React OWASP grep pass when that stack is detected. | `/plugin install phi-scan@nautilai` | [phi-scan/](./phi-scan/README.md) |
+| **review-plan** | Adversarially validate an implementation plan against the actual codebase before building — surface risks, breaking changes, gaps, and simplifications, then write findings back into the plan. Built-in agents by default; taps review/Codex plugins when installed. | `/plugin install review-plan@nautilai` | [review-plan/](./review-plan/README.md) |
 
 _More plugins will surface here over time._
 
@@ -75,6 +76,10 @@ nautilai/
 │   ├── .claude-plugin/plugin.json
 │   ├── skills/phi-scan/SKILL.md + references/
 │   ├── scripts/phi_check.py
+│   └── README.md
+├── review-plan/              # Validates a plan against the codebase
+│   ├── .claude-plugin/plugin.json
+│   ├── skills/review-plan/SKILL.md + references/
 │   └── README.md
 └── README.md                 # You are here
 ```
