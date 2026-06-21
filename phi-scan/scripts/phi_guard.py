@@ -52,6 +52,8 @@ def main() -> int:
         payload = json.load(sys.stdin)
     except Exception:
         return 0
+    if not isinstance(payload, dict):
+        return 0
 
     tool_name = payload.get("tool_name", "")
     tool_input = payload.get("tool_input") or {}
