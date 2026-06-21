@@ -9,28 +9,21 @@
 <meta property="og:description" content="A Starfysh marketplace of Claude Code plugins: AI coding agents, skills, and commands." />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="https://starfysh-tech.github.io/nautilai/" />
-<meta name="theme-color" content="#e9f3f3" media="(prefers-color-scheme: light)" />
 <meta name="theme-color" content="#0a141d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    /* Ocean palette — OKLCH, sunlit shallow → abyssal deep */
-    --surface:    oklch(0.965 0.020 196);
-    --surface-2:  oklch(0.935 0.030 198);
-    --ink:        oklch(0.30 0.045 235);   /* text on the light surface */
-    --ink-soft:   oklch(0.45 0.038 233);
+    /* Ocean palette — OKLCH, one cohesive deep-ocean family */
     --deep:       oklch(0.195 0.034 240);  /* the deep */
     --deep-2:     oklch(0.155 0.032 244);  /* abyssal floor */
-    --chamber:    oklch(0.235 0.034 240);  /* card surface in the deep */
-    --foam:       oklch(0.945 0.014 205);  /* text in the deep */
+    --chamber:    oklch(0.235 0.034 240);  /* card / panel surface */
+    --foam:       oklch(0.945 0.014 205);  /* text */
     --foam-soft:  oklch(0.74 0.030 212);
-    --tide:       oklch(0.78 0.095 200);   /* teal — links/marks in the deep */
-    --tide-ink:   oklch(0.52 0.105 218);   /* teal on the light surface */
-    --lumen:      oklch(0.80 0.135 58);    /* warm bioluminescent accent (the rare 10%) */
+    --tide:       oklch(0.78 0.095 200);   /* teal — links / marks */
+    --lumen:      oklch(0.80 0.135 58);    /* warm accent (the rare 10%) */
     --line-deep:  oklch(0.55 0.03 225 / 0.28);
-    --line-lite:  oklch(0.50 0.03 222 / 0.26);
 
     --maxw: 1120px;
     --col: 70ch;
@@ -245,6 +238,7 @@
   .pdex-docs a svg { width: 15px; height: 15px; }
   .pdex-empty { color: var(--foam-soft); padding: 28px 14px; text-align: center; border: 1px dashed var(--line-deep); border-radius: 12px; }
   .pdex-inline { display: none; }
+  .pdex-inline[hidden] { display: none; }   /* beat the mobile display:block for hidden items */
 
   @media (max-width: 820px) {
     .pdex-split { display: block; }
@@ -537,8 +531,17 @@
           if (flive) flive.textContent = 'Showing ' + current.length + (current.length===1?' plugin':' plugins') + (cat==='all'?'':' in '+(FILTERLABEL[cat]||cat)) + '.';
         });
       });
-      var hm = (location.hash||'').match(/^#cat-([a-z]+)$/);
-      if (hm) { var t = hm[1], match = null; pchips.forEach(function(c){ if (c.getAttribute('data-filter')===t) match = c; }); if (match){ cat = t; pchips.forEach(function(c){ c.setAttribute('aria-pressed', c===match?'true':'false'); }); } }
+      function applyHash(render) {
+        var hm = (location.hash||'').match(/^#cat-([a-z]+)$/);
+        var t = hm ? hm[1] : 'all', match = null;
+        pchips.forEach(function(c){ if (c.getAttribute('data-filter')===t) match = c; });
+        if (!match) { t = 'all'; pchips.forEach(function(c){ if (c.getAttribute('data-filter')==='all') match = c; }); }
+        cat = t;
+        pchips.forEach(function(c){ c.setAttribute('aria-pressed', c===match?'true':'false'); });
+        if (render) renderList();
+      }
+      applyHash(false);
+      window.addEventListener('hashchange', function(){ applyHash(true); });
       qEl.addEventListener('keydown', function(e){
         if (!current.length) return;
         var ids = current.map(function(p){ return p.id; }), idx = ids.indexOf(selId);
@@ -583,7 +586,7 @@
       let d = `M ${pts[0][0].toFixed(2)} ${pts[0][1].toFixed(2)}`;
       const n = pts.length, last = close ? n : n - 1;
       for (let i = 0; i < last; i++) {
-        const p0 = pts[(i - 1 + n) % n] || pts[i], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[(i + 2) % n] || p2;
+        const p0 = close ? pts[(i - 1 + n) % n] : (i > 0 ? pts[i - 1] : pts[i]), p1 = pts[i], p2 = pts[(i + 1) % n], p3 = close ? pts[(i + 2) % n] : (i + 2 < n ? pts[i + 2] : p2);
         const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
         const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
         d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)}, ${c2x.toFixed(2)} ${c2y.toFixed(2)}, ${p2[0].toFixed(2)} ${p2[1].toFixed(2)}`;
