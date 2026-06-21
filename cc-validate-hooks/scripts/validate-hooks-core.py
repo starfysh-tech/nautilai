@@ -32,6 +32,19 @@ EVENTS_WITHOUT_MATCHER = {
 }
 KNOWN_EVENTS = MATCHER_EVENTS | EVENTS_WITHOUT_MATCHER
 
+# Hook handler types and their required string field(s) — synced 2026-06-18 from
+# https://code.claude.com/docs/en/hooks.md. An unrecognized type is warned about
+# (may be valid in a newer Claude Code), not errored, mirroring unknown events.
+REQUIRED_FIELDS = {
+    "command": ("command",),
+    "http": ("url",),
+    "mcp_tool": ("server", "tool"),
+    "prompt": ("prompt",),
+    "agent": ("prompt",),
+}
+VALID_HOOK_TYPES = set(REQUIRED_FIELDS)
+SORTED_HOOK_TYPES = sorted(VALID_HOOK_TYPES)
+
 errors = 0
 warnings = 0
 modified = False
@@ -121,30 +134,42 @@ for event_name, matchers in hooks.items():
 
             hook_type = hook_obj.get("type")
             if hook_type is None:
+                # `command` is the only type with no other required field, so it's
+                # a safe default to auto-add; we never rewrite an existing type.
                 if fix_mode:
                     hook_obj["type"] = "command"
+                    hook_type = "command"
                     modified = True
                     print(f"  ✓ Fixed: added type='command' to {event_name}[{i}].hooks[{j}]")
                 else:
                     print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}]' missing 'type' field")
                     errors += 1
-            elif hook_type != "command":
-                if fix_mode:
-                    hook_obj["type"] = "command"
-                    modified = True
-                    print(f"  ✓ Fixed: changed type to 'command' in {event_name}[{i}].hooks[{j}]")
-                else:
-                    print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}].type' must be 'command', "
-                          f"got '{hook_type}'")
-                    errors += 1
+            elif not isinstance(hook_type, str) or not hook_type:
+                # Present but not a non-empty string → malformed, not a future type.
+                print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}].type' must be a "
+                      f"non-empty string")
+                errors += 1
+                hook_type = None  # skip required-field checks
+            elif hook_type not in VALID_HOOK_TYPES:
+                # Warn, don't error — may be a type added in a newer Claude Code.
+                print(f"⚠️  WARNING: '{event_name}[{i}].hooks[{j}].type' is '{hook_type}', "
+                      f"not one of {SORTED_HOOK_TYPES} — may be valid in a newer "
+                      f"Claude Code, or a typo")
+                warnings += 1
+                hook_type = None  # skip required-field checks for an unknown type
 
-            command = hook_obj.get("command")
-            if command is None:
-                print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}]' missing 'command' field")
-                errors += 1
-            elif not command or not isinstance(command, str):
-                print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}].command' must be a non-empty string")
-                errors += 1
+            # Each known type requires its own field(s) (command/url/server+tool/prompt).
+            if hook_type:
+                for field in REQUIRED_FIELDS.get(hook_type, ()):
+                    value = hook_obj.get(field)
+                    if value is None:
+                        print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}]' (type '{hook_type}') "
+                              f"missing '{field}' field")
+                        errors += 1
+                    elif not isinstance(value, str) or not value:
+                        print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}].{field}' must be a "
+                              f"non-empty string")
+                        errors += 1
 
             timeout = hook_obj.get("timeout")
             if timeout is not None:

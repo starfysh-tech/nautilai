@@ -26,12 +26,15 @@ otherwise surface as UI failures or hooks that silently never fire.
 3. **Event names** — flagged against the known event list (see below).
 4. **Matchers** — a `matcher` on a matcher-less event is warned about (it will
    be ignored); matcher regex patterns are compile-checked.
-5. **Hook fields** — `type` must be `command`; `command` must be a non-empty
-   string; `timeout`, if present, must be a positive number.
+5. **Hook fields** — `type` must be one of `command`, `http`, `mcp_tool`,
+   `prompt`, `agent` (an unrecognized type is warned about, not errored); each
+   type's required field is present and a non-empty string (`command`→`command`,
+   `http`→`url`, `mcp_tool`→`server`+`tool`, `prompt`/`agent`→`prompt`);
+   `timeout`, if present, must be a positive number.
 
-With `--fix`, repairable issues (unused matchers, missing/wrong `type`) are
-corrected in place. A `.bak` backup of the original file is written first, and
-its path is printed in the output.
+With `--fix`, repairable issues (unused matchers, missing `type` → `command`) are
+corrected in place; an existing `type` is never rewritten. A `.bak` backup of the
+original file is written first, and its path is printed in the output.
 
 ## Valid Hook Events
 
