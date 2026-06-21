@@ -31,7 +31,12 @@ except Exception:
 
 
 def content_for_tool(tool_name: str, tool_input: dict) -> str:
-    """Extract the text a tool would write, by tool shape."""
+    """Extract the text a tool would write, by tool shape.
+
+    Keep the handled tools in sync with the PreToolUse matcher in
+    hooks/hooks.json. Drift fails safe: an unmatched tool returns "" and the
+    caller skips it (no block), rather than crashing.
+    """
     if tool_name == "Write":
         return tool_input.get("content") or ""
     if tool_name == "Edit":
