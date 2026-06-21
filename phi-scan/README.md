@@ -53,6 +53,22 @@ export PHI_SCAN_BLOCK_DEFAULT_BRANCH=1   # add to your shell profile to persist
 
 `.git/hooks/` isn't committed, so each clone re-installs. For a shared team hook, point `core.hooksPath` at a tracked directory and copy the two files there.
 
+## Real-time write guard (opt-in)
+
+The plugin also ships a `PreToolUse` hook (`hooks/hooks.json` → `scripts/phi_guard.py`) that scans the content of every `Write`/`Edit`/`MultiEdit` **before it lands on disk**. On a real (non-test) PHI match it cancels the tool call and tells Claude why — catching PHI at authoring time, not just at commit.
+
+It is **off by default** so installing the plugin never silently blocks edits. Turn it on per shell:
+
+```bash
+export PHI_SCAN_GUARD=1   # add to your shell profile to persist
+```
+
+- Uses the same scanner, test-data filtering, and inline `# phi-safe` suppressions as the commit hook.
+- Only scans scannable extensions; skips test/fixture paths.
+- **Fails open** — if the payload is malformed or the scanner can't load, the write proceeds rather than wedging the session.
+
+The git pre-commit hook and this guard are independent: the guard is the early net (per write), the commit hook is the backstop (per commit). Use either or both.
+
 ## Migrating from an earlier install
 
 Earlier versions shipped as a loose `phi_check.py`, a hand-copied git hook, or a personal `phi-security` skill. Replace those so a stale copy doesn't shadow this plugin.
