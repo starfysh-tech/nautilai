@@ -14,14 +14,20 @@ import json
 import os
 import sys
 
+TRUTHY = {"1", "true", "yes", "on"}
+
+# Opt-in gate FIRST, before importing the scanner — importing phi_check compiles
+# its regexes (~tens of ms). The guard ships default-off, so the common path must
+# cost only python startup, not a full scanner load, on every Write/Edit.
+if os.environ.get("PHI_SCAN_GUARD", "").lower() not in TRUTHY:
+    sys.exit(0)
+
 # Import the bundled scanner that ships alongside this file.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     from phi_check import scan_content, should_scan_file, should_skip_file
 except Exception:
     sys.exit(0)  # scanner unavailable → don't block
-
-TRUTHY = {"1", "true", "yes", "on"}
 
 
 def content_for_tool(tool_name: str, tool_input: dict) -> str:
@@ -37,9 +43,6 @@ def content_for_tool(tool_name: str, tool_input: dict) -> str:
 
 
 def main() -> int:
-    if os.environ.get("PHI_SCAN_GUARD", "").lower() not in TRUTHY:
-        return 0
-
     try:
         payload = json.load(sys.stdin)
     except Exception:

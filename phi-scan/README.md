@@ -63,8 +63,11 @@ It is **off by default** so installing the plugin never silently blocks edits. T
 export PHI_SCAN_GUARD=1   # add to your shell profile to persist
 ```
 
+The variable is read when Claude Code launches, so set it in your profile (or before starting `claude`) — toggling it mid-session has no effect until restart.
+
 - Uses the same scanner, test-data filtering, and inline `# phi-safe` suppressions as the commit hook.
 - Only scans scannable extensions; skips test/fixture paths.
+- Covers `Write`, `Edit`, and `MultiEdit`. Notebook edits (`NotebookEdit`) are **not** scanned — the commit hook still catches PHI in saved `.ipynb` files.
 - **Fails open** — if the payload is malformed or the scanner can't load, the write proceeds rather than wedging the session.
 
 The git pre-commit hook and this guard are independent: the guard is the early net (per write), the commit hook is the backstop (per commit). Use either or both.
