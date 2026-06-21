@@ -43,6 +43,7 @@ REQUIRED_FIELDS = {
     "agent": ("prompt",),
 }
 VALID_HOOK_TYPES = set(REQUIRED_FIELDS)
+SORTED_HOOK_TYPES = sorted(VALID_HOOK_TYPES)
 
 errors = 0
 warnings = 0
@@ -152,22 +153,23 @@ for event_name, matchers in hooks.items():
             elif hook_type not in VALID_HOOK_TYPES:
                 # Warn, don't error — may be a type added in a newer Claude Code.
                 print(f"⚠️  WARNING: '{event_name}[{i}].hooks[{j}].type' is '{hook_type}', "
-                      f"not one of {sorted(VALID_HOOK_TYPES)} — may be valid in a newer "
+                      f"not one of {SORTED_HOOK_TYPES} — may be valid in a newer "
                       f"Claude Code, or a typo")
                 warnings += 1
                 hook_type = None  # skip required-field checks for an unknown type
 
             # Each known type requires its own field(s) (command/url/server+tool/prompt).
-            for field in REQUIRED_FIELDS.get(hook_type or "", ()):
-                value = hook_obj.get(field)
-                if value is None:
-                    print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}]' (type '{hook_type}') "
-                          f"missing '{field}' field")
-                    errors += 1
-                elif not isinstance(value, str) or not value:
-                    print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}].{field}' must be a "
-                          f"non-empty string")
-                    errors += 1
+            if hook_type:
+                for field in REQUIRED_FIELDS.get(hook_type, ()):
+                    value = hook_obj.get(field)
+                    if value is None:
+                        print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}]' (type '{hook_type}') "
+                              f"missing '{field}' field")
+                        errors += 1
+                    elif not isinstance(value, str) or not value:
+                        print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}].{field}' must be a "
+                              f"non-empty string")
+                        errors += 1
 
             timeout = hook_obj.get("timeout")
             if timeout is not None:
