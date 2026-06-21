@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.1](https://github.com/starfysh-tech/nautilai/compare/v2.4.0...v2.4.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* **cc-validate-hooks:** accept all valid hook types ([f3296af](https://github.com/starfysh-tech/nautilai/commit/f3296af7055589f64aea7ac10eda85471e860ace))
+* **cc-validate-hooks:** error on non-string hook type ([84ae21a](https://github.com/starfysh-tech/nautilai/commit/84ae21a3ced5a766bc57f3ba4a73fd9faff28a8a))
+
 ## [2.4.0](https://github.com/starfysh-tech/nautilai/compare/v2.3.0...v2.4.0) (2026-06-21)
 
 
