@@ -5,3 +5,7 @@ CLAUDE.local.md
 
 # Migration tracking (local-only, not part of the published site)
 docs/migration/
+
+# Python bytecode (bundled plugin scripts are importable)
+__pycache__/
+*.pyc
