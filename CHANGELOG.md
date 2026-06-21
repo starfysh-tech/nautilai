@@ -1,5 +1,41 @@
 # Changelog
 
+## [2.3.0](https://github.com/starfysh-tech/nautilai/compare/v2.2.0...v2.3.0) (2026-06-21)
+
+
+### Features
+
+* add cc-adoption-audit plugin ([5419086](https://github.com/starfysh-tech/nautilai/commit/5419086856726f739e070bffcca0d470149827ae))
+* add cc-adoption-audit plugin ([4730210](https://github.com/starfysh-tech/nautilai/commit/4730210f494a43b69be758c438a9bfc2703ffc07))
+* add cc-validate-hooks plugin ([0fd22c4](https://github.com/starfysh-tech/nautilai/commit/0fd22c449655a639513c0f55e9a457d04c7b6b55))
+* add cc-validate-hooks plugin ([434a038](https://github.com/starfysh-tech/nautilai/commit/434a038188cd722b974c2183ba20cda2d3c4fe7e))
+* add pr-comment-review plugin ([b673ed6](https://github.com/starfysh-tech/nautilai/commit/b673ed67cae7d4b6f92a937c63a0c6c5fa0fe691))
+* add pr-comment-review plugin ([f7029ac](https://github.com/starfysh-tech/nautilai/commit/f7029aca66e45dad2ae63a5c9b24def56a268da7))
+* **cc-adoption-audit:** add what's-new section ([2958e1c](https://github.com/starfysh-tech/nautilai/commit/2958e1cfaff07931627ade951c9860f5acc1e3de))
+* **cc-adoption-audit:** add what's-new section ([4f5025b](https://github.com/starfysh-tech/nautilai/commit/4f5025b73d18e10ee880a66007940f1993f81003))
+* **cc-skill-audit:** add skill-authoring audit plugin ([520999c](https://github.com/starfysh-tech/nautilai/commit/520999c9e9847b1ca1ff1d3b81efa3e51b4eeeff))
+* **cc-skill-audit:** add skill-authoring audit plugin ([e6e9c3d](https://github.com/starfysh-tech/nautilai/commit/e6e9c3dbc9c1eba7427bb5acb51df985335a26b7))
+* **landing:** redesign marketing page with nautilus hero ([fb14012](https://github.com/starfysh-tech/nautilai/commit/fb14012bf9554610df68d5148ee677dfdba16a07))
+* **landing:** redesign marketing page with nautilus hero ([ef6d332](https://github.com/starfysh-tech/nautilai/commit/ef6d332679850bcaf01c83cc5c164cbd2a65d28b))
+* **phi-scan:** add phi/hipaa scanner plugin ([ba74ec5](https://github.com/starfysh-tech/nautilai/commit/ba74ec55f5354ff10a2b2af263c7361279d43b1e))
+* **phi-scan:** add phi/hipaa scanner plugin ([307ca3b](https://github.com/starfysh-tech/nautilai/commit/307ca3b2dabead43e0080845de23e6c40993365a))
+* **review-plan:** add plan validation plugin ([4cc3825](https://github.com/starfysh-tech/nautilai/commit/4cc38257972ed827dacc124ba6fe11bf01740e51))
+* **review-plan:** add plan validation plugin ([a94471b](https://github.com/starfysh-tech/nautilai/commit/a94471b878531aad3d578c90a3d374fa33e00784))
+
+
+### Bug Fixes
+
+* **cc-adoption-audit:** resolve home dir before file reads ([92dc30b](https://github.com/starfysh-tech/nautilai/commit/92dc30b22c5931755a6fe067075cec6de0264772))
+* **cc-validate-hooks:** harden validation + fix command hint ([a5d31dd](https://github.com/starfysh-tech/nautilai/commit/a5d31dd0475b2e63e9e3c71eeaffe55fd3603c00))
+* **landing:** address review — mobile accordion, curve, cleanup ([bd8f8f1](https://github.com/starfysh-tech/nautilai/commit/bd8f8f148c7a74908f25c6d989847ec49d85cae1))
+* **phi-scan:** address scanner robustness and portability ([30d6992](https://github.com/starfysh-tech/nautilai/commit/30d6992d5ff2b75259c7328c548446e9e54b2a1c))
+* **review-plan:** declare the head command in allowed-tools ([3a194cd](https://github.com/starfysh-tech/nautilai/commit/3a194cd0cb84f2d99cd20018cfb4a12559b1edd8))
+
+
+### Documentation
+
+* correct release-please config reference ([30a20c0](https://github.com/starfysh-tech/nautilai/commit/30a20c0e24ce31f16c90d6eb922fbf23767852ce))
+
 ## [2.2.0](https://github.com/starfysh-tech/nautilai/compare/v2.1.0...v2.2.0) (2026-06-18)
 
 
