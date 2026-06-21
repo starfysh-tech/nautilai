@@ -143,6 +143,12 @@ for event_name, matchers in hooks.items():
                 else:
                     print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}]' missing 'type' field")
                     errors += 1
+            elif not isinstance(hook_type, str) or not hook_type:
+                # Present but not a non-empty string → malformed, not a future type.
+                print(f"❌ ERROR: '{event_name}[{i}].hooks[{j}].type' must be a "
+                      f"non-empty string")
+                errors += 1
+                hook_type = None  # skip required-field checks
             elif hook_type not in VALID_HOOK_TYPES:
                 # Warn, don't error — may be a type added in a newer Claude Code.
                 print(f"⚠️  WARNING: '{event_name}[{i}].hooks[{j}].type' is '{hook_type}', "

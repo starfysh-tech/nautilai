@@ -33,8 +33,8 @@ otherwise surface as UI failures or hooks that silently never fire.
    `timeout`, if present, must be a positive number.
 
 With `--fix`, repairable issues (unused matchers, missing `type` → `command`) are
-corrected in place. An existing `type` is never rewritten. A `.bak` backup of the original file is written first, and
-its path is printed in the output.
+corrected in place; an existing `type` is never rewritten. A `.bak` backup of the
+original file is written first, and its path is printed in the output.
 
 ## Valid Hook Events
 
