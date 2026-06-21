@@ -1,5 +1,28 @@
 # Changelog
 
+## [2.4.0](https://github.com/starfysh-tech/nautilai/compare/v2.3.0...v2.4.0) (2026-06-21)
+
+
+### Features
+
+* **phi-scan:** add opt-in write-time phi guard hook ([c735d91](https://github.com/starfysh-tech/nautilai/commit/c735d9195b1961e45f7e425919ebcc1da87ea66b))
+* **phi-scan:** add opt-in write-time phi guard hook ([7244e02](https://github.com/starfysh-tech/nautilai/commit/7244e02aea781eaf3bee8b59a9aca637de3991be))
+
+
+### Bug Fixes
+
+* **phi-scan:** fail open on non-dict hook payload ([2d6d0ce](https://github.com/starfysh-tech/nautilai/commit/2d6d0ceb94bb920da7a0fd816091a0073cc7381b))
+
+
+### Performance
+
+* **phi-scan:** gate guard on env before importing scanner ([89d5228](https://github.com/starfysh-tech/nautilai/commit/89d522869d52d43f53ef4a872189fd7865a60028))
+
+
+### Documentation
+
+* **phi-scan:** note matcher/content_for_tool sync in guard ([32d6b76](https://github.com/starfysh-tech/nautilai/commit/32d6b768dee0cdfbfdee8ae2d445022e614bb369))
+
 ## [2.3.0](https://github.com/starfysh-tech/nautilai/compare/v2.2.0...v2.3.0) (2026-06-21)
 
 
