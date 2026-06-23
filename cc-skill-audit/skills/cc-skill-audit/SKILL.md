@@ -81,6 +81,14 @@ Run the audit in this order. Stop after any step where the user wants to discuss
 
 9. **Verify after editing.** Re-read the file. Confirm the YAML still parses. Confirm the description still fits within the documented frontmatter character limit.
 
+## Finding dispositions
+
+Severity (above) is *how bad*; disposition is *what you may do about it* (nautilai
+convention). Each finding is one of: **auto-fix** — mechanical SKILL.md fixes (YAML,
+a missing field) applied in place; **report** — clean skills and the findings list;
+**ask-user** — judgment calls (description rewrites, monolith splits, anything in
+step 7). Never apply an `ask-user` fix on your own — surface it and wait (step 7).
+
 ## Output format
 
 Default to **findings-first** reporting. Show only what's wrong and what to do about it. Do not list categories that have no findings.

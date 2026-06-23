@@ -36,6 +36,16 @@ With `--fix`, repairable issues (unused matchers, missing `type` → `command`) 
 corrected in place; an existing `type` is never rewritten. A `.bak` backup of the
 original file is written first, and its path is printed in the output.
 
+## Finding dispositions
+
+The `--fix` flag is the **auto-fix** disposition (nautilai convention): only safe,
+mechanical, intent-preserving repairs (missing `type`, unused matcher), always
+behind a `.bak` backup. Everything else is **report** — passing checks and
+warnings (unknown event/type, which may be valid in a newer Claude Code) are
+surfaced, not changed. Malformed config that `--fix` deliberately won't touch
+(e.g. a non-string `type`) is **ask-user** — reported as an error for you to
+decide, never silently rewritten.
+
 ## Valid Hook Events
 
 The known-events list is synced from the official docs

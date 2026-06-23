@@ -31,13 +31,23 @@ Pick the best-available tool at each step; never hard-fail because a preferred o
 - **Verify before accepting** — a comment (especially a bot's) can be wrong. Check the claim against the actual code; if it's a false positive, plan to refute it with evidence rather than "fix" it.
 - Group by file/topic. For genuinely ambiguous comments, use `AskUserQuestion` to clarify intent.
 
+### Finding dispositions
+
+Tag each comment with a disposition (nautilai convention) alongside its category:
+
+- **auto-fix** — trivially mechanical, intent-preserving comments (typo, rename, lint nit, obvious one-liner). These still go in the Phase 3 task list and are applied only after the gate (the gate is the single control point) — but within the approved batch they're applied without per-item debate.
+- **report** — a refuted false positive: reply with the evidence, change nothing.
+- **ask-user** — every substantive comment (anything touching behavior, design, or intent, plus all `?` questions). These are decided **only** through the Phase 3 gate — never silently fix or skip one.
+
+When unsure whether a comment is mechanical, treat it as `ask-user`.
+
 ## Phase 3 — Task list (approval gate)
 
 Build a consolidated list grouped **must-fix** (✓/🔍) · **questions** (?) · **suggestions** (💭), each tagged with file/line. Then **gate via `AskUserQuestion`**: Approve all · Review list · Modify scope (exclude items) · Cancel.
 
 ## Phase 4 — Implementation
 
-1. Work task by task: announce it, make the change, confirm, move on.
+1. Work the **approved** list task by task: announce it, make the change, move on. Auto-fix items don't need per-item re-confirmation; if one turns out non-mechanical mid-edit, stop and treat it as `ask-user`.
 2. After substantive changes, run the **detected check command** (see Tooling). On failure: STOP, show output, ask how to proceed.
 3. Summarize: files modified, tasks completed X/Y, check status.
 

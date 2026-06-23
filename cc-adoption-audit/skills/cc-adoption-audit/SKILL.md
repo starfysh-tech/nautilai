@@ -54,3 +54,11 @@ Keep it concise and prioritized:
 - **Freshness** — "Audited against Claude Code `<tag_name>` (published `<published_at>`); your version: `<claude --version>`. Docs index + changelog fetched today."
 
 End by offering to set up any of the recommendations.
+
+## Finding dispositions
+
+This is a report-only audit (nautilai convention). Disposition of every finding:
+**auto-fix** — *none*; **report** — the full prioritized audit (profile, adoption
+recs, setup gaps, what's new); **ask-user** — actually adopting a recommendation
+("set up X?"). Recommend and offer; never apply a setup change unprompted, and in
+particular never make "remove unused" calls — you don't have usage data.

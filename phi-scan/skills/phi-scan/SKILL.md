@@ -66,6 +66,14 @@ positives and manual-review items separately; append OWASP findings only if step
 > see the phi-scan plugin README. They're deliberately not part of this skill's
 > recurring workflow.
 
+## Finding dispositions
+
+This skill never auto-remediates (nautilai convention). Disposition of every
+finding: **auto-fix** — *none*; **report** — scanner candidates, triage results,
+and OWASP grep hits, surfaced in the report; **ask-user** — confirmed PHI exposure,
+where the remediation (redact, move to a fixture, suppress) is the user's call.
+Don't edit code to "fix" PHI on your own — report it and let the user decide.
+
 ## What gets detected
 
 ### PHI (deterministic, via `phi_check.py`)
