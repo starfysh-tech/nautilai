@@ -109,12 +109,13 @@ Two non-negotiable rules from that file:
 3. **Revise the original plan in place with `Edit`** so the plan *becomes* the leanest correct version — apply the reuse/delete/simplify wins and the cheapest-correct mitigations directly. **Do not append a "validation results" or "changes" section to the plan file** — a retrospective log confuses whoever implements it later. The plan file should read as a clean, improved plan.
 4. Into the plan, add exactly one forward-looking section — **`## Assumptions to validate before implementing`** — listing each assumption as an empirically checkable item (what to inspect/run to confirm it before writing code). This is the one addition that belongs in the plan; everything else is reported to the user (below).
 
-**Finding dispositions** (nautilai convention): **auto-fix** — revise the plan file
-in place to the leaner correct version (reuse/delete/simplify + cheapest-correct
-mitigations); **report** — verdict, footprint, and risks dropped as speculative;
-**ask-user** — conflicting or ambiguous plan decisions, resolved via
-`AskUserQuestion` (step 2) *before* finalizing. Never silently resolve an
-`ask-user` decision.
+## Finding dispositions
+
+This skill follows the nautilai convention. Disposition of every finding:
+
+- **auto-fix** — revise the plan file in place to the leaner correct version (reuse/delete/simplify + cheapest-correct mitigations);
+- **report** — verdict, footprint, and risks dropped as speculative;
+- **ask-user** — conflicting or ambiguous plan decisions, resolved via AskUserQuestion (step 2) *before* finalizing. Never silently resolve an ask-user decision.
 
 ---
 
