@@ -97,6 +97,9 @@ by relative path.
    a hardcoded path, since the install cache path changes on every update.
 4. Register the plugin in `.claude-plugin/marketplace.json`.
 5. Validate before pushing: `claude plugin validate ./<plugin> --strict`.
+6. Follow the house [conventions](docs/conventions/README.md) — including the
+   [finding-dispositions](docs/conventions/finding-dispositions.md) standard for
+   review/audit skills — or note a deliberate exception in the plugin's README.
 
 ## License
 

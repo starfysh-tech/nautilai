@@ -15,6 +15,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Adding a plugin means creating its directory **and** registering it in `marketplace.json`. Keep `name` and `description` in sync between `plugin.json` and the marketplace entry; the `version` is kept in sync automatically by release-please `extra-files` (add an entry for the new plugin's `plugin.json` and its `marketplace.json` index — the `.claude/skills/new-plugin` skill scaffolds all of this).
 
+## Conventions
+
+House conventions for authoring plugins — patterns we hold across plugins that
+aren't covered by Anthropic's skill guidance or this file — live in
+[`docs/conventions/`](docs/conventions/README.md). Notably, every review/audit
+skill follows the [finding-dispositions](docs/conventions/finding-dispositions.md)
+standard (`auto-fix` / `report` / `ask-user`). Check a new plugin against these,
+or note a deliberate exception in its README.
+
 ## Validation
 
 Before pushing plugin changes, validate the manifest:
