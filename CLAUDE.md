@@ -50,7 +50,14 @@ PR that makes the change:
 
 - Add entries under a `## <YYYY-MM-DD>` heading (newest at top; reuse the heading if one exists for today).
 - One bullet per change; name the plugin(s) affected and link the relevant doc/skill.
-- Skip routine churn (typo fixes, dep bumps, internal refactors) — those live in the release `CHANGELOG.md` via commits.
+- **Lead with the *why*, not the *what*.** The diff already shows what changed;
+  this file records the motivation — the problem it solved or the decision behind
+  it. A bullet a reader could regenerate from the commit subject isn't worth
+  adding. (The commit *bodies* are the source for this — mine them, don't restate
+  subjects.)
+- Skip routine churn (typo fixes, dep bumps, internal refactors) — those live in
+  the release `CHANGELOG.md` via commits. This log is **plugins only**; marketing
+  site / docs-page changes don't belong here.
 
 This repo follows the CommitCraft conventions it ships (see `commitcraft/README.md`):
 
