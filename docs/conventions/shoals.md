@@ -43,8 +43,8 @@ invisible shoals may `.gitignore` the path; that's their call, not the default.
 
 ## The entry format
 
-Append-only Markdown. Keep each entry to four lines — trigger, wrong, correct,
-why:
+Append-only Markdown. Keep each entry short — a `## title` plus four fields
+(trigger, wrong, correct, why):
 
 ```markdown
 ## <short title>
@@ -81,9 +81,9 @@ At the start of a run, read `.claude/shoals/<plugin>.<skill>.md` from the projec
 root if it exists, and honor every entry.
 
 When the user corrects your behavior ("don't do X / do Y instead"), append a
-shoal to that file (creating `.claude/shoals/` if needed) using the four-line
-format. Append-only; dedup on trigger; capture explicit behavioral corrections
-only. See `docs/conventions/shoals.md`.
+shoal to that file (creating `.claude/shoals/` if needed) using this format.
+Append-only; dedup on trigger; capture explicit behavioral corrections only.
+See `docs/conventions/shoals.md`.
 ```
 
 ## Which skills should adopt this
