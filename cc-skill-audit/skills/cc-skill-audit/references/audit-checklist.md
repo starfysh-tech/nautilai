@@ -166,6 +166,26 @@ Only bump versions for real post-release edits, not for build-time iterations du
 
 **Severity if missing**: Medium for skills you maintain; skip for one-shot skills.
 
+### 3.7 Persists user corrections across runs (recommended, not required)
+A skill that runs **repeatedly against the same project** and makes judgment calls
+the user corrects ("don't do X / do Y instead") benefits from capturing those
+corrections to a project-local file it reads back on the next run — so it doesn't
+re-make a mistake the user already flagged. This is the runtime, accumulating
+sibling of the static gotchas section (3.5).
+
+- [ ] If the skill is repeatedly-run and correctable: it reads a project-local
+      corrections file on invocation and appends to it (append-only; dedup;
+      explicit behavioral corrections only)
+- [ ] The write target is in the **user's project**, not the installed plugin
+      dir (which is re-cloned on update) — and writes are confined to one
+      declared path and VCS-visible, never silent edits elsewhere
+- [ ] One-shot / pure-advisory skills are exempt; a deliberate skip is fine
+
+**Severity if missing**: Medium for repeatedly-run skills; skip for one-shot.
+
+> *nautilai plugins implement this as the `shoals` convention; see that repo's
+> `docs/conventions/shoals.md`. The check above is the general principle.*
+
 ---
 
 ## 4. Bundled resources

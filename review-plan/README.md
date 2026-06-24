@@ -36,6 +36,14 @@ The skill works out of the box using **built-in agents** (`Plan`, `code-reviewer
 
 None are required. Without any of them, `/review-plan` runs a complete Claude-only validation.
 
+## Shoals (project corrections)
+
+When you correct how this skill behaves, it records the lesson in
+`.claude/shoals/review-plan.review-plan.md` in your project and reads it back on
+the next run, so it won't repeat a mistake you already flagged. The file is
+append-only and committed by default (teammates inherit it) — `.gitignore` it if
+you'd rather keep it per-developer.
+
 ## License
 
 MIT

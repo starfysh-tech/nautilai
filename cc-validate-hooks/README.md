@@ -33,6 +33,12 @@ Validates the hooks configuration in your project and user `settings.json` files
 
 It complements `claude plugin validate` — that command validates plugin *manifests*, not your user hooks config.
 
+## Shoals (project corrections)
+
+This plugin deliberately does **not** use the shoals convention (auto-captured
+project corrections). Hook validation is mechanical and deterministic — there are
+no recurring judgment calls for a project to correct across runs.
+
 ## License
 
 MIT

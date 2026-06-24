@@ -34,3 +34,25 @@ After writing, print the absolute path of the handoff doc so the user knows wher
 
 - If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc accordingly.
 - Keep it dense and skimmable — the next agent reads this cold.
+
+## Shoals (project corrections)
+
+At the start of a run, read `.claude/shoals/handoff.handoff.md` from the project
+root if it exists, and honor every entry as a constraint.
+
+When the user corrects your behavior — what a handoff doc for this project must
+always include or omit — append a shoal to that file (creating `.claude/shoals/`
+if needed):
+
+```markdown
+## <short title>
+- **Trigger:** when this comes up
+- **Wrong:** what you did that the user rejected
+- **Correct:** what to do instead
+- **Why:** the reason
+```
+
+Append-only — never edit or delete an entry; retire one with `- **Obsolete:**
+<date> — <reason>`. Dedup on **Trigger**. Capture only explicit behavioral
+corrections, not passing preferences. Mention the capture in one line; don't
+narrate it.

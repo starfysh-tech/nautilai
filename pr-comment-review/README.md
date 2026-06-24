@@ -39,6 +39,14 @@ This is the **responsive** half of the review loop. Something else generates the
 
 It complements `pr-review-toolkit` rather than duplicating it: that one *generates* reviews; this one *resolves* them.
 
+## Shoals (project corrections)
+
+When you correct how this skill categorizes, fixes, or replies to comments, it
+records the lesson in `.claude/shoals/pr-comment-review.pr-comment-review.md` in
+your project and reads it back on the next run, so it won't repeat a mistake you
+already flagged. The file is append-only and committed by default (teammates
+inherit it) — `.gitignore` it if you'd rather keep it per-developer.
+
 ## License
 
 MIT

@@ -94,3 +94,11 @@ workflow continues (no hard stop). `pr` creation and GitHub-Issues linking still
 **Wrong subcommand**
 Use lowercase: `commit`, `push`, `pr`, `release`, `setup`, `check`. An unrecognized
 argument falls back to the `commit` workflow.
+
+## Shoals (project corrections)
+
+When you correct how CommitCraft commits, scopes, names branches, or writes
+messages, it records the lesson in `.claude/shoals/commitcraft.commitcraft.md` in
+your project and reads it back on the next run, so it won't repeat a mistake you
+already flagged. The file is append-only and committed by default (teammates
+inherit it) — `.gitignore` it if you'd rather keep it per-developer.

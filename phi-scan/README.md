@@ -94,6 +94,14 @@ rm ~/.local/bin/phi_check.py              # old global script (and /usr/local/bi
 
 Keep any `scripts/phi_check.py` that a project has **intentionally checked in** (it may be wired into that repo's CI) — update its contents from this plugin's copy instead of deleting it.
 
+## Shoals (project corrections)
+
+When you correct how this skill triages or scopes findings, it records the lesson
+in `.claude/shoals/phi-scan.phi-scan.md` in your project and reads it back on the
+next run. It records *judgment only* — never a matched PHI value. The file is
+append-only and committed by default (teammates inherit it) — `.gitignore` it if
+you'd rather keep it per-developer.
+
 ## License
 
 MIT

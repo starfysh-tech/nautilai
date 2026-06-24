@@ -38,7 +38,19 @@ Versions are managed by **release-please** — this repo's own config is the roo
 
 > Note: `commitcraft/templates/release-please-config.json` is a *template CommitCraft ships into end-user repos* during `setup` — it is **not** nautilai's own release config. Don't edit it to manage this repo's versions.
 
-## Commit & git conventions
+## Plugin changelog
+
+`docs/plugin-changelog.md` is a **hand-curated** log of major, user-visible plugin
+changes (new plugin/skill/subcommand, a convention adopted, a behavior change).
+It is **separate from** the root `CHANGELOG.md`, which release-please generates
+per-release from commits — never hand-edit that one.
+
+Update `docs/plugin-changelog.md` when a change is worth a human skim, in the same
+PR that makes the change:
+
+- Add entries under a `## <YYYY-MM-DD>` heading (newest at top; reuse the heading if one exists for today).
+- One bullet per change; name the plugin(s) affected and link the relevant doc/skill.
+- Skip routine churn (typo fixes, dep bumps, internal refactors) — those live in the release `CHANGELOG.md` via commits.
 
 This repo follows the CommitCraft conventions it ships (see `commitcraft/README.md`):
 

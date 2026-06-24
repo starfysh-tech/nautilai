@@ -32,6 +32,14 @@ It grounds itself against the live docs at runtime (fetches `code.claude.com/doc
 
 This audits *your skills' content*. It complements `claude plugin validate`, which validates plugin *manifests*.
 
+## Shoals (project corrections)
+
+When you correct what this skill flags or how it scores severity, it records the
+lesson in `.claude/shoals/cc-skill-audit.cc-skill-audit.md` in your project and
+reads it back on the next run — handy for house conventions it shouldn't treat as
+defects. The file is append-only and committed by default (teammates inherit it)
+— `.gitignore` it if you'd rather keep it per-developer.
+
 ## License
 
 MIT
