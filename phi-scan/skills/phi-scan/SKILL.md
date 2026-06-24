@@ -105,3 +105,26 @@ See `references/owasp-checks.md`: hardcoded secrets, raw-SQL injection, `mark_sa
 - **ZIP false positives are common.** Any 5-digit number matches; most aren't ZIPs. Lean on context.
 - **The OWASP pass is Django/React-only and shallow.** Don't present it as a complete security audit. If the repo isn't Django/React, skip it.
 - **Test data is filtered by default.** Pass `--include-test-data` to the scanner to see suppressed test findings (useful when a fixture accidentally contains real data).
+
+## Shoals (project corrections)
+
+At the start of a run, read `.claude/shoals/phi-scan.phi-scan.md` from the project
+root if it exists, and honor every entry as a constraint.
+
+When the user corrects your behavior — what you treat as a false positive, what
+you flag, or how you scope the scan — append a shoal to that file (creating
+`.claude/shoals/` if needed):
+
+```markdown
+## <short title>
+- **Trigger:** when this comes up
+- **Wrong:** what you did that the user rejected
+- **Correct:** what to do instead
+- **Why:** the reason
+```
+
+Append-only — never edit or delete an entry; retire one with `- **Obsolete:**
+<date> — <reason>`. Dedup on **Trigger**. Capture only explicit behavioral
+corrections, not passing preferences. Mention the capture in one line; don't
+narrate it. (This records triage *judgment*, never PHI itself — never write a
+matched value into a shoal.)

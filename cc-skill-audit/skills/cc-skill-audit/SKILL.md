@@ -186,6 +186,28 @@ If the body of SKILL.md is reproducing content that should be in `references/`, 
 - **Don't audit from memory.** Always read the file before commenting. The file is the ground truth, not what the user said about the file.
 - **Don't rewrite without confirmation for judgment calls.** Fixing invalid YAML is mechanical. Rewriting a description is a judgment call. Confirm the direction first.
 
+## Shoals (project corrections)
+
+At the start of a run, read `.claude/shoals/cc-skill-audit.cc-skill-audit.md` from
+the project root if it exists, and honor every entry as a constraint.
+
+When the user corrects your behavior — what you flag (e.g. a house naming
+convention you shouldn't treat as a defect), or how you score severity — append a
+shoal to that file (creating `.claude/shoals/` if needed):
+
+```markdown
+## <short title>
+- **Trigger:** when this comes up
+- **Wrong:** what you did that the user rejected
+- **Correct:** what to do instead
+- **Why:** the reason
+```
+
+Append-only — never edit or delete an entry; retire one with `- **Obsolete:**
+<date> — <reason>`. Dedup on **Trigger**. Capture only explicit behavioral
+corrections, not passing preferences. Mention the capture in one line; don't
+narrate it.
+
 ## Version
 
 - v1.1 (2026-06-18): Packaged as the `cc-skill-audit` plugin (renamed from the personal `audit-skills` skill to avoid a public name collision). Added a runtime docs-anchor step (fetch `llms.txt` instead of trusting frozen snapshots), trigger-testing in the audit workflow, and installed-plugin skill discovery in sweep mode. Generalized security examples (removed private project context).

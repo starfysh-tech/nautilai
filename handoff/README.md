@@ -41,6 +41,13 @@ Handoff also triggers from natural language — "hand this off", "pass to next s
 If the optional argument is supplied, it's treated as a description of the next session's
 focus and the document is tailored accordingly.
 
+## Shoals (project corrections)
+
+When you correct what a handoff for this project should include or omit, it
+records the lesson in `.claude/shoals/handoff.handoff.md` in your project and
+reads it back on the next run. The file is append-only and committed by default
+(teammates inherit it) — `.gitignore` it if you'd rather keep it per-developer.
+
 ## License
 
 MIT

@@ -111,6 +111,20 @@ phrasing, so the model doesn't auto-fire a workflow meant to be explicit.
   (`disable-model-invocation: true`); read-heavy skills use `context: fork`
   (`phi-scan`, `cc-validate-hooks`).
 
+## 11. Shoals — auto-captured corrections
+
+A skill that runs repeatedly in a project captures user corrections to a
+project-local, append-only file and reads them back on the next run, so it
+doesn't repeat a mistake the user already flagged.
+
+- *Write target:* `<project>/.claude/shoals/<plugin>.<skill>.md` — never the
+  installed plugin dir (wiped on update; leaks across repos).
+- *Rule:* committed by default (team-shared, VCS-visible); append-only with
+  dedup on trigger; capture explicit behavioral corrections only — no command,
+  no gate, but never a write outside `.claude/shoals/`.
+
+→ Full spec: [`shoals.md`](./shoals.md)
+
 ---
 
 ## Auditing against these

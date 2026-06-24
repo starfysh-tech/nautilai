@@ -27,6 +27,12 @@ User-invoked only — the agent won't auto-fire it.
 
 It recommends what to adopt and where setup is incomplete; it makes no "remove unused" claims and won't tell you to tear anything out.
 
+## Shoals (project corrections)
+
+This plugin deliberately does **not** use the shoals convention (auto-captured
+project corrections). It's a one-shot, full-repo audit — there's no run-to-run
+behavior for a project to accumulate corrections against.
+
 ## License
 
 MIT

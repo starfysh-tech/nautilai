@@ -147,3 +147,25 @@ Use the structure in `references/output-template.md`. Then ask: "Plan revised in
 - `references/validation-questions.md` — the simplification pass, reconciliation rule, guardrails, and risk/edge-case questions. Read every run.
 - `references/codex-prompt.md` — prompt template for the optional Codex step.
 - `references/output-template.md` — the user-facing report + the in-plan assumptions block.
+
+## Shoals (project corrections)
+
+At the start of a run, read `.claude/shoals/review-plan.review-plan.md` from the
+project root if it exists, and honor every entry as a constraint.
+
+When the user corrects your behavior — how you scope, what you flag as a risk, or
+how aggressively you shrink the plan — append a shoal to that file (creating
+`.claude/shoals/` if needed):
+
+```markdown
+## <short title>
+- **Trigger:** when this comes up
+- **Wrong:** what you did that the user rejected
+- **Correct:** what to do instead
+- **Why:** the reason
+```
+
+Append-only — never edit or delete an entry; retire one with `- **Obsolete:**
+<date> — <reason>`. Dedup on **Trigger**. Capture only explicit behavioral
+corrections, not passing preferences. Mention the capture in one line; don't
+narrate it.

@@ -21,3 +21,25 @@ You MUST call `ToolSearch` with query `select:AskUserQuestion` RIGHT NOW before 
 Read `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/$ARGUMENTS.md` and follow its instructions exactly. If the file does not exist or cannot be read, read `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/commit.md` instead. Do not skip steps.
 
 Working directory: `$WORKING_DIRECTORY`
+
+## Shoals (project corrections)
+
+At the start of a run, read `.claude/shoals/commitcraft.commitcraft.md` from the
+project root if it exists, and honor every entry as a constraint.
+
+When the user corrects your behavior — "don't do X / do Y instead" about how
+CommitCraft commits, scopes, names branches, or writes messages — append a shoal
+to that file (creating `.claude/shoals/` if needed) in this format:
+
+```markdown
+## <short title>
+- **Trigger:** when this comes up
+- **Wrong:** what you did that the user rejected
+- **Correct:** what to do instead
+- **Why:** the reason
+```
+
+Append-only — never edit or delete an entry; retire one with `- **Obsolete:**
+<date> — <reason>`. Dedup on **Trigger** before appending. Capture only explicit
+behavioral corrections, not passing preferences. Mention the capture in one line;
+don't narrate it.

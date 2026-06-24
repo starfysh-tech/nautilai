@@ -61,3 +61,25 @@ Build a consolidated list grouped **must-fix** (✓/🔍) · **questions** (?) �
 ## Final report
 
 PR # updated · changes pushed (files + summary) · comments addressed X/Y · re-review requested (who) · URL.
+
+## Shoals (project corrections)
+
+At the start of a run, read `.claude/shoals/pr-comment-review.pr-comment-review.md`
+from the project root if it exists, and honor every entry as a constraint.
+
+When the user corrects your behavior — how you categorize comments, what you
+auto-fix vs. gate, or how you reply — append a shoal to that file (creating
+`.claude/shoals/` if needed):
+
+```markdown
+## <short title>
+- **Trigger:** when this comes up
+- **Wrong:** what you did that the user rejected
+- **Correct:** what to do instead
+- **Why:** the reason
+```
+
+Append-only — never edit or delete an entry; retire one with `- **Obsolete:**
+<date> — <reason>`. Dedup on **Trigger**. Capture only explicit behavioral
+corrections, not passing preferences. Mention the capture in one line; don't
+narrate it.
