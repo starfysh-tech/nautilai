@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.5.0](https://github.com/starfysh-tech/nautilai/compare/v2.4.1...v2.5.0) (2026-06-24)
+
+
+### Features
+
+* **conventions:** add shoals and a curated plugin changelog ([be632a5](https://github.com/starfysh-tech/nautilai/commit/be632a563c521dbd2edcce4a7ca2231ad291991d))
+* **conventions:** add shoals for auto-captured corrections ([e5a5b14](https://github.com/starfysh-tech/nautilai/commit/e5a5b141e8156b4648ae0c73e8650a3e21ac0e0e))
+* **conventions:** standardize finding dispositions ([1113667](https://github.com/starfysh-tech/nautilai/commit/111366768d84109fade78fb32b0ba1cf16009b06))
+* **conventions:** standardize finding dispositions ([69bca7f](https://github.com/starfysh-tech/nautilai/commit/69bca7fa7d4916dfb1df5f17e30f405fca1cc50a))
+
+
+### Documentation
+
+* **changelog:** backfill plugin history, why over what ([54a0569](https://github.com/starfysh-tech/nautilai/commit/54a05694bc8920e4ff7d157d67186be14ae1313a))
+* **conventions:** clarify shoal entry format ([ae4468d](https://github.com/starfysh-tech/nautilai/commit/ae4468d3918ba959021ab8e7c52e29a6191654ba))
+
 ## [2.4.1](https://github.com/starfysh-tech/nautilai/compare/v2.4.0...v2.4.1) (2026-06-21)
 
 
