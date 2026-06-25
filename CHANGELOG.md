@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.8.0](https://github.com/starfysh-tech/nautilai/compare/v2.7.3...v2.8.0) (2026-06-25)
+
+
+### Features
+
+* **commitcraft:** honor repo changelog-sections config ([c1a75ce](https://github.com/starfysh-tech/nautilai/commit/c1a75ce75f6dc979b6d0c1b940bb7f0a6d1091ab))
+* **commitcraft:** honor repo changelog-sections config ([43191ef](https://github.com/starfysh-tech/nautilai/commit/43191ef267ca10c6434cbb4333a056b84586115c))
+
+
+### Bug Fixes
+
+* **commitcraft:** read changelog-sections from either layout ([84ae30d](https://github.com/starfysh-tech/nautilai/commit/84ae30dad0d4efe9785f52659247d058e358581a))
+
+
+### Documentation
+
+* **commitcraft:** note config-driven changelog sections ([c77ab3f](https://github.com/starfysh-tech/nautilai/commit/c77ab3f048acd845c6ee40396e7393803e8d5049))
+
 ## [2.7.3](https://github.com/starfysh-tech/nautilai/compare/v2.7.2...v2.7.3) (2026-06-25)
 
 
