@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.7.0](https://github.com/starfysh-tech/nautilai/compare/v2.6.0...v2.7.0) (2026-06-25)
+
+
+### Features
+
+* port five internal skills as marketplace plugins ([dc7db1a](https://github.com/starfysh-tech/nautilai/commit/dc7db1a1f0d8662f691779c81af14ae16e48b447))
+* port five internal skills as marketplace plugins ([1791e8d](https://github.com/starfysh-tech/nautilai/commit/1791e8d5cc65a386912e4aff8223809063896dd6))
+
+
+### Bug Fixes
+
+* harden bundled scripts from pr review ([f175d6f](https://github.com/starfysh-tech/nautilai/commit/f175d6f55fa2c848b9831280c41a76ced078ac75))
+* scope release auto-merge to the repository ([b5edcd6](https://github.com/starfysh-tech/nautilai/commit/b5edcd6cf1af333918a7d5fa8159f4db1069d844))
+* scope release auto-merge to the repository ([6d02813](https://github.com/starfysh-tech/nautilai/commit/6d028137353dab20828d158474d155ad7d71dc80))
+
+
+### Documentation
+
+* document automated release and validate gate ([721e044](https://github.com/starfysh-tech/nautilai/commit/721e0449999cd6f072ba1620e9a331cf365515e6))
+* document automated release and validate gate ([d65a5b7](https://github.com/starfysh-tech/nautilai/commit/d65a5b7414486f357388e9f98e3e69af88a262ac))
+
 ## [2.6.0](https://github.com/starfysh-tech/nautilai/compare/v2.5.0...v2.6.0) (2026-06-25)
 
 
