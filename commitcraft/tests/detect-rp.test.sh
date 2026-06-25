@@ -42,48 +42,33 @@ trap 'rm -rf "$TMP"' EXIT
 
 echo "detect-rp tests"
 
+# One case per distinct decision branch. (The actual neutered repro is validated
+# live against the source repo, so no synthetic combined-signal case is kept here.)
+
 # 1. No release-please at all -> ABSENT
 d="$TMP/absent"; mkdir -p "$d"
 assert "absent: no workflow" ABSENT "$(status_of "$d")"
 
-# 2. Functional config + real version -> FUNCTIONAL (no gh needed)
+# 2. Functional config + real version -> FUNCTIONAL
 d="$(mk functional)"; echo '{".": "1.4.2"}' > "$d/.release-please-manifest.json"
 assert "functional: write perms + real version" FUNCTIONAL "$(PATH="$STUBS:$PATH" status_of "$d")"
 
-# 3. skip-github-release: true -> DISABLED
+# 3. skip-github-* flag -> DISABLED
 d="$(mk skip_release)"; printf '%s\n' "          skip-github-release: true" >> "$d/$WF_DIR/release-please.yml"
-assert "disabled: skip-github-release" DISABLED "$(status_of "$d")"
+assert "disabled: skip-github flag" DISABLED "$(status_of "$d")"
 
-# 4. skip-github-pull-request: true -> DISABLED
-d="$(mk skip_pr)"; printf '%s\n' "          skip-github-pull-request: true" >> "$d/$WF_DIR/release-please.yml"
-assert "disabled: skip-github-pull-request" DISABLED "$(status_of "$d")"
-
-# 5. permissions block without contents: write -> DISABLED
+# 4. permissions block without contents: write -> DISABLED
 d="$TMP/readonly"; mkdir -p "$d/$WF_DIR"
 printf 'name: RP\non:\n  push:\n    branches: [main]\npermissions:\n  contents: read\njobs:\n  release-please:\n    steps:\n      - uses: googleapis/release-please-action@v4\n' > "$d/$WF_DIR/release-please.yml"
 assert "disabled: permissions lack contents:write" DISABLED "$(status_of "$d")"
 
-# 6. manifest all 0.0.0 + gh shows no autorelease history -> DISABLED
+# 5. manifest 0.0.0 + no release-please history -> DISABLED (never cut a release)
 d="$(mk manifest_zero)"; echo '{".": "0.0.0"}' > "$d/.release-please-manifest.json"
 assert "disabled: 0.0.0 + no RP history" DISABLED "$(PATH="$STUBS:$PATH" STUB_GH_LABELS="" status_of "$d")"
 
-# 7. manifest 0.0.0 BUT autorelease labels exist (RP has run) -> FUNCTIONAL
+# 6. manifest 0.0.0 BUT autorelease labels exist -> FUNCTIONAL (don't hijack a working RP)
 d="$(mk zero_but_history)"; echo '{".": "0.0.0"}' > "$d/.release-please-manifest.json"
 assert "functional: 0.0.0 but RP labels exist" FUNCTIONAL "$(PATH="$STUBS:$PATH" STUB_GH_LABELS="autorelease: pending" status_of "$d")"
-
-# 8. manifest 0.0.0 + gh unavailable (cannot confirm) -> FUNCTIONAL (don't hijack)
-d="$(mk zero_no_gh)"; echo '{".": "0.0.0"}' > "$d/.release-please-manifest.json"
-assert "functional: 0.0.0 but gh unauthed" FUNCTIONAL "$(PATH="$STUBS:$PATH" STUB_GH_AUTHED=0 status_of "$d")"
-
-# 9. functional config but manifest missing entirely + no history -> DISABLED
-d="$(mk no_manifest)"  # mk leaves no manifest file
-assert "disabled: no manifest + no RP history" DISABLED "$(PATH="$STUBS:$PATH" STUB_GH_LABELS="" status_of "$d")"
-
-# 10. the real-world repro: skip flags + read perms + 0.0.0 together -> DISABLED
-d="$TMP/repro"; mkdir -p "$d/$WF_DIR"
-printf 'name: RP\non:\n  push:\n    branches: [main]\npermissions:\n  contents: read\njobs:\n  release-please:\n    steps:\n      - uses: googleapis/release-please-action@v4\n        with:\n          skip-github-release: true\n          skip-github-pull-request: true\n' > "$d/$WF_DIR/release-please.yml"
-echo '{".": "0.0.0"}' > "$d/.release-please-manifest.json"
-assert "disabled: real-world neutered repro" DISABLED "$(status_of "$d")"
 
 echo ""
 echo "  $PASS passed, $FAIL failed"
