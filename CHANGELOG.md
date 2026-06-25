@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.0](https://github.com/starfysh-tech/nautilai/compare/v2.5.0...v2.6.0) (2026-06-25)
+
+
+### Features
+
+* **pr-review-deep:** add deep code-quality review plugin ([6a91ece](https://github.com/starfysh-tech/nautilai/commit/6a91ecef103ef0f8462010c00a9dc36f881938f1))
+* **pr-review-deep:** add deep code-quality review plugin ([ae7b742](https://github.com/starfysh-tech/nautilai/commit/ae7b74257c6a71158ec84264f1b03ad3b8969157))
+
 ## [2.5.0](https://github.com/starfysh-tech/nautilai/compare/v2.4.1...v2.5.0) (2026-06-24)
 
 
