@@ -1,0 +1,31 @@
+{
+  "scan_date": "",
+  "scope": "",
+  "scanner_summary": {},
+  "findings": [
+    {
+      "id": "RBAC-X1",
+      "severity": "critical|high|medium|low",
+      "type": "missing-authz|cross-tenant|idor|over-privileged|data-leak|inconsistent-role|inline-check|frontend-mismatch|role-name-coupling|write-side-gap|phi-filter-gap|logging-gap",
+      "title": "",
+      "location": "file:line",
+      "description": "",
+      "impact": "",
+      "evidence": "",
+      "recommendation": ""
+    }
+  ],
+  "role_permission_matrix": {
+    "Resource (action)": {
+      "<role-name>": "all|yes|no|own-tenant|read-only",
+      "staff": "all|yes|no",
+      "unauthenticated": "no"
+    }
+  },
+  "verified_secure_patterns": [],
+  "methodology": {
+    "checked": [],
+    "out_of_scope": [],
+    "tools": []
+  }
+}
