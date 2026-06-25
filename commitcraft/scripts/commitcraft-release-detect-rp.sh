@@ -34,15 +34,17 @@ emit() {
 [ -f "$WF" ] || emit ABSENT "no $WF in this repo"
 
 # 1. Explicitly neutered via skip flags (runs green every push, produces nothing).
-grep -Eq 'skip-github-release:[[:space:]]*true' "$WF" \
+#    `[^#]*` keeps a commented-out flag (`# skip-github-release: true`) from matching.
+grep -Eq '^[[:space:]]*[^#]*skip-github-release:[[:space:]]*true' "$WF" \
     && emit DISABLED "release-please.yml sets skip-github-release: true (creates no GitHub release)"
-grep -Eq 'skip-github-pull-request:[[:space:]]*true' "$WF" \
+grep -Eq '^[[:space:]]*[^#]*skip-github-pull-request:[[:space:]]*true' "$WF" \
     && emit DISABLED "release-please.yml sets skip-github-pull-request: true (opens no release PR)"
 
 # 2. Lacks write permission to create tags/PRs. Only flag when a permissions:
 #    block exists but omits `contents: write` — an absent block leaves repo/org
 #    defaults, which we do not second-guess.
-if grep -Eq '^[[:space:]]*permissions:' "$WF"; then
+# `permissions: write-all` grants contents:write without naming it — don't flag it.
+if grep -Eq '^[[:space:]]*permissions:' "$WF" && ! grep -Eq '^[[:space:]]*permissions:[[:space:]]*write-all' "$WF"; then
     grep -Eq '^[[:space:]]*contents:[[:space:]]*write' "$WF" \
         || emit DISABLED "release-please.yml permissions block lacks contents: write (cannot tag/release)"
 fi
@@ -52,10 +54,11 @@ fi
 #    labels) when gh is available so a freshly-installed-but-functional RP is not
 #    mistaken for a disabled one.
 manifest_never_released() {
-    [ -f "$MANIFEST" ] || return 0                          # missing manifest
-    grep -Eq '"0\.0\.0"' "$MANIFEST" && return 0            # at least one 0.0.0...
-    grep -Eq '"[0-9]+\.[0-9]+\.[0-9]+"' "$MANIFEST" && return 1  # ...else a real version means it has released
-    return 0                                                # no parseable version -> treat as never-released
+    [ -f "$MANIFEST" ] || return 0   # missing manifest
+    # Released if ANY package has a non-0.0.0 version — a monorepo can mix a freshly
+    # added 0.0.0 package with already-released ones.
+    grep -E '"[0-9]+\.[0-9]+\.[0-9]+"' "$MANIFEST" | grep -vq '"0\.0\.0"' && return 1
+    return 0   # only 0.0.0 (or no parseable version) -> never released
 }
 
 if manifest_never_released; then
