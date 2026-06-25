@@ -13,6 +13,18 @@ jobs:
   release-please:
     runs-on: ubuntu-latest
     steps:
+      # Use a PAT, not GITHUB_TOKEN: events created by GITHUB_TOKEN do not trigger
+      # other workflows, so the release PR's required checks would never run and the
+      # merge would never re-trigger this workflow to publish the release.
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+      # Turn the bot's release PR on to auto-merge so a green build publishes the
+      # release with no human step. GitHub holds the merge until required checks pass.
+      - name: Enable auto-merge on the release PR
+        if: ${{ steps.release.outputs.pr }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: gh pr merge --auto --squash "${{ fromJson(steps.release.outputs.pr).number }}"

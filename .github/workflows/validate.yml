@@ -1,0 +1,36 @@
+name: Validate plugins
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      # Each top-level dir with a plugin manifest is a plugin. Validate every one so
+      # a malformed manifest/skill can't ride a green build into an auto-release.
+      - name: Validate every plugin manifest
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          manifests=(*/.claude-plugin/plugin.json)
+          if [ ${#manifests[@]} -eq 0 ]; then
+            echo "No plugin manifests found" >&2
+            exit 1
+          fi
+          for manifest in "${manifests[@]}"; do
+            plugin_dir="$(dirname "$(dirname "$manifest")")"
+            echo "::group::validate $plugin_dir"
+            claude plugin validate "./$plugin_dir" --strict
+            echo "::endgroup::"
+          done
