@@ -62,6 +62,11 @@ and proceed; don't silently fail.
   (`gh repo view --json nameWithOwner`).
 - If neither resolves, ask the user which repo to audit. Never guess.
 
+Each phase below has a deterministic Python implementation under `scripts/` (see
+[Scripts](#scripts)). Use it when you want reproducible discovery/analysis instead
+of hand-running queries; drive the phases directly (MCP/`gh`) when you need the
+taxonomy-aware judgment the scripts don't encode.
+
 ## Phase 1 — Discover the taxonomy + the issues (read-only)
 
 **1a. Detect the repo's label taxonomy** — do not assume any label names.
@@ -143,6 +148,36 @@ requires the user to ask for changes after seeing the report. Then:
    reversible — that is the audit trail (no local `.bak` needed). Report what
    changed: issue #, action, result; list any failures (permission, not-found,
    rate-limit) and continue past them.
+
+## Scripts
+
+This skill ships a deterministic, stdlib-only (Python 3.8+) implementation of the
+four phases under `${CLAUDE_PLUGIN_ROOT}/skills/github-issue-auditor/scripts/`. The
+graceful-degradation order above still holds — the scripts shell out to `gh`.
+
+- `discovery.py` — **Phase 1** `gh` queries for marked duplicates, unlabeled, stale
+  backlog, and orphaned sub-issues (body-reference parsing + confirmed-closed parent
+  check). `DiscoveryEngine(stale_threshold_days, duplicate_label, backlog_label)`:
+  pass the labels you detected in **Phase 1a** instead of the defaults
+  (`status: duplicate`, `status: backlog`) when this repo's taxonomy differs — don't
+  assume the defaults fit. Standalone:
+  `python3 ${CLAUDE_PLUGIN_ROOT}/skills/github-issue-auditor/scripts/discovery.py`.
+- `analyzer.py` — **Phase 2** normalized Levenshtein title similarity (default
+  threshold `0.75`, honor `--similarity`), parent-reference extraction, age, and a
+  suggested disposition per finding. `IssueAnalyzer(similarity_threshold=0.75)`.
+- `interactive_review.py` — **Phase 3** per-item approval reference flow. In-skill,
+  the `AskUserQuestion` gate is the canonical approval control; this is its CLI
+  equivalent (`InteractiveReviewer.review_all`).
+- `executor.py` — **Phase 4** applies approved actions via `gh`
+  (`ActionExecutor(dry_run=...)`: close-with-comment, add-label, comment,
+  investigation comment). Supports a dry-run preview.
+- `report_generator.py` — optional markdown audit report
+  (`ReportGenerator.generate_report` / `save_report`).
+
+Config schema: `${CLAUDE_PLUGIN_ROOT}/skills/github-issue-auditor/config.example.json`
+(`stale_threshold_days`, `similarity_threshold`, `categories_to_audit`,
+`generate_report`, `dry_run`). Invocation examples and workflows:
+`references/HOW_TO_USE.md`.
 
 ## Finding dispositions
 

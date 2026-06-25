@@ -4,7 +4,7 @@ description: Audit a React + TypeScript frontend for component architecture — 
 argument-hint: "[path]"
 disable-model-invocation: true
 context: fork
-allowed-tools: [Read, Glob, Grep]
+allowed-tools: [Read, Glob, Grep, Bash]
 ---
 
 # React Component Architecture Audit
@@ -13,9 +13,12 @@ Review a React + TypeScript codebase for composition, reuse, prop drilling, vari
 typing, and folder organization. This is a **read-only, propose-only** audit — it
 reports findings and lets the user decide what to change. It never edits code.
 
-This skill performs the analysis directly with `Glob`/`Grep`/`Read` (no bundled
-engine). Treat the thresholds below as defaults, not law — a project's own
-conventions (or its shoals file) override them.
+This skill ships a bundled Python analysis engine under
+`${CLAUDE_PLUGIN_ROOT}/skills/react-component-architecture/scripts/`. Run it (step 2)
+to produce the findings rather than reimplementing the checks by hand; use
+`Glob`/`Grep`/`Read` to confirm, contextualize, or extend a finding (e.g. show the prop
+chain). Treat the thresholds below as defaults, not law — a project's own conventions
+(or its shoals file) override them.
 
 ## Shoals (project corrections)
 
@@ -58,8 +61,25 @@ Do **not** assume `client/`, `src/`, or any fixed path. Detect it:
 
 ### 2. Run the checks
 
-Gather `.tsx`/`.jsx` (and `.ts` for type/variant checks) under the resolved root, then
-evaluate each check below. Cite `file:line` for every finding.
+Run the bundled engine against the resolved root. It analyzes every `.tsx`/`.jsx`
+component (skipping `node_modules`, `dist`, `.next`, `__tests__`, `*.test`/`*.spec`),
+runs all checks below, and prints a findings report with `file:line`:
+
+```bash
+ROOT="<resolved source root>"   # from step 1
+PYTHONPATH="${CLAUDE_PLUGIN_ROOT}/skills/react-component-architecture/scripts" \
+  python3 -c "import sys; from architecture_reporter import ArchitectureReporter; print(ArchitectureReporter(sys.argv[1]).generate_full_report())" "$ROOT"
+```
+
+For a machine-readable summary (health score + violation counts) — e.g. a CI gate —
+call `ArchitectureReporter(root).export_json(path)` or `.check_ci_gates(min_health_score=70)`
+on the same module. Thresholds are configurable via the constructor's `config` dict
+(`component_size_limit`, `prop_drilling_depth`, `min_duplicate_count`, `folder_structure`,
+`type_coverage_threshold`, `complexity_threshold`) — see `references/sample_input.json`.
+
+The engine's individual modules (`component_analyzer`, `prop_drilling_detector`,
+`duplicate_pattern_finder`, `folder_structure_validator`) can also be run directly for a
+single check. Each finding below maps to one of them; cite `file:line` for every finding.
 
 | Check | How to detect | Default threshold |
 |---|---|---|

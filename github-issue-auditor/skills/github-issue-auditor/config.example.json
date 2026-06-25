@@ -1,0 +1,13 @@
+{
+  "stale_threshold_days": 30,
+  "similarity_threshold": 0.75,
+  "categories_to_audit": [
+    "duplicates",
+    "unlabeled",
+    "stale_backlog",
+    "orphaned",
+    "potential_duplicates"
+  ],
+  "generate_report": false,
+  "dry_run": false
+}

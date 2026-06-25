@@ -1,6 +1,6 @@
 # Decision matrix
 
-Verdicts are **MERGE / SKIP / INVESTIGATE**. Dispositions (what the skill may *do*
+Verdicts are **AUTO-MERGE / MERGE / SKIP / INVESTIGATE**. Dispositions (what the skill may *do*
 about a verdict — gate, report) live in SKILL.md "Finding dispositions". This file
 is the rules + ecosystem detail for *landing* a verdict from the Phase 2 evidence.
 
@@ -8,8 +8,8 @@ is the rules + ecosystem detail for *landing* a verdict from the Phase 2 evidenc
 
 | Verdict | Conditions | Disposition (see SKILL.md) |
 |---------|-----------|----------------------------|
-| **MERGE** | Patch bump + CI passing + no breaking changes | `ask-user` — gate; eligible for the opt-in `--auto-merge-patch` flag |
-| **MERGE** | Minor dev-dep + CI passing + no breaking changes | `ask-user` — gate (not flag-eligible: flag covers patches only) |
+| **AUTO-MERGE** | Patch bump + CI passing + no breaking changes | `auto-fix` — merge with no prompt; report what landed |
+| **AUTO-MERGE** | Minor dev-dep + CI passing + no breaking changes | `auto-fix` — merge with no prompt; report what landed |
 | **MERGE** | Minor runtime dep + CI passing + no breaking + used | `ask-user` — gate |
 | **MERGE** | Security fix for a *used* feature + CI passing/fixable | `ask-user` — gate (urgent) |
 | **INVESTIGATE** | Major version bump | `report` |
@@ -28,9 +28,10 @@ is the rules + ecosystem detail for *landing* a verdict from the Phase 2 evidenc
 - **Critical CVE in a used feature** -> supersedes INVESTIGATE. Must be reviewed
   urgently; recommend an expedited gated merge or a tracking issue.
 
-> There is no silent action. Even a low-risk patch is gated unless the user passed
-> the explicit opt-in flag *in this invocation* (then: patch + passing CI + no
-> breaking changes only; report exactly what merged).
+> AUTO-MERGE acts without a prompt — but **only** the narrow class above: a
+> low-risk **patch** *or* a **minor dev-dep**, with passing CI and no breaking
+> changes, and it reports exactly what merged. Every other merge and every close is
+> gated (`ask-user`). When in doubt between AUTO-MERGE and gating, **gate**.
 
 ## Ecosystem detection (no hardcoded paths)
 
@@ -121,7 +122,7 @@ Dependabot can bundle several same-ecosystem packages in one PR (a dependency ta
 in the body; title like "Bump the <group> group ... with N updates"). Classify each
 package individually, then apply the **highest** severity as the single PR verdict
 (any major or any detected breaking change -> INVESTIGATE; all patch/minor dev deps
-+ CI passing -> MERGE). Report all packages, one verdict.
++ CI passing -> AUTO-MERGE). Report all packages, one verdict.
 
 ### @types/* packages
 Type-only, dev deps, never affect runtime. Check the **runtime** package's usage;
@@ -134,7 +135,7 @@ runtime version requirement (e.g. `@types/react@18` wants `react@18.x`) — note
 coordinate them in the batch and gate them together.
 
 ### Pre-release versions
-alpha / beta / rc / canary / next -> **INVESTIGATE**, never flag-eligible. May carry
+alpha / beta / rc / canary / next -> **INVESTIGATE**, never AUTO-MERGE-eligible. May carry
 breaking changes without a major bump. Recommend waiting for stable.
 
 ### Transitive dependencies

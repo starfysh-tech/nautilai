@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
 """
 List a project's React/TSX components so a wireframe can reference real
-component names instead of inventing them.
+component names instead of inventing them, and (optionally) inject that catalog
+into the skill's reference doc.
 
-Stdlib only; Python 3.10+. Repo-agnostic — point it at whatever directory
-holds your components. Prints a Markdown catalog to stdout (default) or JSON.
+Stdlib only; Python 3.10+. Repo-agnostic — point it at whatever directory holds
+your components. Prints a Markdown catalog to stdout (default), JSON, writes a
+JSON file, or updates a reference doc in place.
 
 Usage:
     python3 extract_components.py [COMPONENTS_DIR]
     python3 extract_components.py src/components --json
+    python3 extract_components.py client/src/components --output catalog.json
+    python3 extract_components.py src/components --update-reference
+    python3 extract_components.py src/components --update-reference --reference path/to/reference.md
     python3 extract_components.py --help
 
-Exits 0 with an empty catalog (not an error) when the directory is absent,
-so callers can fail open: no components found just means "wireframe freehand".
+Exits 0 with an empty catalog (not an error) when the directory is absent, so
+callers can fail open: no components found just means "wireframe freehand".
 """
 
 import argparse
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 
 # (regex, name-group, props-group-or-None) — first match wins per file.
@@ -34,20 +40,31 @@ COMPONENT_PATTERNS = [
     (r"export const (\w+)\s*=\s*forwardRef", 1, None),
 ]
 
+# (category, predicate(path_str_lower, name_lower)) — first match wins, in order.
+# Notifications and Communication intentionally precede Overlays/Other so that
+# notification-drawer and chat/message components land in their own buckets.
 CATEGORY_RULES = [
     ("Navigation", lambda _, n: any(k in n for k in ("nav", "sidebar", "topnav"))),
+    ("Notifications", lambda p, n: "notification" in p or "notification" in n or ("drawer" in n and "notif" in p)),
     ("Data Display", lambda _, n: any(k in n for k in ("table", "list"))),
     ("Overlays", lambda _, n: any(k in n for k in ("modal", "dialog", "drawer"))),
     ("Form Controls", lambda _, n: any(k in n for k in ("input", "select", "checkbox", "radio", "password", "search", "form", "field"))),
     ("Actions", lambda _, n: "button" in n),
     ("Feedback", lambda _, n: any(k in n for k in ("alert", "error", "empty", "spinner", "toast", "loading"))),
+    ("Communication", lambda _, n: any(k in n for k in ("chat", "message"))),
     ("Layout", lambda _, n: any(k in n for k in ("header", "footer", "logo", "layout", "container", "grid"))),
 ]
 
 ORDERED_CATS = [
-    "Navigation", "Layout", "Data Display", "Form Controls",
-    "Actions", "Overlays", "Feedback", "Other",
+    "Navigation", "Layout", "Data Display", "Form Controls", "Actions",
+    "Overlays", "Notifications", "Feedback", "Communication", "Other",
 ]
+
+# Default reference doc lives next to this script's skill dir: ../references/reference.md.
+DEFAULT_REFERENCE = Path(__file__).resolve().parent.parent / "references" / "reference.md"
+
+CATALOG_START = "<!-- WIREFRAME-CATALOG-START -->"
+CATALOG_END = "<!-- WIREFRAME-CATALOG-END -->"
 
 
 def categorize(file_path: Path, name: str) -> str:
@@ -74,6 +91,7 @@ def extract_component_info(file_path: Path, root: Path) -> dict | None:
             name = match.group(name_grp)
             props = match.group(props_grp) if props_grp and len(match.groups()) >= props_grp else None
             break
+
     if not name or match is None:
         return None
 
@@ -95,12 +113,23 @@ def extract_component_info(file_path: Path, root: Path) -> dict | None:
     }
 
 
-def generate_markdown(components: list[dict]) -> str:
+def generate_markdown(components: list[dict], source_label: str | None = None,
+                      include_timestamp: bool = False) -> str:
+    """Markdown catalog. When source_label is given, prepend an auto-gen header
+    line (with an optional timestamp) used by the --update-reference path."""
     by_cat: dict[str, list[dict]] = {}
     for comp in components:
         by_cat.setdefault(comp["category"], []).append(comp)
 
-    md = f"**Total components**: {len(components)}\n"
+    md = ""
+    if source_label is not None:
+        if include_timestamp:
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            md += f"_Auto-generated from {source_label} - updated on commit ({ts})._\n\n"
+        else:
+            md += f"_Auto-generated from {source_label} - updated on commit._\n\n"
+
+    md += f"**Total components**: {len(components)}\n"
     for cat in ORDERED_CATS:
         if cat not in by_cat:
             continue
@@ -110,16 +139,69 @@ def generate_markdown(components: list[dict]) -> str:
             if comp["props_type"]:
                 md += f"- Props: `{comp['props_type']}`\n"
             if comp["description"]:
-                md += f"- Description: {comp['description']}\n"
+                md += f"- {comp['description']}\n"
             md += "\n"
     return md
+
+
+def update_reference_md(components: list[dict], reference_path: Path, source_label: str) -> bool:
+    """Update the reference doc's catalog block (between the CATALOG markers) in
+    place. Idempotent: re-stamps the timestamp only when the catalog content
+    actually changed."""
+    try:
+        content = reference_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        print(f"Error: {reference_path} not found", file=sys.stderr)
+        return False
+    except OSError as e:
+        print(f"Error reading {reference_path}: {e}", file=sys.stderr)
+        return False
+
+    if CATALOG_START not in content or CATALOG_END not in content:
+        print(f"Error: Catalog markers not found in {reference_path}", file=sys.stderr)
+        return False
+
+    # Compare against existing content with the timestamp normalized out.
+    catalog_no_ts = generate_markdown(components, source_label=source_label, include_timestamp=False)
+
+    start_idx = content.find(CATALOG_START) + len(CATALOG_START)
+    end_idx = content.find(CATALOG_END)
+    existing_catalog = content[start_idx:end_idx]
+
+    existing_no_ts = re.sub(
+        re.escape(f"_Auto-generated from {source_label} - updated on commit (")
+        + r"[^)]+" + re.escape(")._"),
+        f"_Auto-generated from {source_label} - updated on commit._",
+        existing_catalog,
+    )
+
+    if existing_no_ts.strip() == catalog_no_ts.strip():
+        print("reference unchanged, skipping")
+        return True
+
+    catalog_md = generate_markdown(components, source_label=source_label, include_timestamp=True)
+    new_content = content[:start_idx] + "\n\n" + catalog_md + "\n" + content[end_idx:]
+
+    try:
+        reference_path.write_text(new_content, encoding="utf-8")
+        return True
+    except OSError as e:
+        print(f"Error writing {reference_path}: {e}", file=sys.stderr)
+        return False
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="List React/TSX components for wireframing")
     parser.add_argument("components_dir", nargs="?", default="src/components",
-                        help="Directory to scan for *.tsx components (default: src/components)")
-    parser.add_argument("--json", action="store_true", help="Emit JSON instead of Markdown")
+                        help="Directory to scan for *.tsx/*.jsx components (default: src/components)")
+    parser.add_argument("--json", action="store_true", help="Emit JSON to stdout instead of Markdown")
+    parser.add_argument("--markdown", action="store_true", help="Force Markdown catalog to stdout (the default)")
+    parser.add_argument("--output", default=None,
+                        help="Also write the catalog as JSON to this file path")
+    parser.add_argument("--update-reference", action="store_true",
+                        help="Inject the catalog into the reference doc's CATALOG markers")
+    parser.add_argument("--reference", default=None,
+                        help=f"Reference doc to update (default: {DEFAULT_REFERENCE})")
     args = parser.parse_args()
 
     root = Path.cwd()
@@ -133,18 +215,46 @@ def main() -> int:
             print(f"No components directory at {args.components_dir} — wireframe without a component catalog.")
         return 0
 
-    components = []
+    components: list[dict] = []
+    skipped: list[str] = []
     for ext in ("*.tsx", "*.jsx"):
         for comp_file in components_dir.rglob(ext):
             info = extract_component_info(comp_file, root)
             if info:
                 components.append(info)
+            else:
+                skipped.append(str(comp_file.relative_to(root)))
     components.sort(key=lambda c: c["file"])
 
+    # --update-reference mode: inject into the reference doc and stop.
+    if args.update_reference:
+        reference_path = Path(args.reference).resolve() if args.reference else DEFAULT_REFERENCE
+        ok = update_reference_md(components, reference_path, source_label=args.components_dir)
+        if ok:
+            print(f"✓ Updated {reference_path} with {len(components)} components")
+            return 0
+        return 1
+
+    # Optional JSON file output.
+    if args.output:
+        output_path = Path(args.output)
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            output_path.write_text(json.dumps(components, indent=2), encoding="utf-8")
+            print(f"✓ Saved {len(components)} components to {output_path}", file=sys.stderr)
+        except OSError as e:
+            print(f"Error writing to {output_path}: {e}", file=sys.stderr)
+            return 1
+
+    # Stdout: JSON if asked, otherwise the Markdown catalog.
     if args.json:
         print(json.dumps(components, indent=2))
     else:
         print(generate_markdown(components))
+
+    if skipped:
+        print(f"⚠ Skipped {len(skipped)} files (no component exports found)", file=sys.stderr)
+
     return 0
 
 

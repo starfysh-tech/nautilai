@@ -20,8 +20,9 @@ grounded verdict (evidence cited, action gated), not real data.
 **Why safe:** patch bump, CI green, the CVE's `_.template` path is unused here, and
 the functions we do use are unchanged between .20 and .21.
 
-**Disposition:** gated MERGE — awaiting your approval. (Eligible for
-`--auto-merge-patch` had it been passed: patch + passing CI + no breaking changes.)
+**Disposition:** AUTO-MERGE — patch bump, CI green, no breaking changes (the unused
+CVE path doesn't force a gate), so it merges without a prompt; reported here for the
+record (PR #, package, from→to, merge commit).
 ```
 
 ## Example: single-PR SKIP (gated close)

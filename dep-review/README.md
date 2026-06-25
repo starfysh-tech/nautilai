@@ -1,6 +1,6 @@
 # Dependency Review
 
-Evaluate Dependabot dependency-update PRs with **MERGE / SKIP / INVESTIGATE**
+Evaluate Dependabot dependency-update PRs with **AUTO-MERGE / MERGE / SKIP / INVESTIGATE**
 verdicts, each grounded in the PR diff, the dependency's changelog, and how the
 package is actually used in *your* codebase. Batch every open Dependabot PR, or
 evaluate one by number.
@@ -27,8 +27,10 @@ consequential, so the model won't auto-fire it.
 ```text
 /dep-review                      # batch: evaluate all open Dependabot PRs
 /dep-review 596                  # evaluate a single PR by number
-/dep-review --auto-merge-patch   # opt-in: let low-risk patches merge without the per-PR gate
 ```
+
+Low-risk patch and minor-dev-dep bumps with passing CI **auto-merge** (no prompt);
+every other merge or close is gated behind approval — see *Safety* below.
 
 ## What it does
 
@@ -38,28 +40,31 @@ consequential, so the model won't auto-fire it.
    checks CI, extracts the specific changes from the changelog, and **verifies each
    change against your code** (cited `file:line`), plus security (CVE + whether the
    vulnerable path is used) and EOL status.
-3. **Verdict + report** — applies the decision matrix to land MERGE / SKIP /
-   INVESTIGATE, handles cross-PR concerns (react/react-dom parity), and produces a
-   findings-first report or batch table.
-4. **Action (gated)** — see below.
+3. **Verdict + report** — applies the decision matrix to land AUTO-MERGE / MERGE /
+   SKIP / INVESTIGATE, handles cross-PR concerns (react/react-dom parity), and
+   produces a findings-first report or batch table.
+4. **Action (auto-merge + gated)** — see below.
 
-## Safety: no silent merges
+## Safety: bounded auto-merge
 
-Every mutating action is gated. This follows the nautilai
-[finding-dispositions](../docs/conventions/finding-dispositions.md) convention:
+Most mutating actions are gated; one narrow class auto-merges. This follows the
+nautilai [finding-dispositions](../docs/conventions/finding-dispositions.md)
+convention, with **one deliberate, documented exception** to the opt-in-mutation
+rule (#6):
 
-- **INVESTIGATE** is `report` — surfaced with evidence, no action.
+- **AUTO-MERGE** is `auto-fix` — a **patch** bump *or* a **minor dev-dependency**
+  bump, with **passing CI** and **no detected breaking changes**, is squash-merged
+  **without a prompt**. This restores the original skill's behavior and is the
+  exception to #6 ("anything that can mutate is opt-in"). It stays safe because the
+  class is narrow and CI-gated, the merge is reversible (a revert PR) and
+  VCS-visible, and the skill reports exactly what it merged (PR #, package,
+  from->to, commit) per the auto-fix reporting contract (#7). **CI passing is the
+  consent** — a PR with failing or absent CI never auto-merges.
+- **MERGE** is `ask-user` — every other merge (minor runtime deps, security fixes)
+  is gated behind an `AskUserQuestion` approval.
 - **SKIP** is `ask-user` — a close (and any "superseded by" comment) is recommended
   but **never performed without approval**.
-- **MERGE** is `ask-user` — every merge, *even a low-risk patch*, is gated behind an
-  `AskUserQuestion` approval. A merge lands on your default branch and can trigger
-  deploys, so it does not qualify as a silent auto-fix.
-
-The one way merges skip the per-PR prompt is the **explicit opt-in flag**
-`--auto-merge-patch`, passed in the invocation. Even then it covers **only** patch
-bumps with passing CI and no detected breaking changes, and the skill reports
-exactly what it merged (PR #, package, from->to, commit). This mirrors the "anything
-that can mutate is opt-in" convention (#6) and the auto-fix reporting contract (#7).
+- **INVESTIGATE** is `report` — surfaced with evidence, no action.
 
 ## Evidence, not reputation
 

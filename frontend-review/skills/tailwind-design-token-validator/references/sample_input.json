@@ -1,0 +1,14 @@
+{
+  "config_path": "tailwind.config.js",
+  "component_directory": "src/components",
+  "css_directory": "src/styles",
+  "options": {
+    "check_arbitrary_values": true,
+    "check_dynamic_concatenation": true,
+    "check_inline_styles": true,
+    "check_responsive_patterns": true,
+    "check_class_ordering": true,
+    "check_accessibility": true,
+    "check_apply_overuse": true
+  }
+}
