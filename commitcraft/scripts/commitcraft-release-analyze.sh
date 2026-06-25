@@ -34,15 +34,32 @@ elif ! gh auth status &> /dev/null; then
     echo "⚠  GitHub CLI not authenticated — analysis will proceed; publishing needs: gh auth login"
 fi
 
-# Check for clean working tree
-if [ -n "$(git status --porcelain)" ]; then
-    echo "✗ Working tree has uncommitted changes"
-    echo ""
-    echo "Commit or stash changes before creating a release"
-    exit 1
+# A tag is commit-based: it points at HEAD, not at the working tree. The hard
+# requirement is that HEAD matches origin/main, or we'd tag the wrong commit.
+# Uncommitted/untracked files don't change the tagged commit — warn, don't block.
+git fetch --quiet origin main 2>/dev/null || true
+if git rev-parse --verify --quiet origin/main >/dev/null; then
+    AHEAD=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
+    BEHIND=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+    if [ "$AHEAD" != "0" ] || [ "$BEHIND" != "0" ]; then
+        echo "✗ Local main is out of sync with origin/main ($AHEAD ahead, $BEHIND behind)"
+        echo ""
+        echo "A tag points at HEAD — sync first so the release tags the right commit:"
+        [ "$BEHIND" != "0" ] && echo "  git pull --ff-only"
+        [ "$AHEAD" != "0" ] && echo "  git push"
+        exit 1
+    fi
+    echo "✓ Local main is in sync with origin/main"
+else
+    echo "⚠  No origin/main to compare against — skipping the sync check"
 fi
 
-echo "✓ Working tree is clean"
+# Uncommitted/untracked files: warn only — a commit-based tag won't include them.
+if [ -n "$(git status --porcelain)" ]; then
+    echo "⚠  Working tree has uncommitted/untracked changes — not included in the release (a tag is commit-based); proceeding"
+else
+    echo "✓ Working tree is clean"
+fi
 echo "GH_AVAILABLE: $GH_AVAILABLE"
 echo ""
 

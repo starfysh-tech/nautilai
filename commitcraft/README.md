@@ -53,9 +53,19 @@ commitcraft/                          # ${CLAUDE_PLUGIN_ROOT}
 ├── scripts/
 │   ├── commitcraft-setup.sh          # Interactive tooling setup + --check mode
 │   ├── commitcraft-issues.sh         # Branch-based issue validation (GitHub/Linear/Jira/none)
+│   ├── commitcraft-release-detect-rp.sh # Is release-please FUNCTIONAL / DISABLED / ABSENT?
 │   └── commitcraft-release-analyze.sh# Semantic version analysis (fallback release)
+├── tests/                            # bash tests (e.g. detect-rp.test.sh) + gh stub
 └── templates/                        # commitlint, gitleaks, pre-commit, release-please configs
 ```
+
+The `release` workflow defers to release-please **only when it is actually
+functional**. `commitcraft-release-detect-rp.sh` distinguishes a working
+release-please from one that is present-but-neutered (skip flags, no `contents:
+write`, or never advanced past `0.0.0`); a disabled release-please falls back to
+the manual tag/release path with a one-line reason, rather than dead-ending on a
+release PR that will never arrive. Run the detection tests with
+`bash commitcraft/tests/detect-rp.test.sh`.
 
 `SKILL.md` reads `skills/commitcraft/workflows/<argument>.md` and follows it. Workflows
 shell out to the bundled scripts via `${CLAUDE_PLUGIN_ROOT}/scripts/…`, so paths resolve

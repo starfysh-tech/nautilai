@@ -16,6 +16,18 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-06-25
 
+- **commitcraft `release` no longer dead-ends on a disabled release-please**
+  ([`commitcraft`](../commitcraft#readme)). Phase 1 deferred to release-please on
+  the mere *presence* of its workflow file — so a scaffolded-then-neutered
+  release-please (skip flags, no `contents: write`, manifest stuck at `0.0.0`)
+  left the user unable to release at all, with no actionable error. It now detects
+  whether release-please is actually *functional* (new
+  `commitcraft-release-detect-rp.sh`, with bash tests + CI) and falls back to the
+  manual tag/release path — stating one line of *why* — when it's `DISABLED`/`ABSENT`.
+  The release analyzer's clean-tree guard also relaxed: a tag is commit-based, so it
+  blocks only when local `main` is out of sync with origin and merely warns on
+  unrelated working-tree changes.
+
 - **Five plugins ported from a private project**, conventionalized on the way in
   (degenericized off hardcoded paths/company specifics; finding-dispositions,
   shoals, `file:line` evidence, and `${CLAUDE_PLUGIN_ROOT}`-rooted scripts applied)
