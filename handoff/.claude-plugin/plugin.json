@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "handoff",
   "displayName": "Handoff",
-  "version": "2.7.1",
+  "version": "2.7.2",
   "description": "Compact the current conversation into a handoff document so a fresh agent can pick up the work, referencing existing artifacts by path rather than restating them.",
   "author": {
     "name": "Randall Noval",

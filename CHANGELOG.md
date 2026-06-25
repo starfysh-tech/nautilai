@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.7.2](https://github.com/starfysh-tech/nautilai/compare/v2.7.1...v2.7.2) (2026-06-25)
+
+
+### Bug Fixes
+
+* **commitcraft:** defer to release-please only when functional ([38b8dc2](https://github.com/starfysh-tech/nautilai/commit/38b8dc2e68d316241ff139f9ba84c2198b3c7b26))
+* **commitcraft:** harden release-please detection ([140e175](https://github.com/starfysh-tech/nautilai/commit/140e175fe39cfba5f0cde88fd5687caa9320e3a2))
+
 ## [2.7.1](https://github.com/starfysh-tech/nautilai/compare/v2.7.0...v2.7.1) (2026-06-25)
 
 
