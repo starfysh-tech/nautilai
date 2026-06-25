@@ -46,10 +46,10 @@ impact NONE | LOW | MEDIUM | HIGH>
 - Reasoning: <1-2 sentences, grounded in the evidence above>
 ```
 
-> Verdicts are `MERGE` / `SKIP` / `INVESTIGATE`. "Auto-MERGE" is **not** a verdict —
-> it is a *disposition* on a MERGE (see SKILL.md "Finding dispositions"): every
-> merge is gated behind approval unless the user passed the explicit opt-in flag
-> for low-risk patches.
+> Verdicts are `AUTO-MERGE` / `MERGE` / `SKIP` / `INVESTIGATE` (see SKILL.md
+> "Finding dispositions"). **AUTO-MERGE** — a patch *or* minor-dev-dep bump with
+> passing CI and no breaking changes — merges without a prompt; every other merge
+> is gated behind approval.
 
 ## 2a. Classify change type
 

@@ -1,0 +1,132 @@
+{
+  "health_score": 78,
+  "statistics": {
+    "total_components": 45,
+    "average_size": 142.3,
+    "max_size": 312,
+    "min_size": 45,
+    "type_coverage": 87.2,
+    "average_complexity": 6.8,
+    "average_props": 4.2,
+    "average_state_hooks": 2.1,
+    "average_effect_hooks": 1.3
+  },
+  "violations": {
+    "component_size": 3,
+    "prop_drilling": 2,
+    "folder_structure": 0,
+    "missing_types": 6
+  },
+  "duplicates_found": 4,
+  "components_analyzed": 45,
+  "is_passing": true,
+  "detailed_findings": {
+    "size_violations": [
+      {
+        "file": "features/auth/LoginForm.tsx",
+        "lines": 245,
+        "suggestion": "Split into: <FormInput>, <FormButton>, <FormError> primitives"
+      },
+      {
+        "file": "features/dashboard/Dashboard.tsx",
+        "lines": 312,
+        "suggestion": "Extract: <DashboardHeader>, <DashboardStats>, <DashboardChart>"
+      },
+      {
+        "file": "layouts/AppLayout.tsx",
+        "lines": 198,
+        "suggestion": "Consider splitting navigation into separate component"
+      }
+    ],
+    "prop_drilling_instances": [
+      {
+        "file": "features/dashboard/Dashboard.tsx",
+        "line": 45,
+        "prop": "user",
+        "depth": 5,
+        "chain": ["App", "Dashboard", "UserPanel", "UserInfo", "UserAvatar"],
+        "suggestion": "Use Context API or composition"
+      },
+      {
+        "file": "features/settings/SettingsPage.tsx",
+        "line": 78,
+        "prop": "theme",
+        "depth": 4,
+        "chain": ["Settings", "Profile", "Avatar", "Image"],
+        "suggestion": "Pass only to Avatar component"
+      }
+    ],
+    "duplicate_patterns": [
+      {
+        "pattern_name": "Form Submit Buttons",
+        "occurrences": 3,
+        "files": ["LoginForm.tsx", "SignupForm.tsx", "ProfileForm.tsx"],
+        "suggested_primitive": "<SubmitButton variant='primary' loading={...} />"
+      },
+      {
+        "pattern_name": "Error Messages",
+        "occurrences": 5,
+        "files": ["LoginForm.tsx", "SignupForm.tsx", "ContactForm.tsx", "ProfileForm.tsx", "PasswordReset.tsx"],
+        "suggested_primitive": "<ErrorMessage error={...} dismissible={true} />"
+      },
+      {
+        "pattern_name": "Loading Spinners",
+        "occurrences": 4,
+        "files": ["Dashboard.tsx", "UserList.tsx", "ProductGrid.tsx", "Analytics.tsx"],
+        "suggested_primitive": "<Spinner size='md' />"
+      },
+      {
+        "pattern_name": "Card Headers",
+        "occurrences": 6,
+        "files": ["DashboardWidget.tsx", "StatsCard.tsx", "ProfileCard.tsx", "TeamCard.tsx", "ProjectCard.tsx", "ActivityCard.tsx"],
+        "suggested_primitive": "<CardHeader title={...} action={...} />"
+      }
+    ],
+    "missing_types": [
+      {
+        "file": "components/ui/Badge.tsx",
+        "prop_count": 3,
+        "issue": "Missing BadgeProps interface"
+      },
+      {
+        "file": "features/auth/SocialLogin.tsx",
+        "prop_count": 5,
+        "issue": "Using 'any' for props"
+      },
+      {
+        "file": "layouts/Sidebar.tsx",
+        "prop_count": 4,
+        "issue": "Implicit prop types"
+      },
+      {
+        "file": "features/dashboard/Widget.tsx",
+        "prop_count": 6,
+        "issue": "Missing WidgetProps interface"
+      },
+      {
+        "file": "components/ui/Tooltip.tsx",
+        "prop_count": 3,
+        "issue": "Props not typed"
+      },
+      {
+        "file": "features/search/SearchBar.tsx",
+        "prop_count": 4,
+        "issue": "Missing SearchBarProps interface"
+      }
+    ]
+  },
+  "recommendations": [
+    "Extract 4 duplicate patterns to /components/ui as reusable primitives",
+    "Split 3 large components into smaller, focused components",
+    "Add TypeScript interfaces to 6 components for type safety",
+    "Refactor 2 prop drilling instances using composition or Context API",
+    "Folder structure is compliant - continue following conventions"
+  ],
+  "score_breakdown": {
+    "folder_structure": 100,
+    "component_size": 85,
+    "type_coverage": 87,
+    "prop_drilling": 70,
+    "duplicate_patterns_identified": 95
+  }
+}

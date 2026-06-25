@@ -1,0 +1,43 @@
+{
+  "skill_name": "rbac-remediation-playbooks",
+  "iteration": 1,
+  "timestamp": "2026-04-13",
+  "configs": {
+    "with_skill": {
+      "description": "With rbac-remediation-playbooks skill",
+      "pass_rate": 0.933,
+      "mean_tokens": 48727,
+      "mean_duration_seconds": 119.3,
+      "evals": {
+        "eval-1-critical-missing-authz": {"pass_rate": 1.0, "tokens": 48103, "duration_seconds": 117.7},
+        "eval-2-clustered-findings": {"pass_rate": 1.0, "tokens": 49584, "duration_seconds": 119.1},
+        "eval-3-priority-filter": {"pass_rate": 0.667, "tokens": 48495, "duration_seconds": 121.1}
+      }
+    },
+    "without_skill": {
+      "description": "Baseline (no skill)",
+      "pass_rate": 0.733,
+      "mean_tokens": 38414,
+      "mean_duration_seconds": 91.1,
+      "evals": {
+        "eval-1-critical-missing-authz": {"pass_rate": 0.667, "tokens": 37582, "duration_seconds": 98.6},
+        "eval-2-clustered-findings": {"pass_rate": 0.833, "tokens": 47723, "duration_seconds": 125.9},
+        "eval-3-priority-filter": {"pass_rate": 1.0, "tokens": 29936, "duration_seconds": 48.9}
+      }
+    }
+  },
+  "delta": {
+    "pass_rate": "+0.200 (93.3% vs 73.3%)",
+    "mean_tokens": "+10313 (48.7k vs 38.4k)",
+    "mean_duration_seconds": "+28.2s (119.3s vs 91.1s)"
+  },
+  "analyst_observations": [
+    "The skill's primary value is **structural consistency**: Now/Next/Later prioritization, maintenance.yml template format for issues, discovery-driven class references. Baseline agents produce good content but use ad-hoc formats.",
+    "Eval 1: Both versions correctly detected the finding was synthetic (no actual PatientExportView at line 312). The skill version produced a structured playbook with proper template adherence; baseline used a different issue format.",
+    "Eval 2: Both correctly identified the partially-inaccurate finding (study-level vs clinic-level filtering). Skill version produced a single clustered playbook with consistent format. Baseline produced excellent content but used P1 instead of Now/Next/Later bands.",
+    "Eval 3 (priority filter): The skill version correctly filtered but still generated a full reference playbook below the filter notice — this is arguably useful but technically violates the 'no implementation steps' assertion. Baseline was terser and cleaner.",
+    "Token overhead: ~27% more tokens with skill (48.7k vs 38.4k avg) due to discovery script execution and structured output. Duration roughly comparable.",
+    "Both versions showed strong codebase awareness — reading actual code, correcting inaccurate findings, referencing real line numbers. The skill didn't add much here since Sonnet naturally explores the codebase.",
+    "Non-discriminating assertion: 'References CanExportData' and 'References get_queryset()' pass for both configs — these test codebase awareness, not skill value."
+  ]
+}

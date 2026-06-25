@@ -140,7 +140,15 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/wireframe/scripts/extract_components.py [co
 
 - Defaults to `src/components`; pass the project's actual path.
 - Fails open: an absent directory exits 0 with an empty catalog.
-- `--json` for machine-readable output.
+- `--json` for machine-readable output; `--output catalog.json` to write a JSON file.
+- `--update-reference` injects the catalog into the block below (between the
+  CATALOG markers), idempotently re-stamping the timestamp only when it changed.
+  Use `--reference <path>` to target a different doc.
+
+### Component catalog
+
+<!-- WIREFRAME-CATALOG-START -->
+<!-- WIREFRAME-CATALOG-END -->
 
 ---
 

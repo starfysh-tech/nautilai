@@ -55,7 +55,9 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/rbac-remediation-playbooks/scripts/discover
 Stdlib-only (Python 3.10+); pass the project root as an optional argument. It
 auto-detects the backend (the tree holding `manage.py`) and emits JSON with
 `permission_classes`, `groups`, `phi` (mixin class + fields + serializers using
-it), `roles`, and `notes`. The script **fails open** — gaps appear as `notes`,
+it), `roles`, `finding_types` (the finding vocabulary, read from the sibling
+audit skill's SKILL.md so the two stay in sync), and `notes`. The script
+**fails open** — gaps appear as `notes`,
 not a crash. If `python3` is unavailable, fall back to manual `Grep`/`Glob`
 discovery of permission classes, group setup, and any sensitive-data mixin, and
 say so. The discovered names — actual class names, file paths, group definitions

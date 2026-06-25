@@ -1,0 +1,105 @@
+{
+  "summary": {
+    "duplicates": 2,
+    "unlabeled": 3,
+    "stale_backlog": 2,
+    "orphaned": 2,
+    "potential_duplicates": 2,
+    "total": 11
+  },
+  "actions_suggested": [
+    {
+      "issue": 45,
+      "category": "duplicates",
+      "action": "close",
+      "reason": "Already marked as duplicate of #42"
+    },
+    {
+      "issue": 78,
+      "category": "duplicates",
+      "action": "close",
+      "reason": "Already marked as duplicate of #42"
+    },
+    {
+      "issue": 67,
+      "category": "unlabeled",
+      "action": "label",
+      "suggested_labels": ["bug", "priority: high"],
+      "reason": "Production database issue needs triage"
+    },
+    {
+      "issue": 103,
+      "category": "unlabeled",
+      "action": "label",
+      "suggested_labels": ["feature"],
+      "reason": "Feature request needs categorization"
+    },
+    {
+      "issue": 115,
+      "category": "unlabeled",
+      "action": "label",
+      "suggested_labels": ["documentation"],
+      "reason": "Documentation update needs label"
+    },
+    {
+      "issue": 12,
+      "category": "stale_backlog",
+      "action": "investigate",
+      "age_days": 73,
+      "reason": "Backlog item is 73 days old - verify if still needed"
+    },
+    {
+      "issue": 34,
+      "category": "stale_backlog",
+      "action": "investigate",
+      "age_days": 90,
+      "reason": "Backlog item is 90 days old - verify if still needed"
+    },
+    {
+      "issue": 89,
+      "category": "orphaned",
+      "action": "close",
+      "parent_issue": 78,
+      "reason": "Parent issue #78 is closed"
+    },
+    {
+      "issue": 102,
+      "category": "orphaned",
+      "action": "close",
+      "parent_issue": 55,
+      "reason": "Parent issue #55 is closed"
+    },
+    {
+      "issue": 54,
+      "category": "potential_duplicates",
+      "action": "merge",
+      "merge_target": 61,
+      "similarity": 0.85,
+      "reason": "85% similarity with #61 - consider merging"
+    },
+    {
+      "issue": 72,
+      "category": "potential_duplicates",
+      "action": "merge",
+      "merge_target": 88,
+      "similarity": 0.82,
+      "reason": "82% similarity with #88 - consider merging"
+    }
+  ],
+  "execution_summary": {
+    "successful": 9,
+    "failed": 2,
+    "failed_details": [
+      {
+        "issue": 102,
+        "action": "close",
+        "error": "Permission denied - requires admin access"
+      },
+      {
+        "issue": 115,
+        "action": "label",
+        "error": "Label 'documentation' does not exist in repository"
+      }
+    ]
+  }
+}

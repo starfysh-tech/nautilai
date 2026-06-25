@@ -4,7 +4,7 @@ description: Audit a React/TypeScript + Tailwind frontend for design-token viola
 argument-hint: "[path]"
 disable-model-invocation: true
 context: fork
-allowed-tools: [Read, Glob, Grep, Edit]
+allowed-tools: [Read, Glob, Grep, Edit, Bash(python3:*)]
 ---
 
 # Tailwind Design Token Validator
@@ -14,8 +14,12 @@ class-usage anti-patterns, validating against the project's own Tailwind config.
 findings are propose-only; a narrow class of exact, reversible token swaps may be
 auto-fixed under the safety contract below — and only after the user opts in.
 
-This skill performs the analysis directly with `Glob`/`Grep`/`Read` (no bundled
-engine). The project's Tailwind config is the source of truth for what a "token" is.
+This skill ships a bundled Python analysis engine under
+`${CLAUDE_PLUGIN_ROOT}/skills/tailwind-design-token-validator/scripts/`. Run it (step 2)
+to produce the findings rather than reimplementing the checks by hand; use
+`Glob`/`Grep`/`Read` to confirm or contextualize a finding. The project's Tailwind config
+is the source of truth for what a "token" is — the engine extracts it via Tailwind's
+`resolveConfig` (Node) and falls back to regex parsing if Node/Tailwind isn't available.
 
 ## Shoals (project corrections)
 
@@ -61,8 +65,44 @@ Do **not** assume `client/` or any fixed path. Detect both:
 
 ### 2. Run the checks
 
-Gather `.tsx`/`.jsx`/`.css` under the resolved root, then evaluate each check. Cite
-`file:line` for every finding.
+Run the bundled engine against the resolved root + config. It pulls semantic tokens
+from the config, scans every `.tsx`/`.jsx` (and `.css` for `@apply`), runs the
+token/anti-pattern checks plus the accessibility checks, enriches arbitrary-value
+findings with token suggestions, and prints a severity-grouped report with `file:line`:
+
+```bash
+ROOT="<resolved source root>"          # from step 1
+CONFIG="<resolved tailwind.config.*>"  # from step 1
+PYTHONPATH="${CLAUDE_PLUGIN_ROOT}/skills/tailwind-design-token-validator/scripts" \
+  python3 -c '
+import sys
+from analyze_tailwind_config import TailwindConfigAnalyzer
+from scan_components import ComponentScanner
+from validate_class_usage import TailwindClassValidator
+from check_accessibility import AccessibilityChecker
+from suggest_tokens import TokenSuggester
+from generate_report import ReportGenerator
+
+root, config = sys.argv[1], sys.argv[2]
+tokens = TailwindConfigAnalyzer(config).extract_tokens()
+scanner = ComponentScanner(root)
+validator, a11y = TailwindClassValidator(tokens), AccessibilityChecker()
+violations = []
+for f in scanner.scan():
+    lines = scanner.read_file_lines(f)
+    violations += validator.validate_file(f, lines)
+    violations += a11y.check_file(f, lines)
+for c in scanner.scan_css_files():
+    violations += validator.check_apply_overuse(c, scanner.read_file_lines(c))
+violations = TokenSuggester(tokens).generate_suggestions(violations)
+print(ReportGenerator(violations).generate_text_report())
+' "$ROOT" "$CONFIG"
+```
+
+`ReportGenerator` also offers `.generate_json_report()` (CI/CD) and
+`.generate_markdown_report()`. If no config is found, skip the `TailwindConfigAnalyzer`
+step and pass `tokens={}` — checks still run; token *mappings* become best-effort.
+Each finding below maps to a module; cite `file:line` for every finding.
 
 | Check | How to detect | Severity |
 |---|---|---|
