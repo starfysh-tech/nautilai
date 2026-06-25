@@ -16,6 +16,28 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-06-25
 
+- **Five plugins ported from a private project**, conventionalized on the way in
+  (degenericized off hardcoded paths/company specifics; finding-dispositions,
+  shoals, `file:line` evidence, and `${CLAUDE_PLUGIN_ROOT}`-rooted scripts applied)
+  rather than copied as-is — so battle-tested skills become installable without
+  dragging in repo-specific assumptions:
+  - **rbac-django** ([`rbac-django`](../rbac-django#readme)) — a 3-skill RBAC
+    security workflow for Django/DRF + React: audit gaps → threat-model abuse
+    cases → remediation playbooks. Backend/frontend roots auto-detected; the
+    bundled scanner fails open when `ast-grep`/`rg` are absent.
+  - **frontend-review** ([`frontend-review`](../frontend-review#readme)) — React
+    architecture + Tailwind design-token audits; auto-detects the frontend source
+    root instead of assuming `client/`.
+  - **dep-review** ([`dep-review`](../dep-review#readme)) — Dependabot PR triage.
+    The source's silent auto-merge was demoted to a gated disposition: every merge
+    needs approval unless an explicit `--auto-merge-patch` opt-in is passed.
+  - **github-issue-auditor** ([`github-issue-auditor`](../github-issue-auditor#readme))
+    — issue-hygiene audit (duplicates, orphans, stale, labels) against the repo's
+    own auto-detected label taxonomy; read-only unless a mutation is approved.
+  - **wireframe** ([`wireframe`](../wireframe#readme)) — low-fi UI wireframes
+    (ASCII/wiremd/Mermaid). Generative, so finding-dispositions and shoals were
+    deliberately skipped (noted in its README).
+
 - **New plugin: pr-review-deep** ([`pr-review-deep`](../pr-review-deep#readme)).
   Existing review plugins address *received* comments (pr-comment-review) or
   validate *plans* (review-plan) — none generated a rigorous, structural

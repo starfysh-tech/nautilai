@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "frontend-review",
+  "displayName": "Frontend Review",
+  "version": "2.6.0",
+  "description": "Audit a React + Tailwind frontend for architecture and design-token health — component size, prop drilling, duplicate-primitive reuse, folder organization, and Tailwind token violations (arbitrary values, dynamic class concatenation, hardcoded colors). Auto-detects the frontend source root; findings cite file:line.",
+  "author": {
+    "name": "Randall Noval",
+    "email": "randall@starfysh.net",
+    "url": "https://github.com/starfysh-tech"
+  },
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/frontend-review#readme",
+  "repository": "https://github.com/starfysh-tech/nautilai",
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "tailwind",
+    "frontend",
+    "components",
+    "design-tokens",
+    "composition",
+    "prop-drilling",
+    "typescript",
+    "audit"
+  ],
+  "skills": "./skills/"
+}

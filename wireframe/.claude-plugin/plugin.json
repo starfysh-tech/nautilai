@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "wireframe",
+  "displayName": "Wireframe",
+  "version": "2.6.0",
+  "description": "Create low-fidelity wireframes for UI planning — ASCII layouts, wiremd interactive prototypes, or Mermaid diagrams for tickets. Use before writing components to sketch structure, flows, and states.",
+  "author": {
+    "name": "Randall Noval",
+    "email": "randall@starfysh.net",
+    "url": "https://github.com/starfysh-tech"
+  },
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/wireframe#readme",
+  "repository": "https://github.com/starfysh-tech/nautilai",
+  "license": "MIT",
+  "keywords": [
+    "wireframe",
+    "ui",
+    "prototyping",
+    "mockup",
+    "design",
+    "ascii",
+    "mermaid"
+  ],
+  "skills": "./skills/"
+}
