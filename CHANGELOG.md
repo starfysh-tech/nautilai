@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.7.3](https://github.com/starfysh-tech/nautilai/compare/v2.7.2...v2.7.3) (2026-06-25)
+
+
+### Bug Fixes
+
+* **commitcraft:** don't mask git log errors in analyzer ([2082930](https://github.com/starfysh-tech/nautilai/commit/2082930e591de677d3d361364848115d4f63ef77))
+* **commitcraft:** stop grep -c double-printing zero ([dc3a0dd](https://github.com/starfysh-tech/nautilai/commit/dc3a0dd0f81f8095af81c86c6b121eeaeafa7f26))
+* **commitcraft:** stop grep -c double-printing zero ([2fcdba4](https://github.com/starfysh-tech/nautilai/commit/2fcdba4a62ef68769787f48739d8cf1528634354))
+
 ## [2.7.2](https://github.com/starfysh-tech/nautilai/compare/v2.7.1...v2.7.2) (2026-06-25)
 
 
