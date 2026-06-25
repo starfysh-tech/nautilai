@@ -52,7 +52,12 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/wireframe/scripts/extract_components.py [co
   just means wireframe freehand, not an error.
 - Resolve the interpreter (`python3`, else `python`); if neither exists, skip
   this step and wireframe without a catalog.
-- Pass `--json` for machine-readable output.
+- Pass `--json` for machine-readable output, or `--output catalog.json` to also
+  write a JSON file.
+- Pass `--update-reference` to inject the catalog into
+  `references/reference.md` between its `<!-- WIREFRAME-CATALOG-START/END -->`
+  markers (idempotent; re-stamps the timestamp only when the catalog changed).
+  Use `--reference <path>` to target a different doc.
 
 ## Common layouts
 

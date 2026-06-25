@@ -1,16 +1,16 @@
 ---
 name: dep-review
-description: Evaluate Dependabot dependency-update PRs with MERGE / SKIP / INVESTIGATE verdicts, each grounded in the PR diff, changelog, and actual codebase usage. Batch all open Dependabot PRs or evaluate one by number. Merges and closes are gated behind explicit user approval — never silent. Use when the user runs /dep-review, asks to triage Dependabot PRs, review dependency bumps, or decide which dependency updates are safe to merge.
-allowed-tools: Read, Grep, Glob, Bash(gh:*), Bash(git:*), Bash(npm:*), Bash(pip:*), Bash(pip-audit:*), Bash(curl:*), Bash(jq:*), WebFetch, AskUserQuestion, mcp__github__pull_request_read, mcp__github__list_pull_requests, mcp__github__merge_pull_request, mcp__github__add_issue_comment, mcp__github__update_pull_request, mcp__github__get_file_contents
+description: Evaluate Dependabot dependency-update PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts, each grounded in the PR diff, changelog, and actual codebase usage. Batch all open Dependabot PRs or evaluate one by number. Low-risk patch and minor-dev-dep bumps that pass CI auto-merge; other merges and closes gate behind approval. Use when the user runs /dep-review, asks to triage Dependabot PRs, review dependency bumps, or decide which dependency updates are safe to merge.
+allowed-tools: Read, Grep, Glob, Task, LSP, Bash(gh:*), Bash(git:*), Bash(npm:*), Bash(pip:*), Bash(pip-audit:*), Bash(ast-grep:*), Bash(curl:*), Bash(jq:*), WebFetch, AskUserQuestion, mcp__github__pull_request_read, mcp__github__list_pull_requests, mcp__github__merge_pull_request, mcp__github__add_issue_comment, mcp__github__update_pull_request, mcp__github__get_file_contents
 disable-model-invocation: true
 ---
 
 # Dependency Review
 
 Evaluate Dependabot dependency-update PRs and produce a structured verdict per PR —
-**MERGE / SKIP / INVESTIGATE** — grounded in the PR diff, the dependency's
-changelog, and how the package is actually used in *this* codebase. Batch every
-open Dependabot PR, or evaluate a single PR by number.
+**AUTO-MERGE / MERGE / SKIP / INVESTIGATE** — grounded in the PR diff, the
+dependency's changelog, and how the package is actually used in *this* codebase.
+Batch every open Dependabot PR, or evaluate a single PR by number.
 
 This skill is **user-invoked only** (`disable-model-invocation`): merging and
 closing PRs is consequential, so the model should not auto-fire this workflow.
@@ -57,7 +57,8 @@ a guess about its API:
 ## Workflow
 
 Run in order. After Phase 1 and Phase 2, **pause** if the user may want to review
-before any mutating action — this skill never barrels into a merge.
+before any gated action. The skill auto-merges only the narrow AUTO-MERGE class
+(patch / minor-dev-dep + passing CI); every other merge waits for approval.
 
 ### Phase 1 — Discovery
 
@@ -82,6 +83,22 @@ the PR body means multiple packages in one PR).
 
 ### Phase 2 — Per-PR analysis
 
+**Run each PR's analysis as its own `general-purpose` subagent (`Task`), all
+launched in parallel** — in batch mode, one message with multiple `Task` calls;
+in single-PR mode, one subagent. Each subagent gets the PR number, metadata,
+ecosystem, and the per-PR procedure, and returns structured evidence + a
+recommended verdict. The main context keeps Phases 1, 3, and 4 (discovery,
+verdicts, gated/auto actions). This keeps a large batch fast and each PR's
+evidence isolated.
+
+**Code-search mandate (precision over raw grep).** Within analysis, verify usage
+with the structured tools, not ad-hoc text search:
+
+- **Find callers / usages of a changed symbol** → `Grep` to locate, then
+  **`LSP findReferences`** to confirm real references (not comments/strings).
+- **Structural queries** (all classes/subclasses, call shapes) → **`ast-grep`**.
+- **Never raw `grep`** — use the `Grep` tool with `pattern` / `path` / `glob`.
+
 For each PR, gather evidence across these dimensions and record the supporting
 `file:line` / changelog quote for each. See
 [`references/analysis-steps.md`](references/analysis-steps.md) for the full
@@ -102,6 +119,8 @@ See [`references/decision-matrix.md`](references/decision-matrix.md) for the
 ecosystem-specific commands, the package→import name caveats, and the edge cases
 (grouped PRs, `@types/*`, React/React-DOM parity, pre-release, transitive deps,
 yanked releases, superseding PRs).
+[`references/edge-cases.md`](references/edge-cases.md) is the at-a-glance summary of
+the recurring ones if you just need the verdict mapping.
 
 ### Phase 3 — Verdict application
 
@@ -110,11 +129,12 @@ each PR's evidence to land a final verdict, then handle cross-PR concerns (e.g.
 React/React-DOM must move together). Build the report — see
 [`references/output-format.md`](references/output-format.md).
 
-### Phase 4 — Action execution (gated)
+### Phase 4 — Action execution (auto-merge + gated)
 
 See **Finding dispositions** below for which verdicts may act and how. In short:
-INVESTIGATE/SKIP are report-only here; every MERGE and every PR close goes through
-an `AskUserQuestion` approval gate. Batch the gated actions into a single approval
+INVESTIGATE/SKIP are report-only here; an **AUTO-MERGE** verdict (narrow, CI-gated)
+merges without a prompt; every other MERGE and every PR close goes through an
+`AskUserQuestion` approval gate. Batch the gated actions into a single approval
 prompt rather than asking per-PR where you can.
 
 ## Finding dispositions
@@ -125,32 +145,27 @@ do about it*:
 
 | Verdict | Disposition | What the skill does |
 |---|---|---|
+| **AUTO-MERGE** | `auto-fix` | Merge **without a prompt** — *only* a **patch** bump or a **minor dev-dependency** bump, each with **passing CI** and **no detected breaking changes**. Squash-merge, then report exactly what landed. |
+| **MERGE** | `ask-user` | Recommend merging; **gate behind an `AskUserQuestion` approval** — minor runtime deps, security fixes, anything not in the AUTO-MERGE class. |
 | **INVESTIGATE** | `report` | Surface findings + cited evidence; take no action. |
 | **SKIP** | `ask-user` | Recommend closing; **never close on its own** — gate the close (and any "superseded by" comment) behind approval. |
-| **MERGE** | `ask-user` | Recommend merging; **gate every merge** behind an `AskUserQuestion` approval, even a low-risk patch. |
 
-**Merging is a mutation and is gated — there is no silent auto-merge.** A merge is
-irreversible-ish from the user's seat (it lands on the default branch and can
-trigger deploys), so it does **not** qualify for silent `auto-fix`. Two ways it may
-proceed, both opt-in:
+**AUTO-MERGE is a deliberate, narrow exception to the opt-in-mutation convention
+(#6)** — see the plugin README. It restores the original skill's behavior: a
+low-risk dependency bump that *passes CI* is merged automatically. The exception is
+bounded and safe:
 
-1. **Approval gate (default):** present the MERGE candidates and merge only those
-   the user approves via `AskUserQuestion`. This is the default and always
-   available.
-2. **Explicit opt-in flag:** the user may pass an explicit auto-merge flag
-   *in this invocation* (e.g. `/dep-review --auto-merge-patch`) to let low-risk
-   **patch** bumps with **passing CI** and **no detected breaking changes** merge
-   without the per-PR prompt. Treat the flag as the consent. Even then:
-   - it covers **only** patch + passing-CI + no-breaking-changes PRs; anything
-     else still gates;
-   - report **exactly what was merged** (PR #, package, from→to, the merge commit)
-     — the auto-fix reporting contract (#7);
-   - the merge is the only recoverable trace, so it must be VCS-visible (it is —
-     `gh pr merge` lands a commit/squash on the branch).
+- It covers **only** patch / minor-dev-dep bumps with **passing CI** and **no
+  detected breaking changes**. Anything else — runtime minor, major, security fix,
+  pre-release, grouped-with-breaking — falls to **MERGE** (gated) or INVESTIGATE.
+- It satisfies the `auto-fix` safety contract: the merge is **reversible** (a revert
+  PR) and **VCS-visible** (`gh pr merge --squash` lands a commit), and you **report
+  exactly what was merged** (PR #, package, from→to, merge commit).
+- CI passing is the consent: never AUTO-MERGE a PR with failing/absent CI.
 
-Never self-resolve an `ask-user` verdict — not even to "skip a trivial PR." When in
-doubt between gating and acting, **gate**. Under-acting is recoverable; a wrong
-silent merge or close is not.
+Never self-resolve an **`ask-user`** verdict (MERGE-gated / SKIP) — not even to "skip
+a trivial PR." When in doubt between AUTO-MERGE and gating, **gate**. Under-acting is
+recoverable; a wrong silent merge or close is not.
 
 ## Engagement style
 
@@ -194,5 +209,6 @@ See [shoals convention](https://github.com/starfysh-tech/nautilai/blob/main/docs
 
 - [`references/analysis-steps.md`](references/analysis-steps.md) — per-PR analysis steps 2a–2g + the structured return format.
 - [`references/decision-matrix.md`](references/decision-matrix.md) — decision rules, ecosystem commands, package→import caveats, edge cases, confidence levels.
+- [`references/edge-cases.md`](references/edge-cases.md) — quick-reference summary of the recurring edge cases (grouped PRs, `@types/*`, React/React-DOM parity, pre-release, transitive deps). Full detail lives in `decision-matrix.md`.
 - [`references/output-format.md`](references/output-format.md) — single-PR report format + batch summary table.
 - [`references/example-report.md`](references/example-report.md) — worked single-PR and batch examples.

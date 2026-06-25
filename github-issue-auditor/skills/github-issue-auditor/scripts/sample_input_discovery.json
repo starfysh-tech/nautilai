@@ -1,0 +1,104 @@
+{
+  "duplicates": [
+    {
+      "number": 45,
+      "title": "Add user authentication",
+      "createdAt": "2025-11-15T10:30:00Z",
+      "body": "Marked as duplicate of #42. See original issue for implementation details.",
+      "labels": [
+        {"name": "status: duplicate"}
+      ]
+    },
+    {
+      "number": 78,
+      "title": "Implement JWT tokens",
+      "createdAt": "2025-12-01T08:15:00Z",
+      "body": "Duplicate of #42 - same feature request",
+      "labels": [
+        {"name": "status: duplicate"}
+      ]
+    }
+  ],
+  "unlabeled": [
+    {
+      "number": 67,
+      "title": "Fix database migration issue",
+      "createdAt": "2026-01-10T14:20:00Z",
+      "body": "Database migrations failing on production with error: 'column not found'",
+      "labels": []
+    },
+    {
+      "number": 103,
+      "title": "Add export to CSV feature",
+      "createdAt": "2025-12-20T16:45:00Z",
+      "body": "Users need ability to export data to CSV format",
+      "labels": []
+    },
+    {
+      "number": 115,
+      "title": "Update documentation for API v2",
+      "createdAt": "2026-01-05T09:30:00Z",
+      "body": "API v2 documentation is outdated and needs refresh",
+      "labels": []
+    }
+  ],
+  "stale_backlog": [
+    {
+      "number": 12,
+      "title": "Implement batch operations",
+      "createdAt": "2025-11-01T08:00:00Z",
+      "body": "Users need batch operations for bulk updates",
+      "labels": [
+        {"name": "status: backlog"}
+      ]
+    },
+    {
+      "number": 34,
+      "title": "Add dark mode support",
+      "createdAt": "2025-10-15T12:30:00Z",
+      "body": "Users requesting dark mode theme option",
+      "labels": [
+        {"name": "status: backlog"},
+        {"name": "feature"}
+      ]
+    }
+  ],
+  "orphaned": [
+    {
+      "number": 89,
+      "title": "Update API docs for v2 endpoints",
+      "createdAt": "2025-12-20T16:45:00Z",
+      "body": "Part of #78\n\nNeed to update API documentation for new v2 endpoints including authentication and rate limiting.",
+      "labels": [
+        {"name": "documentation"}
+      ]
+    },
+    {
+      "number": 102,
+      "title": "Add unit tests for auth module",
+      "createdAt": "2025-11-25T10:15:00Z",
+      "body": "Subtask of #55\n\nImplement comprehensive unit tests for the authentication module.",
+      "labels": [
+        {"name": "testing"}
+      ]
+    }
+  ],
+  "potential_duplicates": [
+    {
+      "issue1_number": 54,
+      "issue1_title": "Add email notifications",
+      "issue2_number": 61,
+      "issue2_title": "Implement email notification system",
+      "similarity": 0.85,
+      "reason": "Both about email notifications"
+    },
+    {
+      "issue1_number": 72,
+      "issue1_title": "Fix login bug on mobile",
+      "issue2_number": 88,
+      "issue2_title": "Login not working on mobile devices",
+      "similarity": 0.82,
+      "reason": "Both about mobile login issues"
+    }
+  ]
+}

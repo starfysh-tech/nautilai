@@ -1,0 +1,57 @@
+{
+  "eval_id": 3,
+  "eval_name": "findings-only-no-app-description",
+  "prompt": "5 audit findings with no explicit app description (Mode B)",
+  "assertions": [
+    {
+      "id": "structure-report-header",
+      "text": "Output contains the report header identifying Mode B (audit-findings) input mode",
+      "type": "structural"
+    },
+    {
+      "id": "derived-context",
+      "text": "Output derives reasonable app context from the findings (identifies roles like editor, moderator, admin from the findings themselves)",
+      "type": "quality"
+    },
+    {
+      "id": "abuse-case-count",
+      "text": "Output contains between 5 and 10 abuse cases",
+      "type": "structural"
+    },
+    {
+      "id": "bil-scoring",
+      "text": "Each abuse case has a BIL Score with Blast, Sensitivity, and Exploitability dimensions (each 1-3) and a criticality label",
+      "type": "structural"
+    },
+    {
+      "id": "f1-f2-compound",
+      "text": "At least one abuse case identifies the F-1 + F-2 combination (user enumeration via admin endpoint + IDOR on documents) as a compound high-risk scenario",
+      "type": "quality"
+    },
+    {
+      "id": "f5-role-confusion",
+      "text": "At least one abuse case connects F-5 (string-based role check) to a role confusion or escalation scenario",
+      "type": "quality"
+    },
+    {
+      "id": "findings-mapping-table",
+      "text": "Output contains a Findings-to-Abuse Mapping table referencing all 5 findings (F-1 through F-5)",
+      "type": "structural"
+    },
+    {
+      "id": "limitations-noted",
+      "text": "Output explicitly acknowledges limitations of working without a full app description",
+      "type": "quality"
+    },
+    {
+      "id": "risk-summary",
+      "text": "Output contains a Risk Summary with recommended remediation order",
+      "type": "structural"
+    },
+    {
+      "id": "ordered-by-severity",
+      "text": "Abuse cases are ordered by BIL score descending (highest risk first)",
+      "type": "quality"
+    }
+  ]
+}

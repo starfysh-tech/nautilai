@@ -1,0 +1,24 @@
+{
+  "skill_name": "rbac-remediation-playbooks",
+  "_note": "Portable eval suite. Scenarios use a generic multi-tenant Django/DRF app (organizations as tenants, records as the sensitive data). They run as-is against any project and map cleanly onto a healthcare tenancy (organization->clinic, record->patient). No project-specific paths or class names.",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I just ran an RBAC audit and got this finding:\n\n#### FINDING-001: RecordExportView missing permission enforcement\n- **Type:** missing-authz\n- **Severity:** Critical\n- **Location:** `app/api/views.py:312`\n- **Description:** RecordExportView has no permission_classes set, relying only on DEFAULT_PERMISSION_CLASSES (IsAuthenticated). Any authenticated user can export records.\n- **Impact:** A regular user with no group membership could export all records, including sensitive fields.\n- **Evidence:** `class RecordExportView(APIView): # no permission_classes`\n- **Recommendation:** Add a CanExportData permission class and a tenant-filtered queryset.\n\nGenerate a remediation playbook for this finding.",
+      "expected_output": "A Now-priority playbook referencing actual discovered permission classes (e.g. CanExportData, HasTenantAccess), with implementation steps pointing to real file paths, a test scaffold using the project's test framework (pytest + factory patterns for Django/DRF), a verification checklist, and a GitHub issue in the project's detected issue-template format.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Here are two related findings from my RBAC audit. Generate remediation playbooks:\n\n#### FINDING-002: MembershipViewSet missing tenant filtering\n- **Type:** cross-tenant\n- **Severity:** Critical\n- **Location:** `app/api/views.py:180`\n- **Description:** get_queryset() returns all Membership objects for non-staff users. No filtering by the user's tenant access.\n- **Impact:** A user in Organization A can see membership mappings for Organization B.\n- **Evidence:** `def get_queryset(self): return Membership.objects.all()`\n- **Recommendation:** Filter by user.get_tenants()\n\n#### FINDING-003: MembershipViewSet write-side gap\n- **Type:** write-side-gap\n- **Severity:** High\n- **Location:** `app/api/views.py:195`\n- **Description:** perform_create() does not validate that the target organization is within the user's scope. A user could POST an organization_id for an organization they don't belong to.\n- **Impact:** A user could associate their resource with organizations outside their access scope.\n- **Evidence:** No perform_create override present.\n- **Recommendation:** Add perform_create() validation checking the target organization against user.get_tenants()\n\nCluster these and generate a single remediation playbook.",
+      "expected_output": "A single clustered Now-priority playbook covering both findings on the same ViewSet. Should include: get_queryset() filtering fix AND perform_create() validation in the same playbook. One GitHub issue, not two.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I have a logging-gap finding:\n\n#### FINDING-005: NotificationViewSet missing audit logging\n- **Type:** logging-gap\n- **Severity:** Low\n- **Location:** `app/api/views.py:250`\n- **Description:** NotificationViewSet does not use AuditLogMixin despite handling notification data that may contain user-identifiable content.\n- **Impact:** No audit trail for who accessed notification data.\n- **Evidence:** `class NotificationViewSet(viewsets.ModelViewSet): # no AuditLogMixin`\n- **Recommendation:** Add AuditLogMixin\n\nGenerate remediation with --priority now",
+      "expected_output": "Output should state that no findings match the Now priority band. The logging-gap finding is Low severity and should be classified as Later priority.",
+      "files": []
+    }
+  ]
+}

@@ -21,6 +21,7 @@ Exit codes:
     2 — usage error
 """
 
+import argparse
 import ast
 import json
 import os
@@ -119,23 +120,29 @@ def discover_permission_classes(root: Path) -> list[dict]:
     return classes
 
 
-def discover_phi(root: Path) -> dict:
+def discover_phi(root: Path, phi_mixin: str | None = None) -> dict:
     """Find a PHI filter mixin and the serializers that use it.
 
-    Generic: the mixin is identified by a class that references PHI fields (a
-    *_FIELDS frozenset/set naming PHI, or a class whose name contains
-    PHI/Filter). No hardcoded class or field names.
+    Generic detection (no hardcoded class names):
+    - PHI fields come from a ``*_FIELDS`` set/frozenset/tuple naming PHI.
+    - The mixin is the class — preferentially PHI-named — that is *applied as a
+      base* to the most serializer classes. Ranking by name + actual application
+      (not "mentions PHI anywhere in its body") avoids matching unrelated
+      helpers such as a logging ``Filter`` that merely references PHI in a
+      docstring.
+    - ``phi_mixin`` (the ``--phi-mixin`` flag) overrides detection outright.
     """
-    mixin_name = None
     phi_fields: list[str] = []
     phi_file = None
+    classes: dict[str, str] = {}           # class name -> defining file
+    base_users: dict[str, list[str]] = {}  # base class name -> subclasses using it
 
     for fp in _iter_python_files(root):
         tree = _parse(fp)
         if not tree:
             continue
-        text = fp.read_text(encoding="utf-8", errors="ignore")
         if not phi_fields:
+            text = fp.read_text(encoding="utf-8", errors="ignore")
             m = re.search(
                 r"(\w*PHI\w*_FIELDS|PHI_FIELDS)\s*=\s*(?:frozenset\()?\s*[\{\[\(](.*?)[\}\]\)]",
                 text,
@@ -144,29 +151,32 @@ def discover_phi(root: Path) -> dict:
             if m:
                 phi_fields = re.findall(r'["\'](\w+)["\']', m.group(2))
                 phi_file = str(fp)
-        if mixin_name:
-            continue
         for node in ast.walk(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
-            dumped = ast.dump(node)
-            if "PHI" in dumped or "phi_field" in dumped.lower():
-                bases = _base_names(node)
-                if "Mixin" in node.name or "Filter" in node.name or not any("Serializer" in b for b in bases):
-                    mixin_name = node.name
-                    if not phi_file:
-                        phi_file = str(fp)
-                    break
+            classes.setdefault(node.name, str(fp))
+            for b in _base_names(node):
+                base_users.setdefault(b, []).append(node.name)
 
-    applied_to = []
-    if mixin_name:
-        for fp in _iter_python_files(root):
-            tree = _parse(fp)
-            if not tree:
-                continue
-            for node in ast.walk(tree):
-                if isinstance(node, ast.ClassDef) and mixin_name in _base_names(node):
-                    applied_to.append(node.name)
+    def serializer_uses(name: str) -> int:
+        return sum(1 for u in base_users.get(name, []) if "Serializer" in u)
+
+    # Select the mixin.
+    if phi_mixin:
+        mixin_name = phi_mixin  # explicit override wins, found or not
+    else:
+        applied = [c for c in classes if base_users.get(c)]
+        phi_named = [c for c in applied if "PHI" in c.upper()]
+        pool = phi_named or [c for c in applied if serializer_uses(c)]
+        mixin_name = max(
+            pool,
+            key=lambda c: (serializer_uses(c), len(base_users.get(c, []))),
+            default=None,
+        )
+
+    applied_to = sorted(set(base_users.get(mixin_name, []))) if mixin_name else []
+    if mixin_name and not phi_file:
+        phi_file = classes.get(mixin_name)
 
     return {
         "mixin_class": mixin_name,
@@ -203,6 +213,32 @@ def discover_groups(root: Path) -> list[dict]:
     return groups
 
 
+def discover_finding_types(script_file: Path | None = None) -> list[str]:
+    """Extract the finding-type vocabulary from the sibling audit skill's SKILL.md.
+
+    Keeps the remediation finding-type vocabulary in sync with the audit skill
+    rather than hardcoding it. Locates the audit SKILL.md relative to this
+    script (skills/rbac-audit-django/SKILL.md) instead of a hardcoded project
+    path. Fail-open: returns [] if the file can't be found or read.
+
+    Preserves the original extraction logic exactly — every backtick-wrapped
+    first-column table cell in the audit SKILL.md (the finding-type table).
+    """
+    script_file = script_file or Path(__file__)
+    # script is at skills/rbac-remediation-playbooks/scripts/ → parents[2] = skills/
+    audit_skill = script_file.resolve().parents[2] / "rbac-audit-django" / "SKILL.md"
+    if not audit_skill.is_file():
+        return []
+    try:
+        content = audit_skill.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return []
+    types = []
+    for match in re.finditer(r"\|\s*`(\w[\w-]+)`\s*\|", content):
+        types.append(match.group(1))
+    return types
+
+
 def discover_roles(project_root: Path) -> list[dict]:
     """Extract role definitions from an RBAC docs file, if one exists.
 
@@ -230,11 +266,17 @@ def discover_roles(project_root: Path) -> list[dict]:
 
 
 def main() -> None:
-    if len(sys.argv) > 2:
-        print("Usage: discover_platform.py [project-root]", file=sys.stderr)
-        sys.exit(2)
+    parser = argparse.ArgumentParser(
+        description="Discover Django/DRF RBAC + PHI platform context as JSON"
+    )
+    parser.add_argument("project_root", nargs="?", default=".", help="Project root (default: cwd)")
+    parser.add_argument(
+        "--phi-mixin",
+        help="Override PHI mixin detection with this exact class name",
+    )
+    args = parser.parse_args()
 
-    project_root = Path(sys.argv[1]).resolve() if len(sys.argv) == 2 else Path.cwd()
+    project_root = Path(args.project_root).resolve()
     backend_root = detect_backend_root(project_root)
 
     output = {
@@ -242,8 +284,9 @@ def main() -> None:
         "backend_root": str(backend_root),
         "permission_classes": discover_permission_classes(backend_root),
         "groups": discover_groups(backend_root),
-        "phi": discover_phi(backend_root),
+        "phi": discover_phi(backend_root, args.phi_mixin),
         "roles": discover_roles(project_root),
+        "finding_types": discover_finding_types(),
         "notes": [],
     }
 
@@ -259,6 +302,11 @@ def main() -> None:
         output["notes"].append("No PHI filter mixin detected (may be a non-PHI codebase).")
     if not output["roles"]:
         output["notes"].append("No RBAC docs found under docs/ — roles inferred from code only.")
+    if not output["finding_types"]:
+        output["notes"].append(
+            "Could not read finding-type vocabulary from the sibling audit "
+            "SKILL.md — finding types will fall back to the table in this skill."
+        )
 
     json.dump(output, sys.stdout, indent=2)
     print()

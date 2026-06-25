@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.7.1](https://github.com/starfysh-tech/nautilai/compare/v2.7.0...v2.7.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* address review on restored scripts ([e81a758](https://github.com/starfysh-tech/nautilai/commit/e81a758965d50abb4ef1249a362dd62b218ef37e))
+* restore dep-review parallelism, portable evals ([255eaeb](https://github.com/starfysh-tech/nautilai/commit/255eaebc95c284078f26cdae64c84b8657cd158b))
+* restore dropped scripts, fix regressions ([9e58a47](https://github.com/starfysh-tech/nautilai/commit/9e58a47bebf688cb1ef403299582a79d8934ae91))
+* restore dropped skill scripts to parity ([5b65640](https://github.com/starfysh-tech/nautilai/commit/5b65640ee81107fb8a331dc1fb5738aeae5264b7))
+
 ## [2.7.0](https://github.com/starfysh-tech/nautilai/compare/v2.6.0...v2.7.0) (2026-06-25)
 
 

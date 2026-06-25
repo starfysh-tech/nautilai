@@ -2,8 +2,8 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "dep-review",
   "displayName": "Dependency Review",
-  "version": "2.7.0",
-  "description": "Evaluate Dependabot PRs with MERGE / SKIP / INVESTIGATE verdicts grounded in the PR diff and codebase usage. Batch all open PRs or one by number. Merges are gated behind explicit approval — never silent.",
+  "version": "2.7.1",
+  "description": "Evaluate Dependabot PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts grounded in the PR diff and codebase usage. Low-risk patch / minor-dev-dep bumps that pass CI auto-merge; other merges and closes gate behind approval.",
   "author": {
     "name": "Randall Noval",
     "email": "randall@starfysh.net",

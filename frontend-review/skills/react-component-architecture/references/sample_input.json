@@ -1,0 +1,33 @@
+{
+  "source_directory": "src/",
+  "configuration": {
+    "component_size_limit": 200,
+    "prop_drilling_depth": 3,
+    "min_duplicate_count": 3,
+    "folder_structure": {
+      "primitives": "components/ui",
+      "features": "features",
+      "layouts": "layouts",
+      "utils": "utils"
+    },
+    "excluded_patterns": [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/.next/**",
+      "**/__tests__/**",
+      "**/*.test.tsx",
+      "**/*.spec.tsx"
+    ],
+    "type_coverage_threshold": 95,
+    "complexity_threshold": 10
+  },
+  "analysis_options": {
+    "check_component_size": true,
+    "check_prop_drilling": true,
+    "find_duplicates": true,
+    "validate_folder_structure": true,
+    "check_type_coverage": true,
+    "export_json": true,
+    "json_output_path": "architecture-report.json"
+  }
+}

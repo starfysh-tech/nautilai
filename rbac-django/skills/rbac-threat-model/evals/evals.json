@@ -1,0 +1,23 @@
+{
+  "skill_name": "rbac-threat-model",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We just ran rbac-audit-django on our clinical trials platform and got these findings. Can you threat-model what an attacker could actually do with these gaps?\n\nApp context: HIPAA-regulated clinical trials management. Roles: Staff (full admin), Clinical Staff (CRUD within assigned clinics), Sponsor (read-only via org's studies), CRO (read-only, same as sponsor). Tenants: Organizations and Clinics. Data: patient PHI, survey responses, consent documents, study protocols.\n\nAudit findings:\n- [RBAC-01] cross-tenant (High): PatientViewSet.get_queryset() does not filter by user's clinics for sponsor role — sponsors can see patients across all clinics in all studies, not just their org's studies.\n- [RBAC-02] write-side-gap (Medium): SignatureRequestViewSet allows POST for sponsor/CRO roles — permission_classes only check IsAuthenticated, not IsClinicalStaff.\n- [RBAC-03] phi-filter-gap (Medium): Patient export endpoint returns full SSN and DOB fields; no PHI filtering applied for sponsor role.\n- [RBAC-04] logging-gap (Low): Chat message endpoints have no PHIAccessLog entries despite containing patient-identifiable content.\n- [RBAC-05] frontend-mismatch (Low): Sponsor UI hides 'Delete Patient' button but API endpoint has no role check.",
+      "expected_output": "Structured threat model report with 5-10 abuse cases in Mode C format, BIL-scored, with findings-to-abuse mapping table. Should identify RBAC-01+RBAC-03 combination as CRITICAL (cross-tenant PHI export). Should flag at least one abuse case with no audit finding.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I'm building a multi-tenant project management SaaS. Can you do a threat model on our RBAC?\n\nRoles:\n- Owner: full access to org, billing, member management\n- Admin: full project access within org, can invite members\n- Member: read/write on assigned projects only\n- Guest: read-only on specific shared projects, no org-level access\n- Service Account: API tokens for CI/CD integrations, scoped to specific projects\n\nTenants: Organizations (top-level), Projects (within orgs, can be shared across orgs via guest access)\n\nData: project files (some contain trade secrets), task comments, member PII (emails, names), billing info, API tokens, audit logs.\n\nIntegrations: GitHub (webhooks for commit linking), Slack (notifications), Stripe (billing).",
+      "expected_output": "Structured threat model report with 5-10 abuse cases in Mode A format. Should cover: guest-to-member escalation via shared projects, service account token over-scoping, cross-org data access via project sharing, billing info exposure. No findings-to-abuse mapping (Mode A).",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Here are the findings from our RBAC audit. What are the actual risks?\n\n- [F-1] missing-authz (Critical): /api/admin/users/ endpoint accessible to any authenticated user, returns full user list with emails and roles.\n- [F-2] idor (High): /api/documents/{id}/ uses sequential integer IDs, no object-level permission check.\n- [F-3] over-privileged (Medium): 'editor' role has DELETE permission on all resource types, including user accounts.\n- [F-4] inconsistent-role (Medium): Role 'moderator' has write access to 'billing' resources which appears unintentional based on role name.\n- [F-5] inline-check (Low): Permission logic in views uses `if user.role == 'admin'` string comparison instead of group membership check.",
+      "expected_output": "Structured threat model report in Mode B format. Should derive enough app context from the findings to produce meaningful abuse cases. Should identify F-1+F-2 combination as high-risk (enumerate users, then access their documents by ID). Should note limitations of working without full app description.",
+      "files": []
+    }
+  ]
+}
