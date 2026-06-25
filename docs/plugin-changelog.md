@@ -16,6 +16,15 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-06-25
 
+- **commitcraft's manual release notes now honor the repo's own
+  `release-please-config.json` sections** ([`commitcraft`](../commitcraft#readme)).
+  Phase 3 used a hardcoded type→section table, so a repo with a release-please
+  changelog config only got *its* categories if release-please actually ran. Now the
+  manual path reads `changelog-sections` from the config when present (built-in table
+  as fallback) — a repo declares its categories once and gets a consistent changelog
+  whether release-please automates the release or commitcraft cuts it by hand. No
+  automation required to honor the config.
+
 - **commitcraft `release` no longer dead-ends on a disabled release-please**
   ([`commitcraft`](../commitcraft#readme)). Phase 1 deferred to release-please on
   the mere *presence* of its workflow file — so a scaffolded-then-neutered
