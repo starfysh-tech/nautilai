@@ -73,7 +73,29 @@ Display the error output to the user (not on main, dirty tree) and stop. Note: m
 
 ## Phase 3: Generate Release Notes
 
-Group parsed commits by type into sections. Order matters:
+Group parsed commits into sections by commit type.
+
+**Prefer the repo's own section config.** If `release-please-config.json` exists, use
+its `changelog-sections` as the type→section mapping — so the manual notes match what
+release-please would produce. The repo declares its categories once and commitcraft
+honors them whether or not release-please ever runs (no automation required):
+
+```bash
+test -f release-please-config.json && \
+  jq -r '((.packages // {}) | .["."]? | .["changelog-sections"]?) // .["changelog-sections"] // [] | .[]
+         | "\(.type)\t\(.section)\t\(.hidden // false)"' release-please-config.json
+```
+
+(Handles both layouts: `changelog-sections` under `.packages["."]` (manifest style)
+or at the config root (single-package style); prints nothing when neither exists.)
+
+- Each row is `type<TAB>section<TAB>hidden`. Use them in the config's order; a row
+  with `hidden=true` means **omit** that type from the notes (release-please's
+  convention).
+- If there is no `release-please-config.json` (or it has no `changelog-sections`),
+  fall back to the built-in defaults below.
+
+**Built-in defaults (fallback only):**
 
 | Commit Type | Section Name | Show by Default |
 |-------------|-------------|-----------------|
@@ -90,9 +112,13 @@ Group parsed commits by type into sections. Order matters:
 | `style` | Other Changes | no |
 
 **Rules:**
-- Only show "Other Changes" section if there are NO visible sections (all commits are hidden types)
-- Omit empty sections entirely
-- If a commit type has `!` (e.g., `feat!:`), it's still categorized by its base type but noted as breaking
+- Omit empty sections entirely.
+- Hidden types are left out. With the **built-in fallback**, all hidden types collapse
+  into one optional **Other Changes** section, shown only if there are no visible
+  sections at all. With **config `changelog-sections`**, follow the config literally:
+  `hidden=true` types are simply omitted (no synthetic "Other Changes" bucket).
+- If a commit type has `!` (e.g. `feat!:`), it's still categorized by its base type
+  but noted as breaking.
 
 **Format each entry as:**
 ```

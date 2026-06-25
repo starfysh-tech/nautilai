@@ -67,6 +67,14 @@ the manual tag/release path with a one-line reason, rather than dead-ending on a
 release PR that will never arrive. Run the detection tests with
 `bash commitcraft/tests/detect-rp.test.sh`.
 
+On the manual path, the release notes are **grouped by the repo's own
+`release-please-config.json` `changelog-sections`** when that file exists (either
+the `.packages["."]` manifest layout or a root-level config), falling back to a
+built-in section table otherwise. So a repo declares its changelog categories once
+and gets the same sectioned notes whether release-please automates the release or
+commitcraft cuts it by hand — honoring the config never requires running
+release-please.
+
 `SKILL.md` reads `skills/commitcraft/workflows/<argument>.md` and follows it. Workflows
 shell out to the bundled scripts via `${CLAUDE_PLUGIN_ROOT}/scripts/…`, so paths resolve
 correctly regardless of where the plugin cache lives.
