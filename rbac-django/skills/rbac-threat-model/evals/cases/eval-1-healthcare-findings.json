@@ -1,0 +1,57 @@
+{
+  "eval_id": 1,
+  "eval_name": "healthcare-with-audit-findings",
+  "prompt": "Healthcare clinical trials platform with 5 audit findings (Mode C)",
+  "assertions": [
+    {
+      "id": "structure-report-header",
+      "text": "Output contains the report header with Application, Date, Domain, and Input mode fields",
+      "type": "structural"
+    },
+    {
+      "id": "structure-system-profile",
+      "text": "Output contains a System Profile section with Principals, Asset Classification, and Access Channels tables",
+      "type": "structural"
+    },
+    {
+      "id": "abuse-case-count",
+      "text": "Output contains between 5 and 10 abuse cases (AC-01 through AC-N)",
+      "type": "structural"
+    },
+    {
+      "id": "bil-scoring",
+      "text": "Each abuse case has a BIL Score with Blast, Sensitivity, and Exploitability dimensions (each 1-3) and a criticality label",
+      "type": "structural"
+    },
+    {
+      "id": "detection-signals",
+      "text": "Each abuse case includes detection signals with both visible and blind spot categories",
+      "type": "structural"
+    },
+    {
+      "id": "compound-risk-identified",
+      "text": "At least one abuse case identifies the RBAC-01 + RBAC-03 combination (cross-tenant access + unfiltered PHI export) as a high/critical compound risk",
+      "type": "quality"
+    },
+    {
+      "id": "findings-mapping-table",
+      "text": "Output contains a Findings-to-Abuse Mapping table that references all 5 audit findings (RBAC-01 through RBAC-05)",
+      "type": "structural"
+    },
+    {
+      "id": "undetectable-abuse-case",
+      "text": "At least one abuse case is flagged as having no corresponding audit finding (business logic, integration trust, or social engineering)",
+      "type": "quality"
+    },
+    {
+      "id": "risk-summary",
+      "text": "Output contains a Risk Summary section with criticality breakdown and recommended remediation order",
+      "type": "structural"
+    },
+    {
+      "id": "ordered-by-severity",
+      "text": "Abuse cases are ordered by BIL score descending (highest risk first)",
+      "type": "quality"
+    }
+  ]
+}

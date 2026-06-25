@@ -1,0 +1,75 @@
+{
+  "skill_name": "rbac-threat-model",
+  "iteration": 1,
+  "configurations": [
+    {
+      "name": "with_skill",
+      "pass_rate": {
+        "mean": 0.9,
+        "stddev": 0.058,
+        "per_eval": {
+          "eval-1-healthcare-findings": 0.9,
+          "eval-2-saas-app-only": 0.8,
+          "eval-3-findings-only": 1.0
+        }
+      },
+      "time": {
+        "mean": 176.1,
+        "stddev": 17.6,
+        "per_eval": {
+          "eval-1-healthcare-findings": 200.3,
+          "eval-2-saas-app-only": 165.1,
+          "eval-3-findings-only": 163.0
+        }
+      },
+      "tokens": {
+        "mean": 47893,
+        "stddev": 18032,
+        "per_eval": {
+          "eval-1-healthcare-findings": 72876,
+          "eval-2-saas-app-only": 31258,
+          "eval-3-findings-only": 39546
+        }
+      }
+    },
+    {
+      "name": "without_skill",
+      "pass_rate": {
+        "mean": null,
+        "stddev": null,
+        "per_eval": {
+          "eval-1-healthcare-findings": null,
+          "eval-2-saas-app-only": null,
+          "eval-3-findings-only": null
+        }
+      },
+      "time": {
+        "mean": 120.9,
+        "stddev": 28.1,
+        "per_eval": {
+          "eval-1-healthcare-findings": 159.4,
+          "eval-2-saas-app-only": 105.9,
+          "eval-3-findings-only": 97.4
+        }
+      },
+      "tokens": {
+        "mean": 41849,
+        "stddev": 13412,
+        "per_eval": {
+          "eval-1-healthcare-findings": 56712,
+          "eval-2-saas-app-only": 24100,
+          "eval-3-findings-only": 44736
+        }
+      }
+    }
+  ],
+  "analyst_observations": [
+    "The skill produces fundamentally different output type than baseline. Baseline agents default to code-validation mode (checking findings against actual repo), while the skill forces adversarial threat modeling mode with structured abuse cases.",
+    "Eval 3 baseline is the starkest contrast: without the skill, the agent declared all 5 findings false positives by validating against Aerie's actual code. The skill version correctly treated them as hypothetical and generated 9 abuse cases.",
+    "Eval 1 baseline also validated findings against code, downgrading 3 of 5 findings. The skill version accepted findings at face value AND validated code, producing richer compound analysis.",
+    "BIL score ordering is the main structural weakness: 2 of 3 with-skill runs had imperfect descending order. The compound risk case (AC-07) tends to be placed last as a 'summary' case rather than by BIL score.",
+    "Mode A (eval 2) included a Findings-to-Abuse Mapping table with 'No finding' entries. The skill template includes this section always but it adds noise in Mode A. Consider making it conditional.",
+    "Token usage is ~15% higher with the skill (47.9k vs 41.8k avg), with most of the delta in eval 1 where the skill does both threat modeling AND code validation.",
+    "Time is ~46% longer with the skill (176s vs 121s avg), reflecting the additional reasoning steps in PACE methodology."
+  ]
+}
