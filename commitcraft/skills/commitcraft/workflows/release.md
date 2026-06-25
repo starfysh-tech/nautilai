@@ -82,9 +82,12 @@ honors them whether or not release-please ever runs (no automation required):
 
 ```bash
 test -f release-please-config.json && \
-  jq -r '.packages["."]["changelog-sections"] // [] | .[]
+  jq -r '((.packages // {}) | .["."]? | .["changelog-sections"]?) // .["changelog-sections"] // [] | .[]
          | "\(.type)\t\(.section)\t\(.hidden // false)"' release-please-config.json
 ```
+
+(Handles both layouts: `changelog-sections` under `.packages["."]` (manifest style)
+or at the config root (single-package style); prints nothing when neither exists.)
 
 - Each row is `type<TAB>section<TAB>hidden`. Use them in the config's order; a row
   with `hidden=true` means **omit** that type from the notes (release-please's
