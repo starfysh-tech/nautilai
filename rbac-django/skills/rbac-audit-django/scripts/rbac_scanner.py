@@ -125,9 +125,9 @@ def run_rg(pattern: str, path: str, type_filter: str = "py") -> list[dict]:
 
 def parse_file(filepath: str) -> ast.Module | None:
     try:
-        with open(filepath, encoding='utf-8') as f:
+        with open(filepath, encoding='utf-8', errors='ignore') as f:
             return ast.parse(f.read(), filename=filepath)
-    except (SyntaxError, FileNotFoundError):
+    except (SyntaxError, OSError, UnicodeDecodeError):
         return None
 
 
@@ -244,6 +244,18 @@ def _python_files(scope: str, filename: str = "*.py") -> list[Path]:
     return [
         fp for fp in Path(scope).rglob(filename)
         if "/tests/" not in str(fp) and "/migrations/" not in str(fp)
+    ]
+
+
+def _model_files(scope: str) -> list[Path]:
+    """Model modules: `models.py` or any file inside a `models/` package.
+
+    Django projects commonly split models into a package (models/user.py, …);
+    matching only `models.py` would miss those.
+    """
+    return [
+        fp for fp in _python_files(scope)
+        if fp.name == "models.py" or "/models/" in fp.as_posix()
     ]
 
 
@@ -367,7 +379,7 @@ def _find_through_refs(node: ast.ClassDef) -> set[str]:
 def discover_through_model_names(scope: str) -> set[str]:
     """Find through-models via M2M through= refs only (precise, no heuristics)."""
     through_models: set[str] = set()
-    for filepath in _python_files(scope, "models.py"):
+    for filepath in _model_files(scope):
         tree = parse_file(str(filepath))
         if not tree:
             continue
@@ -574,7 +586,7 @@ def scan_queryset_managers(scope: str) -> list[dict]:
     seen: set[str] = set()
     tenant_params = {"user", "clinic", "organization", "tenant", "study"}
 
-    for filepath in _python_files(scope, "models.py"):
+    for filepath in _model_files(scope):
         filepath_str = str(filepath)
         tree = parse_file(filepath_str)
         if not tree:

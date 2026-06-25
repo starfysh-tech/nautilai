@@ -23,18 +23,28 @@ Exit codes:
 
 import ast
 import json
+import os
 import re
 import sys
 from pathlib import Path
 
+# Vendored / build dirs we never want to descend into — pruned in-place during
+# os.walk so a large node_modules or .venv doesn't dominate the scan.
+_PRUNE_DIRS = {".git", "node_modules", "venv", ".venv", "env", "dist", "build", "__pycache__"}
+
 
 def _iter_python_files(root: Path):
     """Yield non-test, non-migration .py files under root."""
-    for fp in root.rglob("*.py"):
-        s = str(fp)
-        if "/tests/" in s or "/migrations/" in s or "/node_modules/" in s:
-            continue
-        yield fp
+    for r, dirs, files in os.walk(root):
+        dirs[:] = [d for d in dirs if d not in _PRUNE_DIRS]
+        for f in files:
+            if not f.endswith(".py"):
+                continue
+            fp = Path(r) / f
+            s = fp.as_posix()
+            if "/tests/" in s or "/migrations/" in s:
+                continue
+            yield fp
 
 
 def _parse(fp: Path):
@@ -64,12 +74,14 @@ def detect_backend_root(project_root: Path) -> Path:
 
     Picks the shallowest manage.py so a nested example project doesn't win.
     """
-    candidates = sorted(
-        (p for p in project_root.rglob("manage.py") if "/node_modules/" not in str(p)),
-        key=lambda p: len(p.parts),
-    )
+    candidates = []
+    for r, dirs, files in os.walk(project_root):
+        dirs[:] = [d for d in dirs if d not in _PRUNE_DIRS]
+        if "manage.py" in files:
+            candidates.append(Path(r))
+    candidates.sort(key=lambda p: len(p.parts))
     if candidates:
-        return candidates[0].parent
+        return candidates[0]
     return project_root
 
 
@@ -125,7 +137,7 @@ def discover_phi(root: Path) -> dict:
         text = fp.read_text(encoding="utf-8", errors="ignore")
         if not phi_fields:
             m = re.search(
-                r"(\w*PHI\w*_FIELDS|PHI_FIELDS)\s*=\s*(?:frozenset\()?\s*[\{\[](.*?)[\}\]]",
+                r"(\w*PHI\w*_FIELDS|PHI_FIELDS)\s*=\s*(?:frozenset\()?\s*[\{\[\(](.*?)[\}\]\)]",
                 text,
                 re.DOTALL,
             )

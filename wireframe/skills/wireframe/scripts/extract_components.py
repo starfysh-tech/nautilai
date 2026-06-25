@@ -26,6 +26,9 @@ COMPONENT_PATTERNS = [
     (r"export const (\w+):\s*React\.FC(?:<(\w+)>)?", 1, 2),
     (r"export default function (\w+)", 1, None),
     (r"export function (\w+)", 1, None),
+    # PascalCase arrow components: `export const Foo = (props) => …` / `const Foo = _ => …`
+    (r"export const ([A-Z]\w+)\s*=\s*(?:\([^)]*\)|_|\w+)\s*=>", 1, None),
+    (r"const ([A-Z]\w+)\s*=\s*(?:\([^)]*\)|_|\w+)\s*=>", 1, None),
     (r"const (\w+):\s*React\.FC(?:<(\w+)>)?", 1, 2),
     (r"const (\w+)\s*=\s*forwardRef", 1, None),
     (r"export const (\w+)\s*=\s*forwardRef", 1, None),
@@ -58,26 +61,29 @@ def categorize(file_path: Path, name: str) -> str:
 
 def extract_component_info(file_path: Path, root: Path) -> dict | None:
     try:
-        content = file_path.read_text()
+        content = file_path.read_text(encoding="utf-8")
     except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
         print(f"Warning: skipping {file_path}: {e}", file=sys.stderr)
         return None
 
     name = props = None
+    match = None
     for pattern, name_grp, props_grp in COMPONENT_PATTERNS:
         match = re.search(pattern, content)
         if match:
             name = match.group(name_grp)
             props = match.group(props_grp) if props_grp and len(match.groups()) >= props_grp else None
             break
-    if not name:
+    if not name or match is None:
         return None
 
-    # First line of the leading JSDoc block, if any.
+    # First line of the JSDoc block immediately preceding the component (not the
+    # file-level header comment, which a whole-file search would match first).
     description = None
-    jsdoc = re.search(r"/\*\*\s*\n((?:\s*\*[^\n]*\n)+)\s*\*/", content)
-    if jsdoc:
-        raw = re.sub(r"^\s*\*\s*", "", jsdoc.group(1).strip(), flags=re.MULTILINE).strip()
+    preceding = content[:match.start()]
+    jsdoc_blocks = list(re.finditer(r"/\*\*\s*\n((?:\s*\*[^\n]*\n)+)\s*\*/", preceding))
+    if jsdoc_blocks:
+        raw = re.sub(r"^\s*\*\s*", "", jsdoc_blocks[-1].group(1).strip(), flags=re.MULTILINE).strip()
         description = raw.split("\n")[0] if raw else None
 
     return {
@@ -128,10 +134,12 @@ def main() -> int:
         return 0
 
     components = []
-    for tsx_file in sorted(components_dir.rglob("*.tsx")):
-        info = extract_component_info(tsx_file, root)
-        if info:
-            components.append(info)
+    for ext in ("*.tsx", "*.jsx"):
+        for comp_file in components_dir.rglob(ext):
+            info = extract_component_info(comp_file, root)
+            if info:
+                components.append(info)
+    components.sort(key=lambda c: c["file"])
 
     if args.json:
         print(json.dumps(components, indent=2))
