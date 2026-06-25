@@ -4,7 +4,6 @@ Generates comprehensive architecture reports combining all analysis results.
 """
 
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, List, Optional
 
 if TYPE_CHECKING:
@@ -183,7 +182,7 @@ class ArchitectureReporter:
 
         # Deduct for component size violations
         total_components = stats.get('total_components', 1)
-        size_violations = len(self.component_analyzer.get_size_violations())
+        size_violations = len(self.component_analyzer.get_size_violations(self.config['component_size_limit']))
         size_violation_ratio = size_violations / total_components
         score -= size_violation_ratio * 20  # Max -20 points
 
@@ -213,7 +212,7 @@ class ArchitectureReporter:
         """Generate score breakdown."""
         total_components = stats.get('total_components', 1)
         type_coverage = stats.get('type_coverage', 0)
-        size_violations = len(self.component_analyzer.get_size_violations())
+        size_violations = len(self.component_analyzer.get_size_violations(self.config['component_size_limit']))
 
         breakdown_lines = []
 
@@ -307,7 +306,7 @@ class ArchitectureReporter:
             'health_score': health_score,
             'statistics': stats,
             'violations': {
-                'component_size': len(self.component_analyzer.get_size_violations()),
+                'component_size': len(self.component_analyzer.get_size_violations(self.config['component_size_limit'])),
                 'prop_drilling': len(prop_drilling),
                 'folder_structure': len(folder_violations),
                 'missing_types': len(self.component_analyzer.get_missing_types())
@@ -330,8 +329,8 @@ class ArchitectureReporter:
         Returns:
             True if passing, False otherwise
         """
-        # Run minimal analysis for CI
-        components = self.component_analyzer.analyze_directory()
+        # Run minimal analysis for CI (populates analyzer state used below)
+        self.component_analyzer.analyze_directory()
         prop_drilling = self.prop_drilling_detector.analyze_directory()
         duplicates = self.duplicate_finder.analyze_directory()
         folder_violations = self.folder_validator.validate_directory()

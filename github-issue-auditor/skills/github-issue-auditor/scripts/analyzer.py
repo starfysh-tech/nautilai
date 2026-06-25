@@ -147,6 +147,17 @@ class IssueAnalyzer:
                 title1 = issue1.get('title', '')
                 title2 = issue2.get('title', '')
 
+                # Cheap length-based prune before the O(len^2) Levenshtein.
+                # distance >= |length difference|, and similarity = 1 - distance/max_len,
+                # so if the normalized length gap alone already drops similarity below
+                # the threshold the pair can't be a duplicate. Normalize exactly as
+                # compute_similarity does (strip + lower) so the bound stays exact.
+                n1 = title1.strip().lower()
+                n2 = title2.strip().lower()
+                max_len = max(len(n1), len(n2))
+                if max_len and (abs(len(n1) - len(n2)) / max_len) > (1.0 - self.similarity_threshold):
+                    continue
+
                 similarity = self.title_similarity.compute_similarity(title1, title2)
 
                 if similarity >= self.similarity_threshold:

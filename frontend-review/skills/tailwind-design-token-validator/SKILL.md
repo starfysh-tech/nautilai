@@ -4,7 +4,7 @@ description: Audit a React/TypeScript + Tailwind frontend for design-token viola
 argument-hint: "[path]"
 disable-model-invocation: true
 context: fork
-allowed-tools: [Read, Glob, Grep, Edit, Bash]
+allowed-tools: [Read, Glob, Grep, Edit, Bash(python3:*)]
 ---
 
 # Tailwind Design Token Validator

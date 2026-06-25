@@ -4,7 +4,7 @@ description: Audit a React + TypeScript frontend for component architecture — 
 argument-hint: "[path]"
 disable-model-invocation: true
 context: fork
-allowed-tools: [Read, Glob, Grep, Bash]
+allowed-tools: [Read, Glob, Grep, Bash(python3:*)]
 ---
 
 # React Component Architecture Audit

@@ -185,6 +185,9 @@ class DiscoveryEngine:
         ]
 
         orphaned = []
+        # Cache parent-status lookups: many issues reference the same parent, and
+        # each _is_parent_closed() is a separate `gh` call (N+1 otherwise).
+        parent_closed: Dict[int, bool] = {}
 
         for issue in all_issues:
             body = issue.get('body', '').lower()
@@ -194,7 +197,11 @@ class DiscoveryEngine:
                 if pattern in body:
                     # Extract parent issue number
                     parent_number = self._extract_parent_number(body, pattern)
-                    if parent_number and self._is_parent_closed(parent_number):
+                    if parent_number is None:
+                        continue
+                    if parent_number not in parent_closed:
+                        parent_closed[parent_number] = self._is_parent_closed(parent_number)
+                    if parent_closed[parent_number]:
                         issue['parent_issue'] = parent_number
                         orphaned.append(issue)
                         break
