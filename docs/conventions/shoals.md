@@ -90,7 +90,7 @@ See `docs/conventions/shoals.md`.
 
 - **Good fit:** skills that run repeatedly against the same project and make
   judgment calls a user corrects — `commitcraft`, `review-plan`, `phi-scan`,
-  `pr-comment-review`.
+  `pr-comment-review`, `pr-review-deep`.
 - **Poor fit:** pure one-shot advisory skills with nothing to carry between runs.
   Adopting shoals there just adds an empty-file read. Note the skip in the
   plugin's README rather than shipping a dead convention.

@@ -14,6 +14,17 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-06-25
+
+- **New plugin: pr-review-deep** ([`pr-review-deep`](../pr-review-deep#readme)).
+  Existing review plugins address *received* comments (pr-comment-review) or
+  validate *plans* (review-plan) — none generated a rigorous, structural
+  code-quality review of a branch/PR. This fills that gap: an evidence-first
+  reviewer that proposes behavior-preserving restructurings with cited `file:line`
+  and never performs them. Propose-only by design so it can't expand a PR's scope.
+  Follows the finding-dispositions (all `report`, `auto-fix` none) and shoals
+  conventions; user-invoked and forked.
+
 ## 2026-06-24
 
 - **Convention: shoals** ([`docs/conventions/shoals.md`](conventions/shoals.md), #11).

@@ -30,7 +30,9 @@
         { "type": "json", "path": "phi-scan/.claude-plugin/plugin.json", "jsonpath": "$.version" },
         { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[6].version" },
         { "type": "json", "path": "review-plan/.claude-plugin/plugin.json", "jsonpath": "$.version" },
-        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[7].version" }
+        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[7].version" },
+        { "type": "json", "path": "pr-review-deep/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[8].version" }
       ]
     }
   }
