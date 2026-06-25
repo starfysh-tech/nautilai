@@ -1,15 +1,23 @@
 # Release Workflow
 
-## Phase 1: Release-Please Gate (the single path when installed)
+## Phase 1: Release-Please Gate (defer only when it actually works)
 
-When release-please is installed, it is **the** release path — never cut a manual
-tag alongside it, or the version and CHANGELOG diverge. Detect it first:
+A *functional* release-please is **the** release path — never cut a manual tag
+alongside it, or the version and CHANGELOG diverge. But a present
+`release-please.yml` is too weak a signal: it can be scaffolded then neutered
+(skip flags, no write permission, never advanced past `0.0.0`), and deferring to a
+disabled release-please **dead-ends** — the release PR never arrives and the user
+can't release at all. Detect the real state instead of just the file:
 
 ```bash
-test -f .github/workflows/release-please.yml && echo "RP_INSTALLED" || echo "RP_ABSENT"
+${CLAUDE_PLUGIN_ROOT}/scripts/commitcraft-release-detect-rp.sh
 ```
 
-- **`RP_INSTALLED`** → defer to release-please and **stop here** (do not run Phases 2-5):
+Parse the block between `RP_DETECT_START` and `RP_DETECT_END`:
+- `RP_STATUS` — `FUNCTIONAL` | `DISABLED` | `ABSENT`
+- `RP_REASON` — one line explaining the decision
+
+- **`RP_STATUS: FUNCTIONAL`** → defer to release-please and **stop here** (do not run Phases 2-5):
 
   ```bash
   gh pr list --label "autorelease: pending" --json number,title,url --limit 5
@@ -17,9 +25,13 @@ test -f .github/workflows/release-please.yml && echo "RP_INSTALLED" || echo "RP_
 
   - PRs found → display via `AskUserQuestion` with options to review/merge the release PR. Merging it cuts the release.
   - No PRs → tell the user: "release-please manages releases here and nothing is pending. Push conventional commits to `main` and it will open a release PR." Stop.
-  - **Only** proceed to Phase 2 if the user *explicitly* asks for a manual release despite release-please being installed (warn about divergence first).
+  - **Only** proceed to Phase 2 if the user *explicitly* asks for a manual release despite a functional release-please (warn about divergence first).
 
-- **`RP_ABSENT`** → no automated path exists. Tell the user: "release-please not installed — using the manual tag/release path. Run `commitcraft setup --section release` to automate this." Continue to Phase 2.
+- **`RP_STATUS: DISABLED`** → release-please is installed but neutered. **Fall back to the manual path** (continue to Phase 2). First tell the user one line citing the reason, so the fallback is transparent rather than silent:
+
+  > release-please is present but disabled (`<RP_REASON>`) — using commitcraft's manual tag/release path. To restore automated releases, fix the workflow (or run `commitcraft setup --section release`).
+
+- **`RP_STATUS: ABSENT`** → no automated path exists. Tell the user: "release-please not installed — using the manual tag/release path. Run `commitcraft setup --section release` to automate this." Continue to Phase 2.
 
 ## Phase 2: Run Analysis (manual path only)
 
