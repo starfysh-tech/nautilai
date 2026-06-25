@@ -26,7 +26,10 @@ or note a deliberate exception in its README.
 
 ## Validation
 
-Before pushing plugin changes, validate the manifest:
+Every PR runs `claude plugin validate --strict` over **all** plugins via the
+`validate` workflow (`.github/workflows/validate.yml`), and it's a **required
+status check** on `main` — a malformed manifest or skill can't merge. Run the same
+check locally before pushing:
 
 ```bash
 claude plugin validate ./<plugin> --strict
@@ -35,6 +38,14 @@ claude plugin validate ./<plugin> --strict
 ## Versioning
 
 Versions are managed by **release-please** — this repo's own config is the root `release-please-config.json` + `.release-please-manifest.json`. All plugins share one **linked** repo version: release-please's `extra-files` entries fan each bump into every `plugin.json` and its `marketplace.json` entry. Do not hand-edit the `version` field to cut a release — let release-please bump it from conventional commits.
+
+Releases are **fully automated** (`.github/workflows/release-please.yml`): a push to
+`main` opens (or updates) a release PR, which **auto-merges once required checks
+pass** — publishing the tag + GitHub Release with no manual step. Merging a
+`feat:`/`fix:` PR is all it takes to ship. The workflow runs under a
+`RELEASE_PLEASE_TOKEN` PAT rather than `GITHUB_TOKEN` so the release PR's checks
+actually run and the merge re-triggers the release; if releases stop publishing,
+check that secret first.
 
 > Note: `commitcraft/templates/release-please-config.json` is a *template CommitCraft ships into end-user repos* during `setup` — it is **not** nautilai's own release config. Don't edit it to manage this repo's versions.
 
