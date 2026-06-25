@@ -1,0 +1,13 @@
+{
+  "eval_id": 1,
+  "eval_name": "critical-missing-authz",
+  "prompt": "Generate remediation playbook for a Critical missing-authz finding on PatientExportView",
+  "assertions": [
+    {"text": "References CanExportData permission class by name", "type": "grep", "pattern": "CanExportData"},
+    {"text": "References actual permissions file path", "type": "grep", "pattern": "server/aerie/core/permissions.py"},
+    {"text": "Assigns Now priority", "type": "grep", "pattern": "Now"},
+    {"text": "Includes test scaffold with pytest.mark.django_db", "type": "grep", "pattern": "pytest.mark.django_db"},
+    {"text": "Includes GitHub issue with maintenance template fields", "type": "grep", "pattern": "Current State"},
+    {"text": "Includes verification checklist", "type": "grep", "pattern": "\\[\\s*\\]"}
+  ]
+}

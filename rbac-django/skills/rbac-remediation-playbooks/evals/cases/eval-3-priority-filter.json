@@ -1,0 +1,10 @@
+{
+  "eval_id": 3,
+  "eval_name": "priority-filter",
+  "prompt": "Generate remediation with --priority now for a Low-severity logging-gap finding",
+  "assertions": [
+    {"text": "States no findings match Now priority band", "type": "grep", "pattern": "[Nn]o findings"},
+    {"text": "Does NOT produce full implementation steps", "type": "absence", "pattern": "Implementation Steps"},
+    {"text": "Classifies finding as Later priority", "type": "grep", "pattern": "Later"}
+  ]
+}

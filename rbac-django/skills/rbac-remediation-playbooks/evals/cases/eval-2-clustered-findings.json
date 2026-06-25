@@ -1,0 +1,14 @@
+{
+  "eval_id": 2,
+  "eval_name": "clustered-findings",
+  "prompt": "Cluster two related findings (cross-tenant + write-side-gap) on same ViewSet into single playbook",
+  "assertions": [
+    {"text": "FINDING-002 appears in output", "type": "grep", "pattern": "FINDING-002"},
+    {"text": "FINDING-003 appears in output", "type": "grep", "pattern": "FINDING-003"},
+    {"text": "Includes get_queryset() filtering fix", "type": "grep", "pattern": "get_queryset"},
+    {"text": "Includes perform_create() validation", "type": "grep", "pattern": "perform_create"},
+    {"text": "Produces single clustered playbook (one GitHub issue)", "type": "count", "pattern": "Current State", "expected_count": 1},
+    {"text": "References user.get_clinics()", "type": "grep", "pattern": "get_clinics"},
+    {"text": "Assigns Now priority", "type": "grep", "pattern": "Now"}
+  ]
+}
