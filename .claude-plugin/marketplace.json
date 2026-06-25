@@ -94,6 +94,17 @@
       },
       "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/review-plan#readme",
       "license": "MIT"
+    },
+    {
+      "name": "pr-review-deep",
+      "source": "./pr-review-deep",
+      "description": "Rigorous, evidence-based code quality review of a branch or PR — abstraction design, type/boundary contracts, and behavior-preserving structural simplification. Proposes high-leverage restructurings with cited evidence; never performs them or expands scope.",
+      "version": "2.5.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/pr-review-deep#readme",
+      "license": "MIT"
     }
   ]
 }

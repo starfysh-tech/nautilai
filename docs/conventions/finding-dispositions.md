@@ -58,6 +58,7 @@ is recoverable; a wrong silent edit is not.
 | **pr-comment-review** | trivially mechanical review comments (still shown in the task list) | refuted false positives (reply with evidence) | every substantive comment — behind the Phase 3 gate |
 | **phi-scan** | *none* (never auto-remediates PHI) | scanner candidates; triage results; OWASP grep hits | confirmed PHI exposure — remediation is the user's call |
 | **cc-adoption-audit** | *none* | the full prioritized audit | acting on a recommendation ("set up X?") |
+| **pr-review-deep** | *none* (propose-only; never edits code) | every review finding, with cited `file:line` | acting on a proposed restructuring ("apply this?") |
 
 ## Why this came from `no-mistakes`
 
