@@ -121,8 +121,11 @@ FIX_COUNT=0
 DOCS_COUNT=0
 OTHER_COUNT=0
 
-# Check for breaking changes in full commit bodies (single-pass)
-BREAKING_COUNT=$(git log "${LATEST_TAG}..HEAD" --no-merges --format=%B | grep -cE "BREAKING CHANGE|^[a-z]+!(\(|:)" || true)
+# Check for breaking changes in full commit bodies (single-pass). Capture git log
+# separately so a real git failure still trips `set -e` — only grep's no-match exit
+# should be swallowed. printf (not echo) is safe against bodies starting with `-`.
+BREAKING_BODIES=$(git log "${LATEST_TAG}..HEAD" --no-merges --format=%B)
+BREAKING_COUNT=$(printf '%s\n' "$BREAKING_BODIES" | grep -cE "BREAKING CHANGE|^[a-z]+!(\(|:)" || true)
 
 # Count by commit type (single awk pass over oneline output)
 read -r FEAT_COUNT FIX_COUNT DOCS_COUNT PERF_COUNT REVERT_COUNT <<< "$(echo "$COMMITS_SINCE" | awk '
