@@ -1,7 +1,7 @@
 ---
 name: dep-review
 description: Evaluate Dependabot dependency-update PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts, each grounded in the PR diff, changelog, and actual codebase usage. Batch all open Dependabot PRs or evaluate one by number. Low-risk patch and minor-dev-dep bumps that pass CI auto-merge; other merges and closes gate behind approval. Use when the user runs /dep-review, asks to triage Dependabot PRs, review dependency bumps, or decide which dependency updates are safe to merge.
-allowed-tools: Read, Grep, Glob, Bash(gh:*), Bash(git:*), Bash(npm:*), Bash(pip:*), Bash(pip-audit:*), Bash(curl:*), Bash(jq:*), WebFetch, AskUserQuestion, mcp__github__pull_request_read, mcp__github__list_pull_requests, mcp__github__merge_pull_request, mcp__github__add_issue_comment, mcp__github__update_pull_request, mcp__github__get_file_contents
+allowed-tools: Read, Grep, Glob, Task, LSP, Bash(gh:*), Bash(git:*), Bash(npm:*), Bash(pip:*), Bash(pip-audit:*), Bash(ast-grep:*), Bash(curl:*), Bash(jq:*), WebFetch, AskUserQuestion, mcp__github__pull_request_read, mcp__github__list_pull_requests, mcp__github__merge_pull_request, mcp__github__add_issue_comment, mcp__github__update_pull_request, mcp__github__get_file_contents
 disable-model-invocation: true
 ---
 
@@ -82,6 +82,22 @@ the PR body means multiple packages in one PR).
 > for pip) rather than assuming a fixed layout.
 
 ### Phase 2 — Per-PR analysis
+
+**Run each PR's analysis as its own `general-purpose` subagent (`Task`), all
+launched in parallel** — in batch mode, one message with multiple `Task` calls;
+in single-PR mode, one subagent. Each subagent gets the PR number, metadata,
+ecosystem, and the per-PR procedure, and returns structured evidence + a
+recommended verdict. The main context keeps Phases 1, 3, and 4 (discovery,
+verdicts, gated/auto actions). This keeps a large batch fast and each PR's
+evidence isolated.
+
+**Code-search mandate (precision over raw grep).** Within analysis, verify usage
+with the structured tools, not ad-hoc text search:
+
+- **Find callers / usages of a changed symbol** → `Grep` to locate, then
+  **`LSP findReferences`** to confirm real references (not comments/strings).
+- **Structural queries** (all classes/subclasses, call shapes) → **`ast-grep`**.
+- **Never raw `grep`** — use the `Grep` tool with `pattern` / `path` / `glob`.
 
 For each PR, gather evidence across these dimensions and record the supporting
 `file:line` / changelog quote for each. See
