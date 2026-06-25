@@ -27,4 +27,6 @@ jobs:
         if: ${{ steps.release.outputs.pr }}
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
-        run: gh pr merge --auto --squash "${{ fromJson(steps.release.outputs.pr).number }}"
+        # -R is required: this job has no checkout, so without it `gh pr merge`
+        # tries to resolve the repo from local git and fails ("not a git repository").
+        run: gh pr merge --auto --squash -R "${{ github.repository }}" "${{ fromJson(steps.release.outputs.pr).number }}"
