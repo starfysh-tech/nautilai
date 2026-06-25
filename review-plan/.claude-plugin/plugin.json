@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "review-plan",
   "displayName": "Review Plan",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "Adversarially validate an implementation plan against the actual codebase — surface risks, breaking changes, gaps, and simplifications before you build. Uses built-in agents by default and opportunistically taps review/Codex plugins when installed.",
   "author": {
     "name": "Randall Noval",
