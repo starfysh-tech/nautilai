@@ -28,12 +28,28 @@ assert() {
 }
 
 WF_DIR=".github/workflows"
-FUNCTIONAL_WF=$'name: Release Please\non:\n  push:\n    branches: [main]\npermissions:\n  contents: write\n  pull-requests: write\njobs:\n  release-please:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: googleapis/release-please-action@v4\n'
+# Command substitution strips the trailing newline, so mk() re-adds it (below) —
+# the skip-flag append cases depend on the base ending in a newline.
+FUNCTIONAL_WF=$(cat <<'EOF'
+name: Release Please
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+EOF
+)
 
 mk() {  # mk <dir>  — create a fixture dir with the functional workflow as a base
     local d="$TMP/$1"
     mkdir -p "$d/$WF_DIR"
-    printf '%s' "$FUNCTIONAL_WF" > "$d/$WF_DIR/release-please.yml"
+    printf '%s\n' "$FUNCTIONAL_WF" > "$d/$WF_DIR/release-please.yml"
     echo "$d"
 }
 
@@ -42,8 +58,9 @@ trap 'rm -rf "$TMP"' EXIT
 
 echo "detect-rp tests"
 
-# One case per distinct decision branch. (The actual neutered repro is validated
-# live against the source repo, so no synthetic combined-signal case is kept here.)
+# Covers the main decision branches plus the two regex-guarded ones most prone to
+# regression (write-all bypass, commented-out skip flag). Not exhaustive — the gh-
+# unavailable and monorepo-mixed-version paths are exercised live, not here.
 
 # 1. No release-please at all -> ABSENT
 d="$TMP/absent"; mkdir -p "$d"
@@ -59,7 +76,18 @@ assert "disabled: skip-github flag" DISABLED "$(status_of "$d")"
 
 # 4. permissions block without contents: write -> DISABLED
 d="$TMP/readonly"; mkdir -p "$d/$WF_DIR"
-printf 'name: RP\non:\n  push:\n    branches: [main]\npermissions:\n  contents: read\njobs:\n  release-please:\n    steps:\n      - uses: googleapis/release-please-action@v4\n' > "$d/$WF_DIR/release-please.yml"
+cat <<'EOF' > "$d/$WF_DIR/release-please.yml"
+name: RP
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  release-please:
+    steps:
+      - uses: googleapis/release-please-action@v4
+EOF
 assert "disabled: permissions lack contents:write" DISABLED "$(status_of "$d")"
 
 # 5. manifest 0.0.0 + no release-please history -> DISABLED (never cut a release)
@@ -69,6 +97,27 @@ assert "disabled: 0.0.0 + no RP history" DISABLED "$(PATH="$STUBS:$PATH" STUB_GH
 # 6. manifest 0.0.0 BUT autorelease labels exist -> FUNCTIONAL (don't hijack a working RP)
 d="$(mk zero_but_history)"; echo '{".": "0.0.0"}' > "$d/.release-please-manifest.json"
 assert "functional: 0.0.0 but RP labels exist" FUNCTIONAL "$(PATH="$STUBS:$PATH" STUB_GH_LABELS="autorelease: pending" status_of "$d")"
+
+# 7. permissions: write-all -> FUNCTIONAL (grants contents:write without naming it)
+d="$TMP/write_all"; mkdir -p "$d/$WF_DIR"
+cat <<'EOF' > "$d/$WF_DIR/release-please.yml"
+name: RP
+on:
+  push:
+    branches: [main]
+permissions: write-all
+jobs:
+  release-please:
+    steps:
+      - uses: googleapis/release-please-action@v4
+EOF
+echo '{".": "1.4.2"}' > "$d/.release-please-manifest.json"
+assert "functional: permissions write-all" FUNCTIONAL "$(PATH="$STUBS:$PATH" status_of "$d")"
+
+# 8. commented-out skip flag must NOT match (the [^#]* guard) -> FUNCTIONAL
+d="$(mk commented_skip)"; printf '%s\n' "          # skip-github-release: true" >> "$d/$WF_DIR/release-please.yml"
+echo '{".": "1.4.2"}' > "$d/.release-please-manifest.json"
+assert "functional: skip flag is commented out" FUNCTIONAL "$(PATH="$STUBS:$PATH" status_of "$d")"
 
 echo ""
 echo "  $PASS passed, $FAIL failed"
