@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.8.1](https://github.com/starfysh-tech/nautilai/compare/v2.8.0...v2.8.1) (2026-06-26)
+
+
+### Documentation
+
+* **claude:** document test suite and path rule ([89172ed](https://github.com/starfysh-tech/nautilai/commit/89172edcfe0a97e1e4b495e004c7ab8dc74d0385))
+
 ## [2.8.0](https://github.com/starfysh-tech/nautilai/compare/v2.7.3...v2.8.0) (2026-06-25)
 
 
