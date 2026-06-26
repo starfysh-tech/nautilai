@@ -28,12 +28,28 @@ assert() {
 }
 
 WF_DIR=".github/workflows"
-FUNCTIONAL_WF=$'name: Release Please\non:\n  push:\n    branches: [main]\npermissions:\n  contents: write\n  pull-requests: write\njobs:\n  release-please:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: googleapis/release-please-action@v4\n'
+# Command substitution strips the trailing newline, so mk() re-adds it (below) —
+# the skip-flag append cases depend on the base ending in a newline.
+FUNCTIONAL_WF=$(cat <<'EOF'
+name: Release Please
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+EOF
+)
 
 mk() {  # mk <dir>  — create a fixture dir with the functional workflow as a base
     local d="$TMP/$1"
     mkdir -p "$d/$WF_DIR"
-    printf '%s' "$FUNCTIONAL_WF" > "$d/$WF_DIR/release-please.yml"
+    printf '%s\n' "$FUNCTIONAL_WF" > "$d/$WF_DIR/release-please.yml"
     echo "$d"
 }
 
@@ -60,7 +76,18 @@ assert "disabled: skip-github flag" DISABLED "$(status_of "$d")"
 
 # 4. permissions block without contents: write -> DISABLED
 d="$TMP/readonly"; mkdir -p "$d/$WF_DIR"
-printf 'name: RP\non:\n  push:\n    branches: [main]\npermissions:\n  contents: read\njobs:\n  release-please:\n    steps:\n      - uses: googleapis/release-please-action@v4\n' > "$d/$WF_DIR/release-please.yml"
+cat <<'EOF' > "$d/$WF_DIR/release-please.yml"
+name: RP
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  release-please:
+    steps:
+      - uses: googleapis/release-please-action@v4
+EOF
 assert "disabled: permissions lack contents:write" DISABLED "$(status_of "$d")"
 
 # 5. manifest 0.0.0 + no release-please history -> DISABLED (never cut a release)
@@ -73,7 +100,17 @@ assert "functional: 0.0.0 but RP labels exist" FUNCTIONAL "$(PATH="$STUBS:$PATH"
 
 # 7. permissions: write-all -> FUNCTIONAL (grants contents:write without naming it)
 d="$TMP/write_all"; mkdir -p "$d/$WF_DIR"
-printf 'name: RP\non:\n  push:\n    branches: [main]\npermissions: write-all\njobs:\n  release-please:\n    steps:\n      - uses: googleapis/release-please-action@v4\n' > "$d/$WF_DIR/release-please.yml"
+cat <<'EOF' > "$d/$WF_DIR/release-please.yml"
+name: RP
+on:
+  push:
+    branches: [main]
+permissions: write-all
+jobs:
+  release-please:
+    steps:
+      - uses: googleapis/release-please-action@v4
+EOF
 echo '{".": "1.4.2"}' > "$d/.release-please-manifest.json"
 assert "functional: permissions write-all" FUNCTIONAL "$(PATH="$STUBS:$PATH" status_of "$d")"
 
