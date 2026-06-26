@@ -13,6 +13,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `<plugin>/skills/<name>/SKILL.md` + `workflows/*.md` — skill definitions.
 - `<plugin>/{scripts,templates}/` — bundled shell scripts and config templates copied into end-user repos.
 
+Reference any bundled script, binary, or config from a skill/workflow with
+`${CLAUDE_PLUGIN_ROOT}/…`, never a hardcoded path — the install cache path changes
+on every plugin update, so a literal path breaks after the next release.
+
 Adding a plugin means creating its directory **and** registering it in `marketplace.json`. Keep `name` and `description` in sync between `plugin.json` and the marketplace entry; the `version` is kept in sync automatically by release-please `extra-files` (add an entry for the new plugin's `plugin.json` and its `marketplace.json` index — the `.claude/skills/new-plugin` skill scaffolds all of this).
 
 ## Conventions
@@ -33,6 +37,14 @@ check locally before pushing:
 
 ```bash
 claude plugin validate ./<plugin> --strict
+```
+
+Bundled scripts that have logic worth testing carry a self-contained bash suite
+(currently only `commitcraft/`). Run it directly — it builds throwaway fixtures
+and stubs `gh`, so it's offline and side-effect-free:
+
+```bash
+bash commitcraft/tests/detect-rp.test.sh
 ```
 
 ## Versioning
