@@ -40,11 +40,13 @@ claude plugin validate ./<plugin> --strict
 ```
 
 Bundled scripts that have logic worth testing carry a self-contained bash suite
-(currently only `commitcraft/`). Run it directly — it builds throwaway fixtures
-and stubs `gh`, so it's offline and side-effect-free:
+(currently `commitcraft/` and `autodev/`). Run them directly — they build
+throwaway fixtures (commitcraft stubs `gh`), so they're offline and
+side-effect-free:
 
 ```bash
 bash commitcraft/tests/detect-rp.test.sh
+bash autodev/tests/scripts.test.sh
 ```
 
 ## Versioning
@@ -89,4 +91,4 @@ This repo follows the CommitCraft conventions it ships (see `commitcraft/README.
 - **Never use `--no-verify`.** Hook failures (gitleaks secrets, commitlint, tests) are hard stops, not bypasses. Auto-fixers (prettier/eslint) are soft blocks — re-stage and retry.
 - **Pre-commit hooks take 60–90s** — run them in the foreground and wait; never background them.
 - **Branch from `main`**: branches are `<type>/<slugified-subject>[-<issue>]`. PR titles use Conventional Commits.
-- Prefer the CommitCraft skill / `mcp__github__*` tools over raw git/`gh` for commits and PRs.
+- **Commits and PRs go through CommitCraft** (`/commitcraft commit`, `/commitcraft pr`) — never raw `git commit`/`gh pr create`, even when following its conventions by hand. Prefer `mcp__github__*` over `gh` for other GitHub operations.

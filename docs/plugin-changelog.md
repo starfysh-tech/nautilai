@@ -14,6 +14,40 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-03
+
+- **autodev completion now passes a review gate, not just tests**
+  ([`autodev`](../autodev#readme)). Four validation runs proved the loop's
+  verifier ceiling: a downstream bot review caught a P0 and a P1 in worker
+  output that the test suite had blessed — tests can't see resource
+  lifecycles, scope creep, or weak oracles. After `verify.sh` passes, an
+  independent `review-gate` agent now reviews the lane diff against TASK.md;
+  blocking findings count toward the same 3-failure cap, and only a `pass`
+  verdict produces `DONE.md`. This is also the structural differentiator from
+  the built-in `/goal`, whose transcript-reading evaluator cannot execute a
+  reviewer.
+
+- **New plugin: autodev** ([`autodev`](../autodev#readme)) — a bounded autonomous
+  development loop, ported from an externally generated prototype. The motivating
+  problem: autonomous runs that either grind forever on the same failure or declare
+  their own success. The design answer is scripts over model judgment — worktree
+  lanes, verification, failure classification/fingerprinting, and a 3-counted-failure
+  stop are all deterministic bash; the model only implements and narrates. The port
+  dropped the prototype's `Stop` hook (it ran the full test suite on *every* stop in
+  *every* repo the plugin was enabled in, and hard-blocked in repos with no test
+  suite) and moved success sentinels from the worker to the orchestrator so the
+  worker can never grade its own homework.
+
+- **autodev's `VERIFY.sh` contract gained `AUTODEV_PHASE`**
+  ([`autodev`](../autodev#readme)). The plugin's first live validation run — which
+  produced its own test suite via the loop — hit a structural deadlock for
+  greenfield tasks: baseline and completion invoked the *same* verifier, so a
+  deliverable that doesn't exist yet either fails baseline (lane never starts) or
+  falsely passes completion. Lane verifiers now branch on
+  `AUTODEV_PHASE=baseline|attempt` instead of every author reinventing a
+  marker-file hack. Same run surfaced that relative lane paths broke verifier
+  resolution after `cd` — fixed by resolving before entering the worktree.
+
 ## 2026-06-25
 
 - **commitcraft's manual release notes now honor the repo's own
