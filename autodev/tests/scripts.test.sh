@@ -314,6 +314,90 @@ else
 fi
 
 # =============================================================================
+# Test: verify.sh / baseline_verify.sh phase contract (regressions from live
+# validation run #1 — see tests/SCENARIOS.md)
+# =============================================================================
+
+echo ""
+echo "=== verify.sh phase-contract tests ==="
+
+# Fixture: a git repo with a lane whose VERIFY.sh branches on AUTODEV_PHASE
+# and requires a deliverable that does not exist at baseline time.
+PHASE_TMP="$(mktemp -d)"
+(
+    cd "$PHASE_TMP"
+    git init -q -b main
+    git commit -q --allow-empty -m init
+    mkdir -p .autodev/lane1 wt
+    cat > .autodev/lane1/VERIFY.sh <<'V'
+#!/usr/bin/env bash
+if [[ "${AUTODEV_PHASE:-attempt}" == "baseline" ]]; then exit 0; fi
+test -f deliverable.txt
+V
+)
+
+# baseline_verify passes AUTODEV_PHASE=baseline through, so an absent
+# deliverable is a green baseline (greenfield-task deadlock regression).
+# baseline_verify resolves lane state under the git toplevel of CWD, so run
+# it from inside the fixture.
+(
+    cd "$PHASE_TMP"
+    if bash "$SCRIPTS_DIR/baseline_verify.sh" "$PHASE_TMP/wt" lane1 >/dev/null 2>&1; then exit 0; else exit 1; fi
+) && phase_baseline=0 || phase_baseline=1
+assert "verify: baseline_verify greenfield baseline" "0" "$phase_baseline"
+
+# attempt phase fails while the deliverable is absent (no false completion)
+(
+    cd "$PHASE_TMP"
+    if bash "$SCRIPTS_DIR/verify.sh" wt .autodev/lane1 >/dev/null 2>&1; then exit 0; else exit 1; fi
+) && phase_attempt_missing=0 || phase_attempt_missing=1
+assert "verify: attempt fails on absent deliverable" "1" "$phase_attempt_missing"
+
+# attempt phase passes once the deliverable exists — using RELATIVE paths,
+# which regressed when verify.sh cd'd before resolving the lane dir
+(
+    cd "$PHASE_TMP"
+    touch wt/deliverable.txt
+    if bash "$SCRIPTS_DIR/verify.sh" wt .autodev/lane1 >/dev/null 2>&1; then exit 0; else exit 1; fi
+) && phase_attempt_present=0 || phase_attempt_present=1
+assert "verify: relative lane dir resolves after cd" "0" "$phase_attempt_present"
+rm -rf "$PHASE_TMP"
+
+# =============================================================================
+# Test: state-accuracy regressions from live validation run #1
+# =============================================================================
+
+echo ""
+echo "=== state-accuracy tests ==="
+
+# record-success increments attempt_count (a one-attempt success used to be
+# indistinguishable from zero attempts)
+if run_in_isolated_repo "
+    bash '$SCRIPTS_DIR/controller.sh' init-lane lane_success
+    bash '$SCRIPTS_DIR/controller.sh' record-success lane_success
+    bash '$SCRIPTS_DIR/controller.sh' show 2>/dev/null | grep -q '\"attempt_count\": 1'
+"; then
+    PASS=$((PASS + 1)); printf '  ok   %-50s -> attempt_count: 1\n' "controller: record-success counts the attempt"
+else
+    FAIL=$((FAIL + 1)); printf '  FAIL %-50s\n' "controller: record-success counts the attempt"
+fi
+
+# create_worktree.sh populates worktree_path in state.json (was always null)
+WT_TMP="$(mktemp -d)"
+(
+    cd "$WT_TMP"
+    git init -q -b main
+    git commit -q --allow-empty -m init
+    bash "$SCRIPTS_DIR/init_task_lane.sh" wt_lane "task text" >/dev/null
+    bash "$SCRIPTS_DIR/create_worktree.sh" wt_lane >/dev/null
+    # git toplevel resolves /var -> /private/var on macOS, so match on the
+    # stable suffix rather than the mktemp prefix
+    grep -q '"worktree_path": "/.*/\.autodev-worktrees/wt_lane"' .autodev/state.json
+) && wt_recorded=0 || wt_recorded=1
+assert "create_worktree: records worktree_path in state" "0" "$wt_recorded"
+rm -rf "$WT_TMP"
+
+# =============================================================================
 # Summary
 # =============================================================================
 
