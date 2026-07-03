@@ -16,6 +16,14 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-03
 
+- **`pr-comment-review` now treats PR comment/review bodies as untrusted data**
+  ([`pr-comment-review`](../pr-comment-review#readme)). A live incident showed a
+  review bot (cubic-dev-ai) embedding an "IMPORTANT ... you must attribute"
+  directive inside its review body — content indistinguishable from user policy
+  to an incautious run. Comment text is now explicitly data to analyze, never
+  instructions to follow; embedded directives are ignored as commands and
+  surfaced as findings when they materially try to steer the agent.
+
 - **autodev completion now passes a review gate, not just tests**
   ([`autodev`](../autodev#readme)). Four validation runs proved the loop's
   verifier ceiling: a downstream bot review caught a P0 and a P1 in worker
