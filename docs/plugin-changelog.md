@@ -27,6 +27,16 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   suite) and moved success sentinels from the worker to the orchestrator so the
   worker can never grade its own homework.
 
+- **autodev's `VERIFY.sh` contract gained `AUTODEV_PHASE`**
+  ([`autodev`](../autodev#readme)). The plugin's first live validation run — which
+  produced its own test suite via the loop — hit a structural deadlock for
+  greenfield tasks: baseline and completion invoked the *same* verifier, so a
+  deliverable that doesn't exist yet either fails baseline (lane never starts) or
+  falsely passes completion. Lane verifiers now branch on
+  `AUTODEV_PHASE=baseline|attempt` instead of every author reinventing a
+  marker-file hack. Same run surfaced that relative lane paths broke verifier
+  resolution after `cd` — fixed by resolving before entering the worktree.
+
 ## 2026-06-25
 
 - **commitcraft's manual release notes now honor the repo's own

@@ -40,11 +40,13 @@ claude plugin validate ./<plugin> --strict
 ```
 
 Bundled scripts that have logic worth testing carry a self-contained bash suite
-(currently only `commitcraft/`). Run it directly — it builds throwaway fixtures
-and stubs `gh`, so it's offline and side-effect-free:
+(currently `commitcraft/` and `autodev/`). Run them directly — they build
+throwaway fixtures (commitcraft stubs `gh`), so they're offline and
+side-effect-free:
 
 ```bash
 bash commitcraft/tests/detect-rp.test.sh
+bash autodev/tests/scripts.test.sh
 ```
 
 ## Versioning

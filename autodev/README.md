@@ -65,13 +65,26 @@ All invoked by the skill via `${CLAUDE_PLUGIN_ROOT}/scripts/`:
   Verification runs only inside the `/autodev` loop.
 - The worker never creates `DONE.md`; the orchestrator writes it only after
   `verify.sh` passes.
+- `VERIFY.sh` receives `AUTODEV_PHASE` (`baseline` | `attempt`) so greenfield
+  tasks — where the deliverable doesn't exist yet — can pass baseline honestly
+  without falsely passing completion.
 - Classification heuristics are deliberately narrow: a misclassified
   implementation failure would be an *uncounted* retry, so ambiguous logs
   default to `implementation`.
+
+## Tests
+
+Self-contained, offline bash suite (fixtures in `mktemp` dirs, no stubs):
+
+```bash
+bash autodev/tests/scripts.test.sh
+```
+
+Fittingly, the suite was authored by the plugin itself during its first live
+validation run.
 
 ## Backlog
 
 - Repo-specific verifier presets for common stacks.
 - Safe merge helpers for completed independent lanes.
 - JSON-line attempt logs for easier analysis.
-- Self-contained bash test suite for the scripts (per repo convention).

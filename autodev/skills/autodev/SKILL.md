@@ -37,6 +37,17 @@ For each independent task in the request:
    criteria with objective, checkable ones. If the repo has no test suite
    covering the task, write `.autodev/<slug>/VERIFY.sh` with explicit checks.
 
+   `VERIFY.sh` runs at two phases, distinguished by `$AUTODEV_PHASE`
+   (`baseline` before any attempt, `attempt` after each one). When the task
+   *creates* something that doesn't exist yet, branch on it — otherwise an
+   honest verifier either fails baseline or falsely passes completion:
+   ```bash
+   if [[ "${AUTODEV_PHASE:-attempt}" == "baseline" ]]; then
+     exit 0   # deliverable legitimately absent; repo otherwise healthy
+   fi
+   test -f autodev/tests/scripts.test.sh && bash autodev/tests/scripts.test.sh
+   ```
+
 2. **Create the worktree** (prints the worktree path):
    ```bash
    bash ${CLAUDE_PLUGIN_ROOT}/scripts/create_worktree.sh <slug> [base-branch]
@@ -56,7 +67,11 @@ For each independent task in the request:
       bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh check <slug>
       ```
    b. Spawn a `haiku-worker` agent. Its prompt must include: the lane dir
-      (`.autodev/<slug>`), the worktree path, and the task text.
+      (`.autodev/<slug>`), the worktree path, and the task text. This loop
+      assumes it runs in the main session, where the worker's completion
+      returns to you directly; if you are yourself a subagent/teammate, the
+      completion signal may not reach you — poll the worktree and
+      `RUNSTATE.md` for the worker's handoff instead of waiting.
    c. Verify objectively, capturing the log:
       ```bash
       bash ${CLAUDE_PLUGIN_ROOT}/scripts/verify.sh <worktree-path> .autodev/<slug> \

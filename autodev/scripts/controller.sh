@@ -63,6 +63,7 @@ elif cmd == 'record-success':
     lane = args[1]
     lane_state = lanes.setdefault(lane, {})
     lane_state['status'] = 'done'
+    lane_state['attempt_count'] = int(lane_state.get('attempt_count', 0)) + 1
     lane_state['updated_at'] = now
 elif cmd == 'check':
     # Gate for the orchestration loop: exit 0 = keep going, exit 1 = stop.

@@ -8,7 +8,7 @@ LANE="${2:?lane required}"
 ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 LANE_DIR="$ROOT/.autodev/$LANE"
 mkdir -p "$LANE_DIR"
-if bash "$SCRIPT_DIR/verify.sh" "$WORKTREE" "$LANE_DIR" >"$LANE_DIR/baseline.log" 2>&1; then
+if AUTODEV_PHASE=baseline bash "$SCRIPT_DIR/verify.sh" "$WORKTREE" "$LANE_DIR" >"$LANE_DIR/baseline.log" 2>&1; then
   bash "$SCRIPT_DIR/controller.sh" set "$LANE" baseline_status green
   exit 0
 else

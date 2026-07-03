@@ -1,9 +1,17 @@
 #!/usr/bin/env bash
 # Objective verifier. Usage: verify.sh [dir] [lane-dir]
 # Precedence: <lane-dir>/VERIFY.sh > <dir>/VERIFY.sh > stack auto-detect.
+# Exposes AUTODEV_PHASE (baseline|attempt) so a lane VERIFY.sh can accept a
+# not-yet-existing deliverable at baseline without falsely passing later.
 set -euo pipefail
 DIR="${1:-.}"
 LANE_DIR="${2:-}"
+export AUTODEV_PHASE="${AUTODEV_PHASE:-attempt}"
+# Resolve the lane dir before cd-ing into DIR, or a relative lane path
+# (e.g. .autodev/<slug>, as the skill passes) silently stops resolving.
+if [[ -n "$LANE_DIR" ]]; then
+  LANE_DIR="$(cd "$LANE_DIR" && pwd)"
+fi
 cd "$DIR"
 if [[ -n "$LANE_DIR" && -f "$LANE_DIR/VERIFY.sh" ]]; then
   bash "$LANE_DIR/VERIFY.sh"
