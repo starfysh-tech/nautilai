@@ -107,9 +107,48 @@ bash autodev/tests/scripts.test.sh
 Fittingly, the suite was authored by the plugin itself during its first live
 validation run.
 
+## Validated scope
+
+Five live validation runs across five repos (see
+[`tests/SCENARIOS.md`](tests/SCENARIOS.md)) — but scope is narrower than
+"any repo", deliberately stated:
+
+- **Stacks validated:** npm (`node --test`), bun-via-npm, pytest — all with
+  fast suites (≤30s). go/cargo detection exists but is unexercised. pnpm/yarn
+  workspaces and SwiftPM need a hand-written lane `VERIFY.sh`.
+- **Environment:** one macOS machine, with user-level guardrail hooks (the
+  secrets protection observed in run #5 came from the environment, not this
+  plugin). Linux/CI untested.
+- **Orchestration path validated:** teammate-fallback only; every run
+  hand-substituted `${CLAUDE_PLUGIN_ROOT}`. The native installed-plugin path
+  (skill triggering, agent-type resolution, main-session signals) has not run.
+- **Review gate:** 3-for-3 correct blocks live; zero live `pass` verdicts —
+  the DONE.md happy path through the gate and the false-positive rate are
+  unmeasured.
+
 ## Backlog
 
-- Repo-specific verifier presets for common stacks (incl. pnpm workspaces,
-  where bare `npm test` misbehaves, and SwiftPM, which isn't detected).
-- Safe merge helpers for completed independent lanes.
+Before this is trustworthy on *any* repo (ranked; the first three are the
+confidence gate for general use):
+
+- **Installed-plugin dogfood run** — first release, real `/plugin install`,
+  main-session `/autodev` on a low-stakes task; must exercise skill
+  triggering, native `${CLAUDE_PLUGIN_ROOT}`, agent-type resolution, and a
+  lane that *passes* the review gate (DONE.md-with-verdict path).
+- **Review-gate calibration** — measure the false-positive rate on ordinary
+  decent diffs; every false block burns a third of the cap.
+- **`harvest_lane.sh`** — completed work strands in the worktree today
+  (commit on lane branch → push → PR → clean); done by hand four times, and
+  deleting an unharvested worktree destroys the only copy.
+- **`preflight.sh`** — fail fast before lane init: clean tree, verifier
+  detectable (or lane VERIFY.sh required), `python3` present, remote/`gh`
+  available; today these surface mid-run as confusing failures.
+- **Environment portability** — Linux/CI, machines without guardrail hooks
+  (promote the never-copy-secrets rule from prompt to script), cold-corepack
+  recovery as automation rather than documentation.
+- **Verifier presets / supported-stacks table** — exercise go/cargo; preset
+  pnpm-workspace and long-suite (minutes) handling; publish what's supported.
+- **Task-intake validation** — ticket URLs, plan files, and model-driven lane
+  decomposition have never been exercised; all runs got curated task text and
+  pre-split lanes.
 - JSON-line attempt logs for easier analysis.
