@@ -1,0 +1,163 @@
+---
+name: autodev
+description: Run a ticket, request, or implementation plan through a bounded autonomous development loop — scripted worktree lanes, a fast haiku-worker subagent per attempt, objective script-based verification, and a hard stop with a guidance handoff after 3 counted implementation failures. Use when the user runs /autodev, or asks to "run this ticket to completion", "work this plan autonomously", or "keep trying until it's done or blocked".
+argument-hint: <ticket text | plan text | path or URL>
+allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent]
+---
+
+# AutoDev
+
+Take `$ARGUMENTS` (a ticket, plan, file path, or URL — read/fetch it if it's a
+reference) and drive it to done, blocked, or needs-guidance. All state machinery
+is scripted; never manage git worktrees or the state file by hand.
+
+All scripts live in the plugin, invoked as
+`bash ${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh`. They write lane state into the
+user repo under `.autodev/` and worktrees under `.autodev-worktrees/` (both
+self-gitignored).
+
+## Core rules
+
+- One task lane per independent task; reuse the same lane for repeated attempts.
+- Up to 5 lanes in parallel, but only lanes marked `parallel_safe`.
+- Every attempt is a `haiku-worker` subagent call, capped at one bounded attempt.
+- Completion is decided by `verify.sh` plus an independent review gate —
+  never by the implementing model's self-judgment.
+- After 3 counted implementation failures (or a repeated identical failure
+  fingerprint), stop and hand off to the user.
+
+## Loop
+
+For each independent task in the request:
+
+1. **Init the lane** (slug = short kebab-case task name):
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/init_task_lane.sh <slug> "<task text>"
+   ```
+   Then edit `.autodev/<slug>/TASK.md`: replace the placeholder acceptance
+   criteria with objective, checkable ones. If the repo has no test suite
+   covering the task, write `.autodev/<slug>/VERIFY.sh` with explicit checks.
+
+   `VERIFY.sh` runs at two phases, distinguished by `$AUTODEV_PHASE`
+   (`baseline` before any attempt, `attempt` after each one). When the task
+   *creates* something that doesn't exist yet, branch on it — otherwise an
+   honest verifier either fails baseline or falsely passes completion:
+   ```bash
+   if [[ "${AUTODEV_PHASE:-attempt}" == "baseline" ]]; then
+     exit 0   # deliverable legitimately absent; repo otherwise healthy
+   fi
+   test -f autodev/tests/scripts.test.sh && bash autodev/tests/scripts.test.sh
+   ```
+
+2. **Create the worktree** (prints the worktree path):
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/create_worktree.sh <slug> [base-branch]
+   ```
+   JS workspaces (pnpm/yarn) need their own install in the worktree —
+   workspace symlinks don't survive worktree creation. If a pinned
+   `packageManager` hits a corepack signature error, retry with
+   `COREPACK_INTEGRITY_KEYS=0`; if a transitive native build aborts the
+   install (surfacing later as `<runner>: command not found`), retry with
+   `--ignore-scripts`. Both are environment failures, not task failures.
+
+   Gitignored env files (`.env.local`, `.secrets.local`) don't survive
+   worktree creation either, and the symptom is misleading — tests fail on
+   the *wrong-credential* path (e.g. 401 where 400 is expected), which reads
+   like a real bug. If the suite is env-dependent and self-contained,
+   generate fresh lane-scoped **dummy** credentials in the worktree; never
+   copy real secrets.
+
+3. **Baseline verify** — confirms the lane starts green so pre-existing
+   breakage is never billed to the worker. On failure the lane is flagged
+   `needs_guidance`; report `.autodev/<slug>/baseline.log` to the user and stop
+   this lane:
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/baseline_verify.sh <worktree-path> <slug>
+   ```
+
+4. **Attempt loop** — repeat until done or the gate says stop:
+   a. Gate check (exit 1 = stop this lane and escalate):
+      ```bash
+      bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh check <slug>
+      ```
+   b. Spawn a `haiku-worker` agent. Its prompt must include: the lane dir
+      (`.autodev/<slug>`), the worktree path, and the task text. This loop
+      assumes it runs in the main session, where the worker's completion
+      returns to you directly; if you are yourself a subagent/teammate, the
+      completion signal may not reach you — poll the worktree and
+      `RUNSTATE.md` for the worker's handoff instead of waiting, and omit
+      the `name` parameter on the Agent call (teammates cannot spawn named
+      teammates; the roster is flat). If the `haiku-worker` agent type does
+      not resolve in your context (teammate rosters may only list built-in
+      types), fall back to `subagent_type: "general-purpose"` with
+      `model: "haiku"` and paste the full haiku-worker.md contract —
+      role, rules, and required return fields — into the worker prompt.
+   c. Verify objectively, capturing the log:
+      ```bash
+      bash ${CLAUDE_PLUGIN_ROOT}/scripts/verify.sh <worktree-path> .autodev/<slug> \
+        > .autodev/<slug>/attempt-N.log 2>&1
+      ```
+   d. On verify pass, run the **review gate** — tests-green is necessary,
+      not sufficient. Spawn a `review-gate` agent (fresh context, never the
+      worker that wrote the change; if the agent type doesn't resolve, use
+      `general-purpose` with the review-gate.md contract pasted in) with the
+      worktree path, lane dir, and base branch. Then:
+      - **verdict: pass** →
+        ```bash
+        bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh record-success <slug>
+        ```
+        Write `.autodev/<slug>/DONE.md` from the plugin template with the
+        proof (checks run + results) and the review verdict, including any
+        advisory findings. Lane is complete.
+      - **verdict: block** → the lane is NOT done even though tests pass.
+        Save the blocking findings to `.autodev/<slug>/review-N.log`, append
+        them to `RUNSTATE.md` for the next worker, and record it as a counted
+        failure so review loops share the same 3-cap as test failures:
+        ```bash
+        FP=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/fingerprint_failure.sh .autodev/<slug>/review-N.log)
+        bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh record-failure <slug> implementation "$FP"
+        ```
+        Loop back to the gate check (4a). A repeated identical review
+        fingerprint stops the lane like any other repeat.
+   e. On verify fail, classify and record:
+      ```bash
+      CLASS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/classify_failure.sh .autodev/<slug>/attempt-N.log)
+      FP=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/fingerprint_failure.sh .autodev/<slug>/attempt-N.log)
+      bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh record-failure <slug> "$CLASS" "$FP"
+      ```
+      - `transient` → retry once immediately (not counted).
+      - `environment` / `specification` → do not retry; escalate now.
+      - `implementation` → append a compact note to `RUNSTATE.md` and loop.
+
+5. **Escalate** when a lane stops without success:
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/escalate_summary.sh .autodev/<slug>
+   ```
+   Present its output to the user plus your suggested options. Do not grind on.
+
+6. **Cleanup** — after the user accepts a completed lane (merged or discarded):
+   ```bash
+   bash ${CLAUDE_PLUGIN_ROOT}/scripts/remove_worktree.sh <slug>
+   ```
+   Never remove a worktree with unmerged work without asking.
+
+## Parallelism
+
+`init_task_lane.sh` marks each lane `parallel_safe` via a conservative text
+heuristic. Run lanes concurrently (spawn workers in one message) only when all
+active lanes are `parallel_safe` and touch disjoint files/subsystems. Cap: 5.
+When unsure, run sequentially.
+
+## State inspection
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh show   # full state.json
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/list_lanes.sh        # lane dirs
+```
+
+## Completion report
+
+A lane is complete only when `verify.sh` passed, the review gate returned
+`pass`, and `DONE.md` exists with proof (including the review verdict).
+Report per lane: status, branch (`autodev/<slug>`), changed files, verification
+evidence, and anything the user must decide (merge, follow-ups).
