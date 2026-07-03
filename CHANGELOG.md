@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.9.0](https://github.com/starfysh-tech/nautilai/compare/v2.8.1...v2.9.0) (2026-07-03)
+
+
+### Features
+
+* **autodev:** add bounded autonomous development plugin ([e4429f6](https://github.com/starfysh-tech/nautilai/commit/e4429f6990dde4cfe7185bcd0ffa6f2eebd30cb5))
+* **autodev:** add bounded autonomous development plugin ([4832f56](https://github.com/starfysh-tech/nautilai/commit/4832f56493ca3a2cac0ecfad63715ba442809c65))
+* **autodev:** gate lane completion behind independent review ([ec6105a](https://github.com/starfysh-tech/nautilai/commit/ec6105a158209cc435d2ac40ac049addf6e5b69f))
+
+
+### Bug Fixes
+
+* **autodev:** apply findings from first live validation run ([24a5c94](https://github.com/starfysh-tech/nautilai/commit/24a5c94f50c03324e6c1d71798eb98ee20d84148))
+* **autodev:** apply run-5 findings from live review-gate loop ([2085fa7](https://github.com/starfysh-tech/nautilai/commit/2085fa7c15dc30dce9346ac28076a0365740315e))
+* **autodev:** harden worktree lifecycle and jq-less verify ([6adf31f](https://github.com/starfysh-tech/nautilai/commit/6adf31fc0717ec404e5499626a9a7ac617bc339b))
+* **autodev:** serialize state writes, apply run-2 findings ([ad12fe9](https://github.com/starfysh-tech/nautilai/commit/ad12fe93945c8c86b5104864ae9f8831c86e68ef))
+* **autodev:** unstick lanes after recovered baseline ([9a254b9](https://github.com/starfysh-tech/nautilai/commit/9a254b99f5c3f24ce0e38076e2a85ed67929ddaf))
+
+
+### Documentation
+
+* **autodev:** close failure-path scenario after run 4 ([fb0eb06](https://github.com/starfysh-tech/nautilai/commit/fb0eb069301b087bf0593539b66622f6ea67f28e))
+* **autodev:** move run 5 venue to linktrail ([170c3f7](https://github.com/starfysh-tech/nautilai/commit/170c3f73a8cabdf768a320a081fe163870acb33b))
+* **autodev:** position against /goal, spec run 4 ([6ec5871](https://github.com/starfysh-tech/nautilai/commit/6ec5871ad512a64c5043d89c2a4790450a4276eb))
+* **autodev:** publish validated scope and readiness backlog ([ce0d3bd](https://github.com/starfysh-tech/nautilai/commit/ce0d3bd7c2fd211fc60d551b1c9dc3969581b507))
+* **autodev:** spec run 3 as red-first failure-path validation ([bf41d62](https://github.com/starfysh-tech/nautilai/commit/bf41d62cbd2e77191b6b834ead2345fb4d9ff3e8))
+* **claude:** tighten commitcraft mandate wording ([1b8b2f1](https://github.com/starfysh-tech/nautilai/commit/1b8b2f1ab8ade69cad4e174625fea05c3b69f81a))
+
 ## [2.8.1](https://github.com/starfysh-tech/nautilai/compare/v2.8.0...v2.8.1) (2026-06-26)
 
 
