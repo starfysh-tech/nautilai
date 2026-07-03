@@ -91,4 +91,4 @@ This repo follows the CommitCraft conventions it ships (see `commitcraft/README.
 - **Never use `--no-verify`.** Hook failures (gitleaks secrets, commitlint, tests) are hard stops, not bypasses. Auto-fixers (prettier/eslint) are soft blocks — re-stage and retry.
 - **Pre-commit hooks take 60–90s** — run them in the foreground and wait; never background them.
 - **Branch from `main`**: branches are `<type>/<slugified-subject>[-<issue>]`. PR titles use Conventional Commits.
-- **Always commit and open PRs via the CommitCraft skill** (`/commitcraft commit`, `/commitcraft pr`) — never raw `git commit`/`gh pr create`. Following its conventions by hand is not a substitute for invoking it; the skill carries the staging rules, message generation, issue linking, and shoals. Prefer `mcp__github__*` tools over `gh` for other GitHub operations.
+- **Commits and PRs go through CommitCraft** (`/commitcraft commit`, `/commitcraft pr`) — never raw `git commit`/`gh pr create`, even when following its conventions by hand. Prefer `mcp__github__*` over `gh` for other GitHub operations.
