@@ -161,7 +161,7 @@ escalate_summary output-shape case added post-run).
 | Cold `pnpm install` in a fresh worktree blocked twice: corepack signature verification crash on the pinned packageManager, then a transitive native build (`sharp`) aborting install before vitest's bin symlink existed — surfacing as `vitest: command not found`, which reads as an environment failure, not the task | SKILL.md worktree step documents the recovery (`COREPACK_INTEGRITY_KEYS=0`, `--ignore-scripts`) | doc-level; environment property |
 | run #3's baseline status-reset fix | confirmed working live (`status: pending` after green baseline) | already covered |
 
-## Run #5 — planned — review gate live validation
+## Run #5 — 2026-07-03 — linktrail (review gate live validation)
 
 The review gate (added 2026-07-03: after `verify.sh` passes, an independent
 `review-gate` agent reviews the lane diff against TASK.md; `block` counts as
@@ -187,11 +187,34 @@ double-send parked captures)".
 
 Must confirm:
 
-- [ ] gate runs on every verify-pass and its verdict lands in DONE.md
-- [ ] the seeded green-but-flawed diff gets BLOCKED, with file:line findings
-  naming the stuck-lock paths (not just "module is untested")
-- [ ] blocked findings reach RUNSTATE.md and attempt 2's worker actually
-  uses them (fix addresses the cited paths)
-- [ ] review-block is recorded as a counted failure with a fingerprint
-- [ ] false-positive watch: the gate passes attempt 2's genuinely clean diff
-  rather than inventing findings to justify its existence
+Results: **the definitive run — every negative-path behavior fired live.**
+3 attempts, 3 counted failures (all from the gate; verify green throughout),
+cap-stop and escalation triggered for real, on a lane that genuinely
+deserved it.
+
+- [x] gate ran on all 3 verify-passes; verdicts landed in review-N.log (no
+  DONE.md because the lane never passed — the correct block-path artifact)
+- [x] seeded flaw BLOCKED with file:line findings naming the subtle
+  empty-queue lockout AND the thrown path, call sites traced (grade 5/5)
+- [x] findings reached RUNSTATE.md and attempt 2's worker demonstrably fixed
+  the cited paths — but introduced a genuine TOCTOU (flag set after the
+  first await), which gate 2 caught by reasoning about async interleaving
+  (grade 5/5)
+- [x] all three blocks recorded as counted failures with three DISTINCT
+  fingerprints (`e3651c1c…`, `69ebb022…`, `d8f4cd7e…`); repeat-stop
+  correctly stayed dormant; the 3-cap fired instead
+- [x] false-positive watch passed one round late: gate 3, explicitly told
+  not to rubber-stamp the "expected" fix, credited the fixed TOCTOU and
+  found one new REAL design-level defect — module-level state cannot cross
+  MV3's popup/service-worker context boundary, so the whole in-memory-flag
+  mechanism could never satisfy TASK.md's named scenario (grade 5/5)
+- Escalation handoff graded 4/5: root cause + two concrete fix directions,
+  decidable without transcripts; docked for burying the live blocker under
+  superseded history (fixed — see table).
+
+| Finding | Fix | Confirmed by |
+| --- | --- | --- |
+| Gate found defects in depth order (mechanism-can't-work surfaced round 3, though visible from round 1) — two rounds spent polishing a dead end | review-gate.md now mandates a mechanism-first pass before line-level review | doc-level; next live multi-attempt lane |
+| Gitignored env files don't survive worktree creation; symptom is a misleading wrong-credential test failure | SKILL.md worktree step: generate lane-scoped dummy credentials, never copy secrets; same rule added to haiku-worker.md | doc-level |
+| Escalation buried the live blocker under 3 rounds of superseded history | escalate_summary.sh foregrounds a "Current blocker" section (tail of RUNSTATE.md) before history | `scripts.test.sh` ordering case |
+| First live proof fingerprints discriminate review blocks by content | none needed | `scripts.test.sh` distinct-review-fingerprints case |

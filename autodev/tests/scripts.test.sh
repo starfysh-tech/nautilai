@@ -495,14 +495,40 @@ ESC_TMP="$(mktemp -d)"
 mkdir -p "$ESC_TMP/lane_x"
 printf '# Task\n\nFix the widget.\n' > "$ESC_TMP/lane_x/TASK.md"
 printf '# Attempt history\n- attempt 1: failed\n' > "$ESC_TMP/lane_x/RUNSTATE.md"
+printf '# Last failure signature\n- mechanism cannot cross contexts\n\n# Next attempt\n- needs user decision: A or B\n' >> "$ESC_TMP/lane_x/RUNSTATE.md"
 esc_out="$(bash "$SCRIPTS_DIR/escalate_summary.sh" "$ESC_TMP/lane_x")"
 case "$esc_out" in
-    *"needs guidance for lane: lane_x"*"Problem:"*"Fix the widget."*"What has been done:"*"attempt 1: failed"*"Suggested guidance needed:"*)
+    *"needs guidance for lane: lane_x"*"Problem:"*"Fix the widget."*"Current blocker:"*"needs user decision: A or B"*"What has been done:"*"attempt 1: failed"*"Suggested guidance needed:"*)
         PASS=$((PASS + 1)); printf '  ok   %-50s -> all sections present\n' "escalate: handoff contains all sections" ;;
     *)
         FAIL=$((FAIL + 1)); printf '  FAIL %-50s missing sections\n' "escalate: handoff contains all sections" ;;
 esac
+# The current blocker must appear BEFORE the full history (run #5: three
+# rounds of superseded attempts buried the actionable decision)
+blocker_pos="${esc_out%%Current blocker:*}"
+history_pos="${esc_out%%What has been done:*}"
+if [ "${#blocker_pos}" -lt "${#history_pos}" ]; then
+    PASS=$((PASS + 1)); printf '  ok   %-50s -> blocker first\n' "escalate: current blocker precedes history"
+else
+    FAIL=$((FAIL + 1)); printf '  FAIL %-50s\n' "escalate: current blocker precedes history"
+fi
 rm -rf "$ESC_TMP"
+
+# Regression (run #5): distinct review-block findings must produce distinct
+# fingerprints — the repeat-stop must not conflate different defects
+REV_TMP="$(mktemp -d)"
+printf 'BLOCK: queue.ts:45 empty-queue early return leaves flushing flag set forever\n' > "$REV_TMP/r1.log"
+printf 'BLOCK: queue.ts:42 TOCTOU: flag set after await, concurrent calls both pass the guard\n' > "$REV_TMP/r2.log"
+printf 'BLOCK: module-level flag cannot cross MV3 contexts; popup and sw never share memory\n' > "$REV_TMP/r3.log"
+rf1=$(bash "$SCRIPTS_DIR/fingerprint_failure.sh" "$REV_TMP/r1.log")
+rf2=$(bash "$SCRIPTS_DIR/fingerprint_failure.sh" "$REV_TMP/r2.log")
+rf3=$(bash "$SCRIPTS_DIR/fingerprint_failure.sh" "$REV_TMP/r3.log")
+if [ "$rf1" != "$rf2" ] && [ "$rf2" != "$rf3" ] && [ "$rf1" != "$rf3" ]; then
+    PASS=$((PASS + 1)); printf '  ok   %-50s -> 3 distinct hashes\n' "fingerprint: distinct review blocks differ"
+else
+    FAIL=$((FAIL + 1)); printf '  FAIL %-50s hashes collide\n' "fingerprint: distinct review blocks differ"
+fi
+rm -rf "$REV_TMP"
 
 # =============================================================================
 # Summary

@@ -60,6 +60,13 @@ For each independent task in the request:
    install (surfacing later as `<runner>: command not found`), retry with
    `--ignore-scripts`. Both are environment failures, not task failures.
 
+   Gitignored env files (`.env.local`, `.secrets.local`) don't survive
+   worktree creation either, and the symptom is misleading — tests fail on
+   the *wrong-credential* path (e.g. 401 where 400 is expected), which reads
+   like a real bug. If the suite is env-dependent and self-contained,
+   generate fresh lane-scoped **dummy** credentials in the worktree; never
+   copy real secrets.
+
 3. **Baseline verify** — confirms the lane starts green so pre-existing
    breakage is never billed to the worker. On failure the lane is flagged
    `needs_guidance`; report `.autodev/<slug>/baseline.log` to the user and stop

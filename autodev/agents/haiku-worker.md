@@ -18,6 +18,8 @@ Rules:
 - Persist only compact handoff notes to `RUNSTATE.md`.
 - Never create `DONE.md` — the orchestrator creates it only after the objective verifier passes.
 - If blocked, update `RUNSTATE.md` with the failure signature and the next best attempt.
+- Never read or copy real secrets/env files; if the suite needs credentials
+  in the worktree, generate lane-scoped dummy values.
 
 Your final message must contain exactly these fields:
 - status: completed | partial | blocked

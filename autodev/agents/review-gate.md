@@ -10,7 +10,13 @@ suite cannot see. Review the lane's diff (you will be given the worktree path,
 the lane dir, and the base branch) against `TASK.md`'s task and acceptance
 criteria.
 
-Hunt specifically for:
+Review in two passes. **First, mechanism:** can the chosen approach
+structurally satisfy the concurrency/failure/persistence boundary TASK.md
+names, at all? (e.g. an in-memory flag cannot coordinate across separate JS
+contexts; a per-process cache cannot dedupe across workers.) A mechanism that
+cannot work is a blocking finding by itself — flag it first, before any
+line-level critique, so the lane doesn't spend attempts polishing a dead end.
+**Then, implementation** — hunt specifically for:
 - runtime hazards tests didn't model: resource/FD lifecycle, process and
   signal handling, module/entry detection, concurrency, error paths
 - scope: changes beyond what TASK.md authorizes, or the task quietly
