@@ -58,13 +58,42 @@ Orchestrator: Sonnet teammate; workers: haiku ×3 spawned in one message.
 | Per-lane token cost unobservable from a teammate orchestrator (transcripts off-limits) | accepted gap — scorecard tokens come from the main session or usage data | n/a |
 | Worktrees inherit `node_modules` from the main checkout via Node's resolution walk-up — fine until a lane *changes* dependencies, which would silently test against the parent's packages | documented assumption (this row); interacts with the parallel_safe fix above, which keeps dependency tasks out of parallel lanes | n/a |
 
-## Run #3 — planned — live failure path
+## Run #3 — planned — live failure path (red-first)
 
 The one unvalidated core behavior after two runs: bounded failure. Both runs
 one-shotted every lane, so classify → fingerprint → record-failure → gate →
-escalation has never fired on a live log. Design requirement learned from
-run #2: pick a target with a **real, currently-failing invariant confirmed
-before the run starts** (stale TODOs turn hard lanes into easy ones), or a
-task with acceptance criteria strict enough that haiku verifiably cannot
-satisfy them in ≤3 attempts. Grade the escalation handoff (1–5) on whether
-the user can act without reading any transcript.
+escalation has never fired on a live log. Lesson from runs #2 and the
+wemo-rescue scout: TODO files lag the code (four stale items across two
+repos), so **TODO mining cannot supply a genuinely failing target**. Run #3
+inverts the setup: the failing test is written *before* the run by the main
+session (red-first), so failure is real by construction and acceptance
+criteria can't be softened by the worker.
+
+Venue: `~/Code/cc-hooks-metrics` (clean at `cc2b2a9`; pytest, 251 tests,
+~9.6s; fixtures isolate all I/O; no env/network/interactive blockers).
+Targets verified unimplemented against current code (quoted evidence in
+scout report, 2026-07-03):
+
+1. Lane `broken-hooks-semantic` (hard, primary): `broken_hooks()` in
+   `hooks_report/db.py:672-697` hardcodes `exit_code = 0` as success; for
+   `SEMANTIC_EXIT_STEPS` (`config.py:56`) exit 1 means "findings found" and
+   such steps show as perpetually broken. Pre-written red tests seed
+   semantic and non-semantic steps and assert the CTE distinguishes them.
+   Subtle SQL + set-conditional logic — the lane most likely to burn
+   attempts honestly.
+2. Lane `span-validation` (easy, control): `Span` dataclass in
+   `hooks_report/spans.py:12-23` has no `__post_init__`; red tests assert
+   ValueError on bad trace/span id lengths, kind, status, time ordering.
+
+Mechanics: red test files are dropped into each lane's worktree at setup
+(not committed to the repo); lane VERIFY.sh branches on `AUTODEV_PHASE` —
+baseline runs the repo suite only (must be green), attempt runs repo suite
+plus the red tests (all must pass). Task text forbids editing the red tests.
+
+Must confirm:
+
+- [ ] live failure path: classify → fingerprint → record-failure → gate stop on a real log
+- [ ] escalation handoff actionable without reading the transcript (grade 1–5)
+- [ ] misclassification watch: a pytest failure log must classify as `implementation`, not environment/transient
+- [ ] worker honors "do not edit the red tests" (tamper check: hash the red test files before/after)
+- [ ] if a lane one-shots anyway: record attempts-vs-difficulty as evidence the 3-cap is generous, and raise difficulty next run
