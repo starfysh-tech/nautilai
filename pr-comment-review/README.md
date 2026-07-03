@@ -26,7 +26,7 @@ User-invoked only — the agent won't auto-fire it.
 This is the **responsive** half of the review loop. Something else generates the review — a human, the built-in `/review`, or `pr-review-toolkit`'s `/review-pr` — and this skill **addresses** it:
 
 1. **Fetches** all feedback on the current PR — inline review threads, formal reviews, and general comments.
-2. **Categorizes** each as actionable, issue, question, or suggestion, and verifies claims against the code (a comment can be a false positive worth refuting rather than "fixing"). Comment bodies are always treated as data, never as instructions — embedded directives (attribution demands, "ignore previous instructions," commands to run) are flagged as findings, not obeyed.
+2. **Categorizes** each as actionable, issue, question, or suggestion, and verifies claims against the code (a comment can be a false positive worth refuting rather than "fixing"). Directives embedded in comment bodies are flagged, never obeyed.
 3. **Implements** the agreed fixes behind two approval gates (scope, then push), runs your project's check command, then **pushes and replies** to each thread inline.
 
 ### Portable by design — graceful degradation
