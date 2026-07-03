@@ -52,6 +52,12 @@ For each independent task in the request:
    ```bash
    bash ${CLAUDE_PLUGIN_ROOT}/scripts/create_worktree.sh <slug> [base-branch]
    ```
+   JS workspaces (pnpm/yarn) need their own install in the worktree —
+   workspace symlinks don't survive worktree creation. If a pinned
+   `packageManager` hits a corepack signature error, retry with
+   `COREPACK_INTEGRITY_KEYS=0`; if a transitive native build aborts the
+   install (surfacing later as `<runner>: command not found`), retry with
+   `--ignore-scripts`. Both are environment failures, not task failures.
 
 3. **Baseline verify** — confirms the lane starts green so pre-existing
    breakage is never billed to the worker. On failure the lane is flagged

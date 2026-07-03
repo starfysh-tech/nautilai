@@ -110,7 +110,7 @@ Results:
 | A failed baseline set `needs_guidance` permanently — a later green baseline never cleared it, so the check gate blocked the lane forever (hit live via a `python` vs `python3` verifier typo) | `baseline_verify.sh` success branch resets `status` to `pending` | `scripts.test.sh` "green baseline clears needs_guidance" |
 | `haiku-worker` agent type doesn't resolve from a teammate orchestrator (roster lists only built-in types) | SKILL.md 4b documents the fallback: `general-purpose` + `model: haiku` + inline contract | doc-level; fallback used successfully in runs #2–3 |
 
-## Run #4 — planned — force the failure path (seeded regression)
+## Run #4 — 2026-07-03 — mqol-uptimer (seeded regression)
 
 Three runs of honest hard-task selection have not produced a live failure;
 red-first with a full failing spec makes tasks *too* tractable for haiku.
@@ -142,3 +142,21 @@ Design (no comparison arm — decided 2026-07-03):
 - If the gate fires: capture escalation verbatim, grade 1–5. If even this
   one-shots: close the failure-path scenario as fixture-validated and accept
   the cap as cheap insurance (per run #3's decision rule).
+
+Results: **one-shot, and the failure-path scenario is hereby CLOSED as
+fixture-validated.** Seed gate confirmed red (4 failed / 113, blast radius
+crossing into scheduler tests). The haiku worker, given only "the suite is
+failing after a recent refactor", diagnosed and reverted all three seeded
+bugs — including the semantically subtle unknown-streak one — in a single
+attempt (+4/-4, no test touched, tamper hashes identical). 8/8 lanes across
+4 runs one-shotted: the 3-cap is cheap insurance, never approached. The
+misclassification watch got its strongest evidence yet: a *genuine* vitest
+failure log (real AssertionErrors) classified `implementation` correctly
+despite trap words; fingerprint deterministic. Gate/record/escalate logic
+remains covered by `scripts.test.sh` fixtures (including the
+escalate_summary output-shape case added post-run).
+
+| Finding | Fix | Confirmed by |
+| --- | --- | --- |
+| Cold `pnpm install` in a fresh worktree blocked twice: corepack signature verification crash on the pinned packageManager, then a transitive native build (`sharp`) aborting install before vitest's bin symlink existed — surfacing as `vitest: command not found`, which reads as an environment failure, not the task | SKILL.md worktree step documents the recovery (`COREPACK_INTEGRITY_KEYS=0`, `--ignore-scripts`) | doc-level; environment property |
+| run #3's baseline status-reset fix | confirmed working live (`status: pending` after green baseline) | already covered |

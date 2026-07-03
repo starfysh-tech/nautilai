@@ -484,6 +484,27 @@ assert "controller: no lost updates across 3 lanes" "4,4,4" "$conc_counts"
 rm -rf "$CONC_TMP"
 
 # =============================================================================
+# Test: escalate_summary.sh output shape (gate/escalate machinery is
+# fixture-validated — 4 live runs never triggered it, per SCENARIOS.md)
+# =============================================================================
+
+echo ""
+echo "=== escalate_summary.sh tests ==="
+
+ESC_TMP="$(mktemp -d)"
+mkdir -p "$ESC_TMP/lane_x"
+printf '# Task\n\nFix the widget.\n' > "$ESC_TMP/lane_x/TASK.md"
+printf '# Attempt history\n- attempt 1: failed\n' > "$ESC_TMP/lane_x/RUNSTATE.md"
+esc_out="$(bash "$SCRIPTS_DIR/escalate_summary.sh" "$ESC_TMP/lane_x")"
+case "$esc_out" in
+    *"needs guidance for lane: lane_x"*"Problem:"*"Fix the widget."*"What has been done:"*"attempt 1: failed"*"Suggested guidance needed:"*)
+        PASS=$((PASS + 1)); printf '  ok   %-50s -> all sections present\n' "escalate: handoff contains all sections" ;;
+    *)
+        FAIL=$((FAIL + 1)); printf '  FAIL %-50s missing sections\n' "escalate: handoff contains all sections" ;;
+esac
+rm -rf "$ESC_TMP"
+
+# =============================================================================
 # Summary
 # =============================================================================
 
