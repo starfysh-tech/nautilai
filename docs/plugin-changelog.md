@@ -14,6 +14,19 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-03
+
+- **New plugin: autodev** ([`autodev`](../autodev#readme)) — a bounded autonomous
+  development loop, ported from an externally generated prototype. The motivating
+  problem: autonomous runs that either grind forever on the same failure or declare
+  their own success. The design answer is scripts over model judgment — worktree
+  lanes, verification, failure classification/fingerprinting, and a 3-counted-failure
+  stop are all deterministic bash; the model only implements and narrates. The port
+  dropped the prototype's `Stop` hook (it ran the full test suite on *every* stop in
+  *every* repo the plugin was enabled in, and hard-blocked in repos with no test
+  suite) and moved success sentinels from the worker to the orchestrator so the
+  worker can never grade its own homework.
+
 ## 2026-06-25
 
 - **commitcraft's manual release notes now honor the repo's own

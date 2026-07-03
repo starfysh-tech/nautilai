@@ -160,6 +160,17 @@
       },
       "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/github-issue-auditor#readme",
       "license": "MIT"
+    },
+    {
+      "name": "autodev",
+      "source": "./autodev",
+      "description": "Bounded autonomous development loop: scripted worktree lanes, fast worker subagents, objective script-based verification, and a hard 3-failure escalation to the user.",
+      "version": "2.8.1",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/autodev#readme",
+      "license": "MIT"
     }
   ]
 }
