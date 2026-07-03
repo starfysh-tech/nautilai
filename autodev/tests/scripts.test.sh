@@ -211,6 +211,16 @@ echo "Run MIGRATION on the database" > "$TMP/unsafe_migration_upper.txt"
 result=$(bash "$SCRIPTS_DIR/parallel_safe.sh" "$TMP/unsafe_migration_upper.txt")
 assert "parallel_safe: MIGRATION (uppercase) -> false" "false" "$result"
 
+# Regression (run #2): package.json dependency edits invalidate the lockfile
+# and collide with any other lane touching package.json — never parallel-safe
+echo "Remove unused @sqlite.org/sqlite-wasm and sql.js dependencies from package.json" > "$TMP/unsafe_pkgjson.txt"
+result=$(bash "$SCRIPTS_DIR/parallel_safe.sh" "$TMP/unsafe_pkgjson.txt")
+assert "parallel_safe: package.json dep edit -> false" "false" "$result"
+
+echo "Add a new dependency for date parsing" > "$TMP/unsafe_dep.txt"
+result=$(bash "$SCRIPTS_DIR/parallel_safe.sh" "$TMP/unsafe_dep.txt")
+assert "parallel_safe: add dependency -> false" "false" "$result"
+
 # =============================================================================
 # Test: controller.sh
 # =============================================================================
@@ -396,6 +406,52 @@ WT_TMP="$(mktemp -d)"
 ) && wt_recorded=0 || wt_recorded=1
 assert "create_worktree: records worktree_path in state" "0" "$wt_recorded"
 rm -rf "$WT_TMP"
+
+# =============================================================================
+# Test: concurrent controller.sh writes (regression from run #2 — torn reads
+# under non-atomic write, and lost updates under unlocked read-modify-write)
+# =============================================================================
+
+echo ""
+echo "=== controller.sh concurrency tests ==="
+
+CONC_TMP="$(mktemp -d)"
+(
+    cd "$CONC_TMP"
+    git init -q -b main
+    for lane in laneA laneB laneC; do
+        bash "$SCRIPTS_DIR/controller.sh" init-lane "$lane"
+    done
+    # 3 lanes x 4 sequential counted failures each, all lanes fired
+    # concurrently — exactly the run #2 stress shape that lost an update
+    for lane in laneA laneB laneC; do
+        (
+            for i in 1 2 3 4; do
+                bash "$SCRIPTS_DIR/controller.sh" record-failure "$lane" implementation "fp$i"
+            done
+        ) &
+    done
+    wait
+) 2>/dev/null
+
+# State must still be parseable (no torn write survives atomic replace)...
+(
+    cd "$CONC_TMP"
+    python3 -c "import json; json.load(open('.autodev/state.json'))"
+) >/dev/null 2>&1 && conc_parse=0 || conc_parse=1
+assert "controller: concurrent writes leave valid JSON" "0" "$conc_parse"
+
+# ...and no update may be lost: every lane recorded all 4 failures
+conc_counts=$(
+    cd "$CONC_TMP"
+    python3 -c "
+import json
+lanes = json.load(open('.autodev/state.json'))['lanes']
+print(','.join(str(lanes[l]['attempt_count']) for l in ('laneA','laneB','laneC')))
+" 2>/dev/null
+)
+assert "controller: no lost updates across 3 lanes" "4,4,4" "$conc_counts"
+rm -rf "$CONC_TMP"
 
 # =============================================================================
 # Summary

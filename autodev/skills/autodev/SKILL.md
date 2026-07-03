@@ -71,7 +71,9 @@ For each independent task in the request:
       assumes it runs in the main session, where the worker's completion
       returns to you directly; if you are yourself a subagent/teammate, the
       completion signal may not reach you — poll the worktree and
-      `RUNSTATE.md` for the worker's handoff instead of waiting.
+      `RUNSTATE.md` for the worker's handoff instead of waiting, and omit
+      the `name` parameter on the Agent call (teammates cannot spawn named
+      teammates; the roster is flat).
    c. Verify objectively, capturing the log:
       ```bash
       bash ${CLAUDE_PLUGIN_ROOT}/scripts/verify.sh <worktree-path> .autodev/<slug> \

@@ -26,9 +26,9 @@ worker tokens, verify <10s.
 | Relative lane dirs (what SKILL.md passes) broke after `verify.sh` cd'd | resolve lane dir before `cd` | `scripts.test.sh` "relative lane dir resolves after cd" |
 | `record-success` never counted the attempt | increments `attempt_count` | `scripts.test.sh` state-accuracy case |
 | `worktree_path` never populated in state.json | `create_worktree.sh` records it | `scripts.test.sh` state-accuracy case |
-| Orchestrator-as-teammate never receives worker completion signals | documented: poll lane state in that context | open — needs a teammate-context run to confirm |
+| Orchestrator-as-teammate never receives worker completion signals | documented: poll lane state in that context | **closed by run #2** — 5s polling on git status + RUNSTATE.md caught all 3 completions |
 
-## Run #2 — planned — agent-feed (parallel lanes, auto-detected verifier)
+## Run #2 — 2026-07-03 — agent-feed (parallel lanes, auto-detected verifier)
 
 Venue: `~/Code/agent-feed` (clean at `4866b7e`; `npm test` = `node --test`,
 26 files, ~7.6s). Three lanes from its `TODO.md`, difficulty-tiered:
@@ -39,13 +39,32 @@ Venue: `~/Code/agent-feed` (clean at `4866b7e`; `npm test` = `node --test`,
 4. `drop-sqlite-deps` fed as a 4th candidate only to confirm `parallel_safe`
    rejects it (touches lockfile) — run sequentially or not at all.
 
-Behaviors this run must confirm (all currently unexercised live):
+Score: 3/3 lanes complete, 1 attempt each, 0 counted failures, 0 isolation
+violations (per-lane diffs matched declared scope exactly), verify 8.1–11.8s.
+Orchestrator: Sonnet teammate; workers: haiku ×3 spawned in one message.
 
-- [ ] `verify.sh` stack auto-detection carries the loop with NO lane VERIFY.sh
-- [ ] 3 concurrent lanes: disjoint worktrees, no cross-lane file bleed
-- [ ] concurrent `controller.sh` writes don't clobber `state.json` (no locking exists — a clobber is a finding, not a surprise)
-- [ ] live failure path: classify → fingerprint → record-failure → gate stop on a real log
-- [ ] escalation handoff is actionable without reading the transcript
-- [ ] existing 26 test files stay green in every lane
+- [x] `verify.sh` stack auto-detection carried the loop — no lane VERIFY.sh ever written
+- [x] 3 concurrent lanes: disjoint worktrees, no cross-lane file bleed
+- [x] ~~concurrent `controller.sh` writes don't clobber `state.json`~~ **failed live** (torn read + lost update demonstrated) → fixed, see findings
+- [ ] live failure path — NOT exercised (hard lane's TODO target was stale; substitute task one-shotted). Carries to run #3.
+- [ ] escalation actionability — NOT exercised (no escalation). Carries to run #3.
+- [x] existing suite (204 tests) stayed green in every lane
 
-Each failed checkbox becomes a Run #2 finding row with fix + regression case.
+| Finding | Fix | Confirmed by |
+| --- | --- | --- |
+| `state.json` corruption under concurrent lanes: bystander reader hit JSONDecodeError mid-write (would kill the loop under `set -e`); 3-lane stress lost an update (expected 4, got 3) | `controller.sh`: exclusive `fcntl` lock around read-modify-write + atomic temp-file `os.replace` | `scripts.test.sh` concurrency cases (same 3-lane × 4-write stress shape) |
+| `parallel_safe.sh` marked a `package.json` dependency-removal task safe — same-file collision with another lane + lockfile drift | added `package\.json` and `dependenc` to unsafe patterns | `scripts.test.sh` parallel_safe cases |
+| Teammate orchestrators can't spawn *named* workers ("roster is flat") — SKILL.md's spawn step didn't say so | SKILL.md 4b: omit `name`, poll for completion | doc-level; observed working in run #2 |
+| Per-lane token cost unobservable from a teammate orchestrator (transcripts off-limits) | accepted gap — scorecard tokens come from the main session or usage data | n/a |
+| Worktrees inherit `node_modules` from the main checkout via Node's resolution walk-up — fine until a lane *changes* dependencies, which would silently test against the parent's packages | documented assumption (this row); interacts with the parallel_safe fix above, which keeps dependency tasks out of parallel lanes | n/a |
+
+## Run #3 — planned — live failure path
+
+The one unvalidated core behavior after two runs: bounded failure. Both runs
+one-shotted every lane, so classify → fingerprint → record-failure → gate →
+escalation has never fired on a live log. Design requirement learned from
+run #2: pick a target with a **real, currently-failing invariant confirmed
+before the run starts** (stale TODOs turn hard lanes into easy ones), or a
+task with acceptance criteria strict enough that haiku verifiably cannot
+satisfy them in ≤3 attempts. Grade the escalation handoff (1–5) on whether
+the user can act without reading any transcript.

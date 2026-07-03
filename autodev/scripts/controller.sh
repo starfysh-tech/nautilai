@@ -9,24 +9,23 @@ STATE_FILE="$STATE_DIR/state.json"
 mkdir -p "$STATE_DIR"
 # Keep autodev bookkeeping out of the user's git status.
 [[ -f "$STATE_DIR/.gitignore" ]] || printf '*\n' > "$STATE_DIR/.gitignore"
-if [[ ! -f "$STATE_FILE" ]]; then
-  cat > "$STATE_FILE" <<'JSON'
-{
-  "version": 1,
-  "lanes": {}
-}
-JSON
-fi
 python3 - "$STATE_FILE" "$@" <<'PY'
-import json, sys, time
+import fcntl, json, os, sys, tempfile, time
 
 MAX_COUNTED_FAILURES = 3
 
 state_file = sys.argv[1]
 args = sys.argv[2:]
 cmd = args[0] if args else 'help'
-with open(state_file) as f:
-    state = json.load(f)
+# Concurrent lanes mutate one shared file: serialize the whole
+# read-modify-write under an exclusive lock (released on process exit).
+lock_fd = open(state_file + '.lock', 'w')
+fcntl.flock(lock_fd, fcntl.LOCK_EX)
+try:
+    with open(state_file) as f:
+        state = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    state = {'version': 1, 'lanes': {}}
 lanes = state.setdefault('lanes', {})
 now = int(time.time())
 if cmd == 'init-lane':
@@ -87,6 +86,9 @@ elif cmd == 'show':
 else:
     print('usage: controller.sh init-lane <lane> | set <lane> <key> <value> | record-failure <lane> <class> <fingerprint> | record-success <lane> | check <lane> | show', file=sys.stderr)
     sys.exit(1)
-with open(state_file, 'w') as f:
+# Atomic replace so an unlocked reader can never observe a torn write.
+tmp_fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(state_file), suffix='.tmp')
+with os.fdopen(tmp_fd, 'w') as f:
     json.dump(state, f, indent=2)
+os.replace(tmp_path, state_file)
 PY
