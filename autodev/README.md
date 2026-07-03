@@ -30,6 +30,11 @@ indefinitely or grade its own homework.
   that makes the smallest useful change and reports a structured result.
 - **Objective verification** — `verify.sh` (lane `VERIFY.sh`, else auto-detected
   npm/pytest/go/cargo suite) decides completion, not model self-judgment.
+- **Review gate** — tests-green is necessary, not sufficient: after `verify.sh`
+  passes, an independent `review-gate` agent reviews the lane diff against
+  TASK.md for what tests can't see (resource lifecycle, scope creep, weak new
+  tests, security patterns). Blocking findings count as an implementation
+  failure toward the same 3-cap; only a `pass` verdict yields `DONE.md`.
 - **Failure accounting** — failures are classified
   (implementation / environment / specification / transient) and fingerprinted;
   only implementation failures count toward the cap.
@@ -72,9 +77,9 @@ unattended case, where the differences are structural:
 | Concurrency | one goal per session | up to 5 gated lanes |
 | Attempt cost | full-context main-loop turns | disposable haiku workers |
 
-Neither reviews code quality beyond tests passing — that gap is on AutoDev's
-backlog (a post-verify review gate), and it's one `/goal` structurally can't
-close since its evaluator cannot execute a reviewer.
+And where `/goal` provides no quality controls beyond your condition text,
+AutoDev runs an independent review gate after tests pass — something `/goal`
+structurally can't do, since its evaluator cannot execute a reviewer.
 
 ## Design notes
 
@@ -104,9 +109,6 @@ validation run.
 
 ## Backlog
 
-- Post-verify review gate: tests-green is necessary, not sufficient — a
-  downstream bot review of run #2's output caught a P0 and a P1 that
-  `verify.sh` blessed. A review pass should gate `DONE.md`.
 - Repo-specific verifier presets for common stacks (incl. pnpm workspaces,
   where bare `npm test` misbehaves, and SwiftPM, which isn't detected).
 - Safe merge helpers for completed independent lanes.

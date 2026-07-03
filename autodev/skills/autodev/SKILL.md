@@ -21,7 +21,8 @@ self-gitignored).
 - One task lane per independent task; reuse the same lane for repeated attempts.
 - Up to 5 lanes in parallel, but only lanes marked `parallel_safe`.
 - Every attempt is a `haiku-worker` subagent call, capped at one bounded attempt.
-- Completion is decided by `verify.sh`, never by model self-judgment.
+- Completion is decided by `verify.sh` plus an independent review gate —
+  never by the implementing model's self-judgment.
 - After 3 counted implementation failures (or a repeated identical failure
   fingerprint), stop and hand off to the user.
 
@@ -89,13 +90,29 @@ For each independent task in the request:
       bash ${CLAUDE_PLUGIN_ROOT}/scripts/verify.sh <worktree-path> .autodev/<slug> \
         > .autodev/<slug>/attempt-N.log 2>&1
       ```
-   d. On pass:
-      ```bash
-      bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh record-success <slug>
-      ```
-      Write `.autodev/<slug>/DONE.md` from the plugin template with the proof
-      (checks run + results). Lane is complete.
-   e. On fail, classify and record:
+   d. On verify pass, run the **review gate** — tests-green is necessary,
+      not sufficient. Spawn a `review-gate` agent (fresh context, never the
+      worker that wrote the change; if the agent type doesn't resolve, use
+      `general-purpose` with the review-gate.md contract pasted in) with the
+      worktree path, lane dir, and base branch. Then:
+      - **verdict: pass** →
+        ```bash
+        bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh record-success <slug>
+        ```
+        Write `.autodev/<slug>/DONE.md` from the plugin template with the
+        proof (checks run + results) and the review verdict, including any
+        advisory findings. Lane is complete.
+      - **verdict: block** → the lane is NOT done even though tests pass.
+        Save the blocking findings to `.autodev/<slug>/review-N.log`, append
+        them to `RUNSTATE.md` for the next worker, and record it as a counted
+        failure so review loops share the same 3-cap as test failures:
+        ```bash
+        FP=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/fingerprint_failure.sh .autodev/<slug>/review-N.log)
+        bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh record-failure <slug> implementation "$FP"
+        ```
+        Loop back to the gate check (4a). A repeated identical review
+        fingerprint stops the lane like any other repeat.
+   e. On verify fail, classify and record:
       ```bash
       CLASS=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/classify_failure.sh .autodev/<slug>/attempt-N.log)
       FP=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/fingerprint_failure.sh .autodev/<slug>/attempt-N.log)
@@ -133,6 +150,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/list_lanes.sh        # lane dirs
 
 ## Completion report
 
-A lane is complete only when `verify.sh` passed and `DONE.md` exists with proof.
+A lane is complete only when `verify.sh` passed, the review gate returned
+`pass`, and `DONE.md` exists with proof (including the review verdict).
 Report per lane: status, branch (`autodev/<slug>`), changed files, verification
 evidence, and anything the user must decide (merge, follow-ups).

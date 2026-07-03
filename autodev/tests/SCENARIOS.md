@@ -160,3 +160,21 @@ escalate_summary output-shape case added post-run).
 | --- | --- | --- |
 | Cold `pnpm install` in a fresh worktree blocked twice: corepack signature verification crash on the pinned packageManager, then a transitive native build (`sharp`) aborting install before vitest's bin symlink existed — surfacing as `vitest: command not found`, which reads as an environment failure, not the task | SKILL.md worktree step documents the recovery (`COREPACK_INTEGRITY_KEYS=0`, `--ignore-scripts`) | doc-level; environment property |
 | run #3's baseline status-reset fix | confirmed working live (`status: pending` after green baseline) | already covered |
+
+## Run #5 — planned — review gate live validation
+
+The review gate (added 2026-07-03: after `verify.sh` passes, an independent
+`review-gate` agent reviews the lane diff against TASK.md; `block` counts as
+a counted failure, only `pass` yields DONE.md) is motivated by run #2's
+hardest evidence — a downstream bot review caught a P0 (module detection) and
+P1 (rotation stranding an open FD) in output `verify.sh` had blessed — but
+the gate itself has never run live. Next live run must confirm:
+
+- [ ] gate runs on every verify-pass and its verdict lands in DONE.md
+- [ ] a known-flawed-but-green diff gets blocked (seed one: e.g. re-run the
+  run-2 rotation task, whose naive rename solution passes tests but strands
+  the daemon FD — the exact defect class the gate exists for)
+- [ ] blocked findings reach RUNSTATE.md and the next worker actually uses them
+- [ ] review-block fingerprints dedupe (repeated identical review → gate stop)
+- [ ] false-positive watch: gate does not invent findings on a genuinely clean
+  diff (the run-3 span-validation diff would make a good clean control)

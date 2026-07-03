@@ -16,6 +16,17 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-03
 
+- **autodev completion now passes a review gate, not just tests**
+  ([`autodev`](../autodev#readme)). Four validation runs proved the loop's
+  verifier ceiling: a downstream bot review caught a P0 and a P1 in worker
+  output that the test suite had blessed — tests can't see resource
+  lifecycles, scope creep, or weak oracles. After `verify.sh` passes, an
+  independent `review-gate` agent now reviews the lane diff against TASK.md;
+  blocking findings count toward the same 3-failure cap, and only a `pass`
+  verdict produces `DONE.md`. This is also the structural differentiator from
+  the built-in `/goal`, whose transcript-reading evaluator cannot execute a
+  reviewer.
+
 - **New plugin: autodev** ([`autodev`](../autodev#readme)) — a bounded autonomous
   development loop, ported from an externally generated prototype. The motivating
   problem: autonomous runs that either grind forever on the same failure or declare
