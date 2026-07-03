@@ -10,6 +10,9 @@ LANE_DIR="$ROOT/.autodev/$LANE"
 mkdir -p "$LANE_DIR"
 if AUTODEV_PHASE=baseline bash "$SCRIPT_DIR/verify.sh" "$WORKTREE" "$LANE_DIR" >"$LANE_DIR/baseline.log" 2>&1; then
   bash "$SCRIPT_DIR/controller.sh" set "$LANE" baseline_status green
+  # A prior failed baseline set needs_guidance; a now-green baseline must
+  # unstick the lane or the check gate blocks it forever.
+  bash "$SCRIPT_DIR/controller.sh" set "$LANE" status pending
   exit 0
 else
   bash "$SCRIPT_DIR/controller.sh" set "$LANE" baseline_status red

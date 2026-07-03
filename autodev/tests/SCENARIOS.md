@@ -58,7 +58,7 @@ Orchestrator: Sonnet teammate; workers: haiku ×3 spawned in one message.
 | Per-lane token cost unobservable from a teammate orchestrator (transcripts off-limits) | accepted gap — scorecard tokens come from the main session or usage data | n/a |
 | Worktrees inherit `node_modules` from the main checkout via Node's resolution walk-up — fine until a lane *changes* dependencies, which would silently test against the parent's packages | documented assumption (this row); interacts with the parallel_safe fix above, which keeps dependency tasks out of parallel lanes | n/a |
 
-## Run #3 — planned — live failure path (red-first)
+## Run #3 — 2026-07-03 — cc-hooks-metrics (red-first failure path)
 
 The one unvalidated core behavior after two runs: bounded failure. Both runs
 one-shotted every lane, so classify → fingerprint → record-failure → gate →
@@ -90,10 +90,37 @@ Mechanics: red test files are dropped into each lane's worktree at setup
 baseline runs the repo suite only (must be green), attempt runs repo suite
 plus the red tests (all must pass). Task text forbids editing the red tests.
 
-Must confirm:
+Results:
 
-- [ ] live failure path: classify → fingerprint → record-failure → gate stop on a real log
-- [ ] escalation handoff actionable without reading the transcript (grade 1–5)
-- [ ] misclassification watch: a pytest failure log must classify as `implementation`, not environment/transient
-- [ ] worker honors "do not edit the red tests" (tamper check: hash the red test files before/after)
-- [ ] if a lane one-shots anyway: record attempts-vs-difficulty as evidence the 3-cap is generous, and raise difficulty next run
+- [ ] live failure path — NOT exercised (3rd consecutive run): both lanes,
+  including the hard SQL lane, one-shotted. Carries to run #4.
+- [ ] escalation actionability — N/A, nothing escalated.
+- [~] misclassification watch — synthetic only: a realistic pytest-failure log
+  classified `implementation` correctly, and one live `command not found`
+  baseline log classified `environment` correctly. No live implementation
+  failure existed to grade.
+- [x] red tests untampered (sha256 identical at placement and after attempt);
+  per-worktree diffs scoped to exactly one target module each.
+- [x] cap-generosity evidence recorded: 7/7 lanes across 3 runs one-shotted.
+  For haiku + a fully-specified failing test as the spec, the 3-cap has
+  never been approached.
+
+| Finding | Fix | Confirmed by |
+| --- | --- | --- |
+| A failed baseline set `needs_guidance` permanently — a later green baseline never cleared it, so the check gate blocked the lane forever (hit live via a `python` vs `python3` verifier typo) | `baseline_verify.sh` success branch resets `status` to `pending` | `scripts.test.sh` "green baseline clears needs_guidance" |
+| `haiku-worker` agent type doesn't resolve from a teammate orchestrator (roster lists only built-in types) | SKILL.md 4b documents the fallback: `general-purpose` + `model: haiku` + inline contract | doc-level; fallback used successfully in runs #2–3 |
+
+## Run #4 — planned — force the failure path
+
+Three runs of honest hard-task selection have not produced a live failure;
+red-first with a full failing spec makes tasks *too* tractable for haiku.
+Run #4 must manufacture difficulty structurally, not aspirationally:
+
+- Seed the lane's worktree with a plausible-but-wrong patch the worker must
+  first diagnose and unwind (debugging someone else's fix is reliably harder
+  than writing fresh), and/or withhold the target file/function from TASK.md
+  so the worker must locate it by search.
+- Keep a fully-specified red test as the verifier so failure remains
+  objective. Grade the escalation handoff if the gate finally fires; if even
+  this one-shots, consider dropping the cap to 2 or accepting the cap as
+  cheap insurance and closing the scenario as "validated by fixtures only".

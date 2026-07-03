@@ -408,6 +408,36 @@ assert "create_worktree: records worktree_path in state" "0" "$wt_recorded"
 rm -rf "$WT_TMP"
 
 # =============================================================================
+# Test: baseline recovery (regression from run #3 — a failed baseline set
+# needs_guidance permanently; a later green baseline never cleared it, so the
+# check gate blocked the lane forever)
+# =============================================================================
+
+echo ""
+echo "=== baseline recovery tests ==="
+
+BR_TMP="$(mktemp -d)"
+(
+    cd "$BR_TMP"
+    git init -q -b main
+    git commit -q --allow-empty -m init
+    mkdir -p .autodev/lane_recover wt
+    bash "$SCRIPTS_DIR/controller.sh" init-lane lane_recover >/dev/null
+    # Broken verifier: baseline fails, lane goes needs_guidance
+    printf '#!/usr/bin/env bash\nexit 1\n' > .autodev/lane_recover/VERIFY.sh
+    bash "$SCRIPTS_DIR/baseline_verify.sh" "$BR_TMP/wt" lane_recover >/dev/null 2>&1
+    if bash "$SCRIPTS_DIR/controller.sh" check lane_recover >/dev/null 2>&1; then
+        exit 1  # gate should be stopping here
+    fi
+    # Verifier fixed: baseline passes and must unstick the lane
+    printf '#!/usr/bin/env bash\nexit 0\n' > .autodev/lane_recover/VERIFY.sh
+    bash "$SCRIPTS_DIR/baseline_verify.sh" "$BR_TMP/wt" lane_recover >/dev/null 2>&1
+    bash "$SCRIPTS_DIR/controller.sh" check lane_recover >/dev/null 2>&1
+) && baseline_recover=0 || baseline_recover=1
+assert "baseline: green baseline clears needs_guidance" "0" "$baseline_recover"
+rm -rf "$BR_TMP"
+
+# =============================================================================
 # Test: concurrent controller.sh writes (regression from run #2 — torn reads
 # under non-atomic write, and lost updates under unlocked read-modify-write)
 # =============================================================================

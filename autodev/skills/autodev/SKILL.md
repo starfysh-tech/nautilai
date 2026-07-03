@@ -73,7 +73,11 @@ For each independent task in the request:
       completion signal may not reach you — poll the worktree and
       `RUNSTATE.md` for the worker's handoff instead of waiting, and omit
       the `name` parameter on the Agent call (teammates cannot spawn named
-      teammates; the roster is flat).
+      teammates; the roster is flat). If the `haiku-worker` agent type does
+      not resolve in your context (teammate rosters may only list built-in
+      types), fall back to `subagent_type: "general-purpose"` with
+      `model: "haiku"` and paste the full haiku-worker.md contract —
+      role, rules, and required return fields — into the worker prompt.
    c. Verify objectively, capturing the log:
       ```bash
       bash ${CLAUDE_PLUGIN_ROOT}/scripts/verify.sh <worktree-path> .autodev/<slug> \
