@@ -110,17 +110,35 @@ Results:
 | A failed baseline set `needs_guidance` permanently — a later green baseline never cleared it, so the check gate blocked the lane forever (hit live via a `python` vs `python3` verifier typo) | `baseline_verify.sh` success branch resets `status` to `pending` | `scripts.test.sh` "green baseline clears needs_guidance" |
 | `haiku-worker` agent type doesn't resolve from a teammate orchestrator (roster lists only built-in types) | SKILL.md 4b documents the fallback: `general-purpose` + `model: haiku` + inline contract | doc-level; fallback used successfully in runs #2–3 |
 
-## Run #4 — planned — force the failure path
+## Run #4 — planned — force the failure path (seeded regression)
 
 Three runs of honest hard-task selection have not produced a live failure;
 red-first with a full failing spec makes tasks *too* tractable for haiku.
-Run #4 must manufacture difficulty structurally, not aspirationally:
+Run #4 manufactures difficulty structurally: debugging someone else's subtle
+regression, with the target location withheld.
 
-- Seed the lane's worktree with a plausible-but-wrong patch the worker must
-  first diagnose and unwind (debugging someone else's fix is reliably harder
-  than writing fresh), and/or withhold the target file/function from TASK.md
-  so the worker must locate it by search.
-- Keep a fully-specified red test as the verifier so failure remains
-  objective. Grade the escalation handoff if the gate finally fires; if even
-  this one-shots, consider dropping the cap to 2 or accepting the cap as
-  cheap insurance and closing the scenario as "validated by fixtures only".
+Venue: `~/Code/mqol-uptimer` (mqol-inc, `master`, pnpm monorepo, vitest,
+113 tests ~15–30s, in-memory fake DB, no env/network blockers). Target:
+`apps/worker/src/monitor/state-machine.ts` — threshold/hysteresis logic.
+
+Design (no comparison arm — decided 2026-07-03):
+
+- The orchestrator applies a seed patch of three subtle bugs disguised as a
+  refactor and **commits it on the lane branch** ("refactor(monitor): tighten
+  threshold normalization and streak bookkeeping") so the worker sees a
+  plausible prior commit, not an obvious sabotage: `>=`→`>` in
+  `normalizeThreshold` (threshold 1 silently becomes the default), `>=`→`>`
+  in down→up recovery (one extra success to recover), and unknown-outcome
+  streak preservation instead of reset.
+- TASK.md withholds the file: "the worker app's suite is failing after a
+  recent refactor; find the regression and fix it; the tests are the spec
+  and must not be edited." Existing suite = the red spec; no new red tests.
+- Setup gates: seed must produce failing tests before the worker starts
+  (else abort — the run is invalid); pnpm workspace needs a hand-written
+  lane VERIFY.sh (`pnpm -r --if-present test`) and possibly `pnpm install`
+  in the worktree (workspace symlinks don't survive the walk-up; a finding
+  either way).
+- Tamper check: hash test files before/after each attempt.
+- If the gate fires: capture escalation verbatim, grade 1–5. If even this
+  one-shots: close the failure-path scenario as fixture-validated and accept
+  the cap as cheap insurance (per run #3's decision rule).

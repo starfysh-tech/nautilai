@@ -57,6 +57,25 @@ All invoked by the skill via `${CLAUDE_PLUGIN_ROOT}/scripts/`:
 | `escalate_summary.sh <lane-dir>` | Guidance handoff for a blocked lane |
 | `list_lanes.sh` | List lane directories |
 
+## AutoDev vs `/goal`
+
+Claude Code's built-in `/goal` (v2.1.139+) also drives work to a completion
+condition, and for a quick "keep going until the tests pass" in a session
+you're watching, it's the right lighter tool. AutoDev exists for the
+unattended case, where the differences are structural:
+
+| | `/goal` | AutoDev |
+| --- | --- | --- |
+| Completion decided by | an evaluator model **reading the transcript** — it can't run commands, so it grades what the model *reports* | `verify.sh` exit code, run by scripts, with logs and a `DONE.md` proof |
+| Failure handling | turn/time cap, then stops — no classification, no repeat detection, no handoff | classify → fingerprint → counted 3-cap → escalation summary |
+| Blast radius | your live checkout | isolated worktree per lane |
+| Concurrency | one goal per session | up to 5 gated lanes |
+| Attempt cost | full-context main-loop turns | disposable haiku workers |
+
+Neither reviews code quality beyond tests passing — that gap is on AutoDev's
+backlog (a post-verify review gate), and it's one `/goal` structurally can't
+close since its evaluator cannot execute a reviewer.
+
 ## Design notes
 
 - No hooks. An earlier iteration ran the verifier as a `Stop` hook in every
@@ -85,6 +104,10 @@ validation run.
 
 ## Backlog
 
-- Repo-specific verifier presets for common stacks.
+- Post-verify review gate: tests-green is necessary, not sufficient — a
+  downstream bot review of run #2's output caught a P0 and a P1 that
+  `verify.sh` blessed. A review pass should gate `DONE.md`.
+- Repo-specific verifier presets for common stacks (incl. pnpm workspaces,
+  where bare `npm test` misbehaves, and SwiftPM, which isn't detected).
 - Safe merge helpers for completed independent lanes.
 - JSON-line attempt logs for easier analysis.
