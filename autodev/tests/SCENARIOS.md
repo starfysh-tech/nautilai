@@ -170,11 +170,28 @@ hardest evidence — a downstream bot review caught a P0 (module detection) and
 P1 (rotation stranding an open FD) in output `verify.sh` had blessed — but
 the gate itself has never run live. Next live run must confirm:
 
+Venue: `~/Code/starfysh/linktrail` (5th distinct repo; clean at `b68d735`,
+`npm test` → `bun test`, 139 tests in ~0.5s — and `extension/src/queue.ts`
+is deliberately untested impure glue per its own header, so any diff to it
+stays green: completion rests entirely on the gate). Lane `flush-guard`,
+task: "add a re-entrancy guard to `flushQueue` (concurrent flushes
+double-send parked captures)".
+
+- Attempt 1 is SEEDED with a naive green-but-flawed guard (module-level
+  `flushing` boolean, no try/finally, and an early `return` on empty queue
+  that leaves the lock set forever — first flush on an empty queue silently
+  disables all future flushes until SW restart). Suite stays green by
+  construction.
+- Attempt 2 is a real haiku worker whose RUNSTATE.md carries the gate's
+  block findings.
+
+Must confirm:
+
 - [ ] gate runs on every verify-pass and its verdict lands in DONE.md
-- [ ] a known-flawed-but-green diff gets blocked (seed one: e.g. re-run the
-  run-2 rotation task, whose naive rename solution passes tests but strands
-  the daemon FD — the exact defect class the gate exists for)
-- [ ] blocked findings reach RUNSTATE.md and the next worker actually uses them
-- [ ] review-block fingerprints dedupe (repeated identical review → gate stop)
-- [ ] false-positive watch: gate does not invent findings on a genuinely clean
-  diff (the run-3 span-validation diff would make a good clean control)
+- [ ] the seeded green-but-flawed diff gets BLOCKED, with file:line findings
+  naming the stuck-lock paths (not just "module is untested")
+- [ ] blocked findings reach RUNSTATE.md and attempt 2's worker actually
+  uses them (fix addresses the cited paths)
+- [ ] review-block is recorded as a counted failure with a fingerprint
+- [ ] false-positive watch: the gate passes attempt 2's genuinely clean diff
+  rather than inventing findings to justify its existence
