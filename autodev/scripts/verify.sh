@@ -22,7 +22,13 @@ if [[ -f ./VERIFY.sh ]]; then
   exit $?
 fi
 if [[ -f package.json ]]; then
-  if command -v jq >/dev/null 2>&1 && jq -e '.scripts.test' package.json >/dev/null 2>&1; then npm test --silent; exit $?; fi
+  if command -v jq >/dev/null 2>&1; then
+    if jq -e '.scripts.test' package.json >/dev/null 2>&1; then npm test --silent; exit $?; fi
+  elif grep -q '"test"[[:space:]]*:' package.json; then
+    # No jq: crude check, but failing toward running tests beats silently
+    # reporting "no verifier found" when a test script exists.
+    npm test --silent; exit $?
+  fi
 fi
 if [[ -f pyproject.toml || -f pytest.ini || -d tests ]]; then
   if command -v pytest >/dev/null 2>&1; then pytest -q; exit $?; fi

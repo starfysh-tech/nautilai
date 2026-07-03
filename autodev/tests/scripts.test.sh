@@ -484,6 +484,61 @@ assert "controller: no lost updates across 3 lanes" "4,4,4" "$conc_counts"
 rm -rf "$CONC_TMP"
 
 # =============================================================================
+# Test: worktree lifecycle edge cases (PR #41 review findings)
+# =============================================================================
+
+echo ""
+echo "=== worktree edge-case tests ==="
+
+WTE_TMP="$(mktemp -d)"
+(
+    cd "$WTE_TMP"
+    git init -q -b main
+    git commit -q --allow-empty -m init
+    # Stale non-worktree dir at the lane path: must refuse loudly, not
+    # silently delete (it may hold unharvested work) and not fail confusingly
+    mkdir -p .autodev-worktrees/stale_lane
+    touch .autodev-worktrees/stale_lane/unharvested-work.txt
+    if bash "$SCRIPTS_DIR/create_worktree.sh" stale_lane >/dev/null 2>&1; then
+        exit 1  # should have refused
+    fi
+    test -f .autodev-worktrees/stale_lane/unharvested-work.txt  # data preserved
+) && wte_stale=0 || wte_stale=1
+assert "create_worktree: refuses stale dir, preserves data" "0" "$wte_stale"
+
+(
+    cd "$WTE_TMP"
+    # Unregistered leftover dir: remove_worktree's contract is full cleanup
+    mkdir -p .autodev-worktrees/orphan_lane
+    bash "$SCRIPTS_DIR/remove_worktree.sh" orphan_lane >/dev/null 2>&1
+    [[ ! -d .autodev-worktrees/orphan_lane ]]
+) && wte_orphan=0 || wte_orphan=1
+assert "remove_worktree: clears unregistered leftover dir" "0" "$wte_orphan"
+rm -rf "$WTE_TMP"
+
+# verify.sh without jq must still find a package.json test script (regression:
+# silently fell through to "No verifier found")
+NOJQ_TMP="$(mktemp -d)"
+mkdir -p "$NOJQ_TMP/bin"
+cat > "$NOJQ_TMP/bin/npm" <<'FAKE'
+#!/usr/bin/env bash
+[ "$1" = "test" ] && echo "fake-npm-test-ran" && exit 0
+exit 1
+FAKE
+chmod +x "$NOJQ_TMP/bin/npm"
+printf '{ "name": "x", "scripts": { "test": "true" } }\n' > "$NOJQ_TMP/package.json"
+nojq_out=$(
+    cd "$NOJQ_TMP"
+    # PATH without jq but with git/bash basics and the fake npm
+    PATH="$NOJQ_TMP/bin:/usr/bin:/bin" bash "$SCRIPTS_DIR/verify.sh" . 2>&1
+)
+case "$nojq_out" in
+    *fake-npm-test-ran*) PASS=$((PASS + 1)); printf '  ok   %-50s -> npm test ran\n' "verify: finds npm test without jq" ;;
+    *) FAIL=$((FAIL + 1)); printf '  FAIL %-50s got: %s\n' "verify: finds npm test without jq" "$nojq_out" ;;
+esac
+rm -rf "$NOJQ_TMP"
+
+# =============================================================================
 # Test: escalate_summary.sh output shape (gate/escalate machinery is
 # fixture-validated — 4 live runs never triggered it, per SCENARIOS.md)
 # =============================================================================
