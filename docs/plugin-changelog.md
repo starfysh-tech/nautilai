@@ -14,6 +14,16 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-04
+
+- **CommitCraft's shipped release-please template no longer lets docs-only
+  merges cut releases** ([`commitcraft`](../commitcraft#readme)). release-please
+  treats every changelog-visible commit type as release-triggering — nautilai
+  itself shipped v2.9.2 from a two-line backlog edit before noticing. The
+  template `commitcraft setup` writes into end-user repos now hides `docs`, so
+  a docs commit never bumps a version on its own; the cost is docs entries no
+  longer appearing in generated changelogs at all.
+
 ## 2026-07-03
 
 - **`pr-comment-review` now treats PR comment/review bodies as untrusted data**
