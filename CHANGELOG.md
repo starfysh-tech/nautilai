@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.9.2](https://github.com/starfysh-tech/nautilai/compare/v2.9.1...v2.9.2) (2026-07-04)
+
+
+### Documentation
+
+* **backlog:** add autodev installed-plugin dogfood run ([0fdd358](https://github.com/starfysh-tech/nautilai/commit/0fdd358d995c3e3ca4dc2f1900e9787df85cbbb7))
+* **backlog:** add autodev installed-plugin dogfood run ([760c534](https://github.com/starfysh-tech/nautilai/commit/760c53418e71c59849d07a1ae5a6c9677516077e))
+* **backlog:** link file references in autodev entry ([0ab6f40](https://github.com/starfysh-tech/nautilai/commit/0ab6f40cbd5f5e1a840e1bad69905086eb894581))
+
 ## [2.9.1](https://github.com/starfysh-tech/nautilai/compare/v2.9.0...v2.9.1) (2026-07-03)
 
 
