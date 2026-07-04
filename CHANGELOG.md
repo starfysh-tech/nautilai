@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.3](https://github.com/starfysh-tech/nautilai/compare/v2.9.2...v2.9.3) (2026-07-04)
+
+
+### Bug Fixes
+
+* **commitcraft:** hide docs in shipped release template ([3ed0183](https://github.com/starfysh-tech/nautilai/commit/3ed01834552ee51626980f1614b0f81bb679dde1))
+
 ## [2.9.2](https://github.com/starfysh-tech/nautilai/compare/v2.9.1...v2.9.2) (2026-07-04)
 
 
