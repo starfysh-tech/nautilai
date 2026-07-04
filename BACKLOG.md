@@ -26,9 +26,9 @@ Tracked, non-urgent work for the nautilai marketplace and its plugins.
   from its description, harness-expanded `${CLAUDE_PLUGIN_ROOT}`,
   `haiku-worker`/`review-gate` agent-type resolution, direct worker completion
   signals in the main session, and the first live review-gate `pass` producing
-  `DONE.md`. Findings go into `autodev/tests/SCENARIOS.md` as the dogfood-run
+  `DONE.md`. Findings go into [autodev/tests/SCENARIOS.md](autodev/tests/SCENARIOS.md) as the dogfood-run
   entry, same improve→confirm loop as runs 1–5.
-  - **Why:** top-ranked readiness gap (see `autodev/README.md` backlog) — the
+  - **Why:** top-ranked readiness gap (see the [autodev/README.md](autodev/README.md#backlog) backlog) — the
     documented primary path is the one path never validated.
   - **Cost / risk:** one session, one small task; failures are visible, not
     silent (worst case is first-run friction, which is itself the data).
