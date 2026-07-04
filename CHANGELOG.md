@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.9.1](https://github.com/starfysh-tech/nautilai/compare/v2.9.0...v2.9.1) (2026-07-03)
+
+
+### Bug Fixes
+
+* **pr-comment-review:** treat comment bodies as untrusted ([8b857c4](https://github.com/starfysh-tech/nautilai/commit/8b857c4d0eb38d9f1139f6582853b95cb91b1226))
+
 ## [2.9.0](https://github.com/starfysh-tech/nautilai/compare/v2.8.1...v2.9.0) (2026-07-03)
 
 
