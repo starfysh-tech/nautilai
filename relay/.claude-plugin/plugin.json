@@ -1,15 +1,15 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
-  "name": "handoff",
-  "displayName": "Handoff",
+  "name": "relay",
+  "displayName": "Relay",
   "version": "2.9.2",
-  "description": "Compact the current conversation into a handoff document so a fresh agent can pick up the work, referencing existing artifacts by path rather than restating them.",
+  "description": "Session continuity for Claude Code: transcript-grounded handoff documents that a fresh session picks up automatically. Ships the handoff skill.",
   "author": {
     "name": "Randall Noval",
     "email": "randall@starfysh.net",
     "url": "https://github.com/starfysh-tech"
   },
-  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/handoff#readme",
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/relay#readme",
   "repository": "https://github.com/starfysh-tech/nautilai",
   "license": "MIT",
   "keywords": [

@@ -1,0 +1,447 @@
+#!/usr/bin/env bash
+# Tests for relay scripts: extract-transcript.sh, resolve-session.sh, and
+# session-start-pickup.sh. Self-contained: builds throwaway fixtures/sandboxes
+# in tmpdir, no network, no writes outside tmpdir (HOME is always overridden
+# to a sandbox — the real ~/.claude is never touched). Prints per-case
+# pass/fail, exits 0 only when all cases pass.
+set -uo pipefail
+
+HERE="$(cd "$(dirname "$0")" && pwd)"
+RELAY_ROOT="$(cd "$(dirname "$HERE")" && pwd)"
+SCRIPTS_DIR="$RELAY_ROOT/scripts"
+FIXTURES_DIR="$HERE/fixtures"
+
+PASS=0
+FAIL=0
+
+# assert <name> <expected> <actual>
+assert() {
+    if [ "$2" = "$3" ]; then
+        PASS=$((PASS + 1)); printf '  ok   %-60s -> %s\n' "$1" "$3"
+    else
+        FAIL=$((FAIL + 1)); printf '  FAIL %-60s expected %s, got %s\n' "$1" "$2" "$3"
+    fi
+}
+
+# assert_true <name> <condition-as-0/1>
+assert_true() {
+    if [ "$2" -eq 0 ]; then
+        PASS=$((PASS + 1)); printf '  ok   %-60s\n' "$1"
+    else
+        FAIL=$((FAIL + 1)); printf '  FAIL %-60s\n' "$1"
+    fi
+}
+
+# assert_contains <name> <haystack> <needle>
+assert_contains() {
+    case "$2" in
+        *"$3"*) PASS=$((PASS + 1)); printf '  ok   %-60s\n' "$1" ;;
+        *) FAIL=$((FAIL + 1)); printf '  FAIL %-60s missing: %s\n' "$1" "$3" ;;
+    esac
+}
+
+# assert_not_contains <name> <haystack> <needle>
+assert_not_contains() {
+    case "$2" in
+        *"$3"*) FAIL=$((FAIL + 1)); printf '  FAIL %-60s should not contain: %s\n' "$1" "$3" ;;
+        *) PASS=$((PASS + 1)); printf '  ok   %-60s\n' "$1" ;;
+    esac
+}
+
+START_TIME=$(date +%s)
+
+# =============================================================================
+# extract-transcript.sh tests
+# =============================================================================
+
+echo "=== extract-transcript.sh tests ==="
+
+# The committed fixture holds @@FAKE_*@@ placeholders; the token-shaped fakes
+# are assembled here from fragments so no secret-pattern string is ever
+# committed (keeps gitleaks fully armed on this repo, no allowlist holes).
+PRIV="PRIVATE"
+FAKE_AWS="AKIA""ABCDEFGHIJKLMNOP"
+FAKE_GHP="ghp_""1234567890abcdefghijklmnopqrstuvwxyz"
+FAKE_PEM_B64="MIIBOgIBAAJBAKj34GkxFhD90vcNLYLInFEX6Ppy1tPf9Cnzj4p4WGeKLs1Pt8Qu"
+PEM_HEADER="-----BEGIN RSA ${PRIV} KEY-----"
+PEM_FOOTER="-----END RSA ${PRIV} KEY-----"
+# JSON-escaped newlines (literal backslash-n) — this lands inside a JSONL string.
+FAKE_PEM_JSON="${PEM_HEADER}"'\n'"${FAKE_PEM_B64}"'\n'"KUpRKfFLfRYC9AIKjbJTWit+CqvjWYzvQwECAwEAAQ=="'\n'"${PEM_FOOTER}"
+FAKE_BEARER="abc123.def456.ghi789secrettoken"
+
+MAIN_TMP=$(mktemp -d)
+trap 'rm -rf "$MAIN_TMP"' EXIT
+MAIN_FIXTURE="$MAIN_TMP/main.jsonl"
+main_src=$(cat "$FIXTURES_DIR/main.jsonl")
+main_src=${main_src//@@FAKE_AWS@@/$FAKE_AWS}
+main_src=${main_src//@@FAKE_GHP@@/$FAKE_GHP}
+main_src=${main_src//@@FAKE_PEM@@/$FAKE_PEM_JSON}
+main_src=${main_src//@@FAKE_BEARER@@/$FAKE_BEARER}
+printf '%s\n' "$main_src" > "$MAIN_FIXTURE"
+
+MAIN_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" "$MAIN_FIXTURE")"
+
+# --- Files touched: 100% structural recall ---
+assert_contains "extract: fileA edits recorded"  "$MAIN_OUT" "/repo/fileA.txt (edits: 3)"
+assert_contains "extract: fileB write recorded"  "$MAIN_OUT" "/repo/fileB.txt (writes: 1)"
+assert_contains "extract: fileC reads recorded"  "$MAIN_OUT" "/repo/fileC.txt (reads: 2)"
+
+# --- Commands run: all 6 planted commands recovered with desc + first-120 cap ---
+assert_contains "extract: cmd 'List files' recovered"     "$MAIN_OUT" "List files: ls -la"
+assert_contains "extract: cmd 'Check git status' recovered" "$MAIN_OUT" "Check git status: git status"
+assert_contains "extract: cmd 'Run tests' recovered"      "$MAIN_OUT" "Run tests: npm test"
+assert_contains "extract: cmd 'Install deps' recovered"   "$MAIN_OUT" "Install deps: npm install"
+assert_contains "extract: cmd 'Show diff' recovered"      "$MAIN_OUT" "Show diff: git diff"
+
+# --- Commands run: a literal "|" inside the command field survives the @tsv/
+# IFS=tab column split intact (used to split the desc/cmd columns before the
+# @tsv fix) ---
+assert_contains "extract: cmd with literal pipe char stays intact" "$MAIN_OUT" "Count matching lines: grep -c foo file.txt | wc -l"
+
+# --- Failures: all 3 planted failures recovered (string content, single-line
+# array content, multi-line array content) ---
+assert_contains "extract: string-content failure recovered" "$MAIN_OUT" "Error: file not found: missing.txt"
+assert_contains "extract: array-content failure recovered"   "$MAIN_OUT" "Error: something bad happened in module xyz"
+
+# --- Failures: a multi-line failure is truncated-then-flattened into exactly
+# ONE bullet, with newlines replaced by spaces ---
+assert_contains "extract: multi-line failure flattened to one bullet" "$MAIN_OUT" \
+    "- Multi-line error occurred: Line 2 of the trace Line 3 with more detail and a second block appended"
+multiline_failure_bullets=$(printf '%s' "$MAIN_OUT" | grep -c '^- Multi-line error occurred')
+assert "extract: multi-line failure produces exactly one bullet" "1" "$multiline_failure_bullets"
+
+# --- User messages: skip-prefix rules respected ---
+assert_not_contains "extract: <command- prefixed message skipped"      "$MAIN_OUT" "caution: destructive op"
+assert_not_contains "extract: <local-command- prefixed message skipped" "$MAIN_OUT" "some stdout here"
+assert_not_contains "extract: <system-reminder prefixed message skipped" "$MAIN_OUT" "background context injected"
+assert_not_contains "extract: 'Base directory for this skill' skipped"  "$MAIN_OUT" "/some/skill/path"
+assert_not_contains "extract: 'Another Claude session sent a message:' skipped" "$MAIN_OUT" "hey, status update from teammate session"
+
+# --- User messages: kept messages present verbatim ---
+assert_contains "extract: normal user message 1 recovered" "$MAIN_OUT" "Please fix the login bug in the auth flow."
+assert_contains "extract: normal user message 2 recovered" "$MAIN_OUT" "What's the current status of the test suite?"
+assert_contains "extract: closing user message recovered"  "$MAIN_OUT" "Thanks, looks good. Ship it."
+
+# --- User messages: a multi-line message stays ONE numbered entry with its
+# internal newlines preserved verbatim (not split into several bullets) ---
+MULTILINE_MSG_BLOCK=$(printf '%s\n%s\n%s' \
+    "Line one of a multi-part update." \
+    "Line two continues the thought." \
+    "Line three wraps it up.")
+assert_contains "extract: multi-line user message newlines preserved" "$MAIN_OUT" "$MULTILINE_MSG_BLOCK"
+multiline_msg_numbered_once=$(printf '%s' "$MAIN_OUT" | grep -c '^3\. Line one of a multi-part update\.$')
+assert "extract: multi-line user message numbered exactly once" "1" "$multiline_msg_numbered_once"
+
+# --- Truncation: the >1500-char message is truncated with a marker ---
+assert_contains "extract: long message truncation marker present" "$MAIN_OUT" "… [truncated]"
+assert_not_contains "extract: long message content capped (no 1600-char run)" \
+    "$MAIN_OUT" "$(printf 'This is a very long user message. %.0s' {1..50})"
+
+# --- Secret scrubbing: every planted secret is redacted ---
+assert_not_contains "extract: AKIA key redacted"      "$MAIN_OUT" "$FAKE_AWS"
+assert_not_contains "extract: ghp_ token redacted"    "$MAIN_OUT" "$FAKE_GHP"
+assert_not_contains "extract: PEM block redacted"     "$MAIN_OUT" "$FAKE_PEM_B64"
+assert_not_contains "extract: PEM header line redacted" "$MAIN_OUT" "$PEM_HEADER"
+assert_not_contains "extract: Bearer token value redacted" "$MAIN_OUT" "$FAKE_BEARER"
+assert_contains "extract: [REDACTED] marker present"  "$MAIN_OUT" "[REDACTED]"
+redacted_count=$(printf '%s' "$MAIN_OUT" | grep -o '\[REDACTED\]' | wc -l | tr -d ' ')
+if [ "$redacted_count" -ge 3 ]; then
+    PASS=$((PASS + 1)); printf '  ok   %-60s -> %s occurrences\n' "extract: at least 3 distinct redactions applied" "$redacted_count"
+else
+    FAIL=$((FAIL + 1)); printf '  FAIL %-60s only %s occurrences\n' "extract: at least 3 distinct redactions applied" "$redacted_count"
+fi
+
+# --- Provenance section always present ---
+assert_contains "extract: provenance section present" "$MAIN_OUT" "## Provenance"
+assert_contains "extract: provenance names extractor version" "$MAIN_OUT" "extractor: relay-extract v1"
+
+# --- Cap note: >50 commands shows "(showing last N of M)" and keeps the most recent 50 ---
+CAP_TMP="$(mktemp -d)"
+python3 - "$CAP_TMP/many.jsonl" <<'PY'
+import json, sys
+lines = []
+for i in range(1, 56):
+    lines.append({"type": "assistant", "message": {"content": [
+        {"type": "tool_use", "name": "Bash", "input": {"description": f"cmd{i:03d}", "command": f"echo {i}"}}
+    ]}})
+with open(sys.argv[1], "w") as f:
+    for o in lines:
+        f.write(json.dumps(o) + "\n")
+PY
+CAP_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" "$CAP_TMP/many.jsonl")"
+assert_contains "extract: cap note shown for >50 commands" "$CAP_OUT" "(showing last 50 of 55)"
+assert_not_contains "extract: oldest command (cmd001) dropped by cap" "$CAP_OUT" "cmd001:"
+assert_contains "extract: newest command (cmd055) kept by cap" "$CAP_OUT" "cmd055: echo 55"
+cap_shown=$(printf '%s' "$CAP_OUT" | grep -c '^- cmd')
+assert "extract: cap keeps exactly 50 commands" "50" "$cap_shown"
+rm -rf "$CAP_TMP"
+
+# --- Empty-ish fixture: headers still print, with _none_ placeholders ---
+EMPTY_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" "$FIXTURES_DIR/empty.jsonl")"
+assert_contains "extract: empty fixture prints Files touched header"  "$EMPTY_OUT" "## Files touched"
+assert_contains "extract: empty fixture prints Commands run header"   "$EMPTY_OUT" "## Commands run"
+assert_contains "extract: empty fixture prints Failures header"       "$EMPTY_OUT" "## Failures"
+assert_contains "extract: empty fixture prints User messages header"  "$EMPTY_OUT" "## User messages (verbatim)"
+assert_contains "extract: empty fixture prints Provenance header"     "$EMPTY_OUT" "## Provenance"
+empty_none_count=$(printf '%s' "$EMPTY_OUT" | grep -c '^_none_$')
+assert "extract: empty fixture shows 4 _none_ placeholders" "4" "$empty_none_count"
+
+# --- Malformed fixture: garbage lines are pre-filtered (fromjson?) so the
+# extractor degrades gracefully — full output, exit 0, no parse errors.
+bash "$SCRIPTS_DIR/extract-transcript.sh" "$FIXTURES_DIR/malformed.jsonl" >/tmp/relay-malformed-out.$$ 2>/tmp/relay-malformed-err.$$
+malformed_exit=$?
+malformed_out="$(cat /tmp/relay-malformed-out.$$)"
+malformed_err="$(cat /tmp/relay-malformed-err.$$)"
+rm -f /tmp/relay-malformed-out.$$ /tmp/relay-malformed-err.$$
+assert "extract: malformed fixture exits 0" "0" "$malformed_exit"
+assert_contains "extract: malformed fixture still prints Provenance" "$malformed_out" "## Provenance"
+assert_not_contains "extract: malformed fixture emits no parse error on stderr" "$malformed_err" "parse error"
+
+# =============================================================================
+# resolve-session.sh tests
+# =============================================================================
+
+echo ""
+echo "=== resolve-session.sh tests ==="
+
+# Test: env var resolves to the exact transcript path
+RS_TMP="$(mktemp -d)"
+RS_HOME="$RS_TMP/home"
+mkdir -p "$RS_HOME"
+RS_CWD="$RS_TMP/proj"
+mkdir -p "$RS_CWD"
+(
+    cd "$RS_CWD" || exit 1
+    slug=$(printf '%s' "$PWD" | tr '/.' '-')
+    mkdir -p "$RS_HOME/.claude/projects/$slug"
+    printf '{}\n' > "$RS_HOME/.claude/projects/$slug/envsession.jsonl"
+    printf '{}\n' > "$RS_HOME/.claude/projects/$slug/other.jsonl"
+    HOME="$RS_HOME" CLAUDE_CODE_SESSION_ID=envsession bash "$SCRIPTS_DIR/resolve-session.sh"
+) > "$RS_TMP/out.txt" 2>/dev/null
+rs_env_out="$(cat "$RS_TMP/out.txt")"
+case "$rs_env_out" in
+    */envsession.jsonl) rs_env_ok=0 ;;
+    *) rs_env_ok=1 ;;
+esac
+assert_true "resolve: \$CLAUDE_CODE_SESSION_ID resolves exact transcript" "$rs_env_ok"
+
+# Test: CLAUDE_SESSION_ID (secondary env var) also resolves exact transcript
+(
+    cd "$RS_CWD" || exit 1
+    HOME="$RS_HOME" CLAUDE_SESSION_ID=envsession bash "$SCRIPTS_DIR/resolve-session.sh"
+) > "$RS_TMP/out2.txt" 2>/dev/null
+rs_env2_out="$(cat "$RS_TMP/out2.txt")"
+case "$rs_env2_out" in
+    */envsession.jsonl) rs_env2_ok=0 ;;
+    *) rs_env2_ok=1 ;;
+esac
+assert_true "resolve: \$CLAUDE_SESSION_ID resolves exact transcript" "$rs_env2_ok"
+
+# Test: unset env vars fall back to newest-mtime transcript, with a stderr warning
+(
+    cd "$RS_CWD" || exit 1
+    slug=$(printf '%s' "$PWD" | tr '/.' '-')
+    sleep 1.1
+    printf '{}\n' > "$RS_HOME/.claude/projects/$slug/newest.jsonl"
+    HOME="$RS_HOME" env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_SESSION_ID bash "$SCRIPTS_DIR/resolve-session.sh"
+) > "$RS_TMP/out3.txt" 2>"$RS_TMP/err3.txt"
+rs_mtime_out="$(cat "$RS_TMP/out3.txt")"
+rs_mtime_err="$(cat "$RS_TMP/err3.txt")"
+case "$rs_mtime_out" in
+    */newest.jsonl) rs_mtime_ok=0 ;;
+    *) rs_mtime_ok=1 ;;
+esac
+assert_true "resolve: no env id -> newest-mtime file resolved" "$rs_mtime_ok"
+assert_contains "resolve: newest-mtime fallback warns on stderr" "$rs_mtime_err" "guessing newest-mtime transcript"
+
+# Test: project dir exists but is empty -> exit 1
+RS_EMPTY_CWD="$RS_TMP/emptyproj"
+mkdir -p "$RS_EMPTY_CWD"
+(
+    cd "$RS_EMPTY_CWD" || exit 1
+    slug=$(printf '%s' "$PWD" | tr '/.' '-')
+    mkdir -p "$RS_HOME/.claude/projects/$slug"
+    HOME="$RS_HOME" env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_SESSION_ID bash "$SCRIPTS_DIR/resolve-session.sh"
+)
+assert "resolve: empty project dir exits 1" "1" "$?"
+
+# Test: no project dir at all -> exit 1
+RS_NODIR_CWD="$RS_TMP/nodirproj"
+mkdir -p "$RS_NODIR_CWD"
+(
+    cd "$RS_NODIR_CWD" || exit 1
+    HOME="$RS_HOME" env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_SESSION_ID bash "$SCRIPTS_DIR/resolve-session.sh"
+)
+assert "resolve: missing project dir exits 1" "1" "$?"
+
+# Test: env session id set but the file it points to doesn't exist -> falls
+# back to mtime guess rather than failing
+(
+    cd "$RS_CWD" || exit 1
+    HOME="$RS_HOME" CLAUDE_CODE_SESSION_ID=does-not-exist bash "$SCRIPTS_DIR/resolve-session.sh"
+) > "$RS_TMP/out4.txt" 2>"$RS_TMP/err4.txt"
+rs_stale_out="$(cat "$RS_TMP/out4.txt")"
+rs_stale_err="$(cat "$RS_TMP/err4.txt")"
+case "$rs_stale_out" in
+    */newest.jsonl) rs_stale_ok=0 ;;
+    *) rs_stale_ok=1 ;;
+esac
+assert_true "resolve: dangling session id falls back to mtime guess" "$rs_stale_ok"
+assert_contains "resolve: dangling session id warns on stderr" "$rs_stale_err" "falling back to mtime guess"
+
+rm -rf "$RS_TMP"
+
+# =============================================================================
+# session-start-pickup.sh tests
+# =============================================================================
+
+echo ""
+echo "=== session-start-pickup.sh tests ==="
+
+PICKUP="$SCRIPTS_DIR/session-start-pickup.sh"
+
+run_pickup() {
+    # run_pickup <HOME> <json-stdin>
+    HOME="$1" bash "$PICKUP" <<< "$2"
+}
+
+# 1. source=resume is a no-op ({}), regardless of any pending marker
+SP_TMP="$(mktemp -d)"
+SP_HOME1="$SP_TMP/home1"
+mkdir -p "$SP_HOME1"
+CWD1="/proj/case1"
+slug1=$(printf '%s' "$CWD1" | tr '/.' '-')
+mkdir -p "$SP_HOME1/.claude/handoffs/$slug1"
+echo "$SP_TMP/doc1.md" > "$SP_HOME1/.claude/handoffs/$slug1/pending"
+echo "doc contents" > "$SP_TMP/doc1.md"
+out1="$(run_pickup "$SP_HOME1" "{\"source\":\"resume\",\"cwd\":\"$CWD1\"}")"
+assert "pickup: source=resume is a no-op" "{}" "$out1"
+assert_true "pickup: source=resume valid JSON" "$(printf '%s' "$out1" | jq empty >/dev/null 2>&1; echo $?)"
+# marker must be untouched by a resume no-op
+assert_true "pickup: source=resume leaves pending marker in place" "$([ -f "$SP_HOME1/.claude/handoffs/$slug1/pending" ]; echo $?)"
+
+# 2. source=startup + fresh marker -> additionalContext contains doc content,
+#    marker renamed consumed-*
+SP_HOME2="$SP_TMP/home2"
+mkdir -p "$SP_HOME2"
+CWD2="/proj/case2"
+slug2=$(printf '%s' "$CWD2" | tr '/.' '-')
+mkdir -p "$SP_HOME2/.claude/handoffs/$slug2"
+doc2="$SP_TMP/doc2.md"
+echo "# Fresh handoff doc for case 2" > "$doc2"
+echo "$doc2" > "$SP_HOME2/.claude/handoffs/$slug2/pending"
+out2="$(run_pickup "$SP_HOME2" "{\"source\":\"startup\",\"cwd\":\"$CWD2\"}")"
+assert_true "pickup: fresh marker emits valid JSON" "$(printf '%s' "$out2" | jq empty >/dev/null 2>&1; echo $?)"
+ctx2=$(printf '%s' "$out2" | jq -r '.hookSpecificOutput.additionalContext // empty')
+assert_contains "pickup: additionalContext embeds doc text" "$ctx2" "Fresh handoff doc for case 2"
+consumed2=$(find "$SP_HOME2/.claude/handoffs/$slug2" -name 'consumed-*' | wc -l | tr -d ' ')
+assert "pickup: fresh marker renamed to consumed-*" "1" "$consumed2"
+assert_true "pickup: original 'pending' marker no longer exists" "$([ ! -f "$SP_HOME2/.claude/handoffs/$slug2/pending" ]; echo $?)"
+
+# 2b. same source=startup (clear also triggers pickup) with a doc containing
+# embedded newlines/markdown — additionalContext must still be valid JSON
+# with the doc text embedded (regression guard for JSON-escaping of the doc)
+SP_HOME2B="$SP_TMP/home2b"
+mkdir -p "$SP_HOME2B"
+CWD2B="/proj/case2b"
+slug2b=$(printf '%s' "$CWD2B" | tr '/.' '-')
+mkdir -p "$SP_HOME2B/.claude/handoffs/$slug2b"
+doc2b="$SP_TMP/doc2b.md"
+printf '# Multi-line handoff\n\n- did X\n- did Y\n\nNext: do Z\n' > "$doc2b"
+echo "$doc2b" > "$SP_HOME2B/.claude/handoffs/$slug2b/pending"
+out2b="$(run_pickup "$SP_HOME2B" "{\"source\":\"clear\",\"cwd\":\"$CWD2B\"}")"
+assert_true "pickup: source=clear + multi-line doc emits valid JSON" "$(printf '%s' "$out2b" | jq empty >/dev/null 2>&1; echo $?)"
+ctx2b=$(printf '%s' "$out2b" | jq -r '.hookSpecificOutput.additionalContext // empty')
+assert_contains "pickup: multi-line doc content embedded" "$ctx2b" "Next: do Z"
+
+# 3. stale marker (>30 min old) -> expired-*, {}
+SP_HOME3="$SP_TMP/home3"
+mkdir -p "$SP_HOME3"
+CWD3="/proj/case3"
+slug3=$(printf '%s' "$CWD3" | tr '/.' '-')
+mkdir -p "$SP_HOME3/.claude/handoffs/$slug3"
+doc3="$SP_TMP/doc3.md"
+echo "stale doc" > "$doc3"
+marker3="$SP_HOME3/.claude/handoffs/$slug3/pending"
+echo "$doc3" > "$marker3"
+touch -t "$(date -v-40M +%Y%m%d%H%M 2>/dev/null || date -d '-40 minutes' +%Y%m%d%H%M)" "$marker3"
+out3="$(run_pickup "$SP_HOME3" "{\"source\":\"startup\",\"cwd\":\"$CWD3\"}")"
+assert "pickup: stale marker (>30min) yields {}" "{}" "$out3"
+expired3=$(find "$SP_HOME3/.claude/handoffs/$slug3" -name 'expired-*' | wc -l | tr -d ' ')
+assert "pickup: stale marker renamed to expired-*" "1" "$expired3"
+
+# 4. dangling doc path (doc file missing) -> broken-*, {}
+SP_HOME4="$SP_TMP/home4"
+mkdir -p "$SP_HOME4"
+CWD4="/proj/case4"
+slug4=$(printf '%s' "$CWD4" | tr '/.' '-')
+mkdir -p "$SP_HOME4/.claude/handoffs/$slug4"
+echo "$SP_TMP/does-not-exist.md" > "$SP_HOME4/.claude/handoffs/$slug4/pending"
+out4="$(run_pickup "$SP_HOME4" "{\"source\":\"startup\",\"cwd\":\"$CWD4\"}")"
+assert "pickup: dangling doc path yields {}" "{}" "$out4"
+broken4=$(find "$SP_HOME4/.claude/handoffs/$slug4" -name 'broken-*' | wc -l | tr -d ' ')
+assert "pickup: dangling doc marker renamed to broken-*" "1" "$broken4"
+
+# 5. no marker at all -> {}
+SP_HOME5="$SP_TMP/home5"
+mkdir -p "$SP_HOME5"
+out5="$(run_pickup "$SP_HOME5" '{"source":"startup","cwd":"/proj/case5"}')"
+assert "pickup: no pending marker yields {}" "{}" "$out5"
+
+# 6. malformed stdin (not JSON at all) -> {} AND exit 0 (the EXIT trap forces
+# status 0 so fail-open covers the exit code, not just the payload).
+SP_HOME6="$SP_TMP/home6"
+mkdir -p "$SP_HOME6"
+out6=$(HOME="$SP_HOME6" bash "$PICKUP" 2>/dev/null <<< "not json at all {{{")
+malformed_pickup_exit=$?
+assert "pickup: malformed stdin still yields {} payload" "{}" "$out6"
+assert "pickup: malformed stdin exits 0" "0" "$malformed_pickup_exit"
+
+# 6b. empty stdin -> {} and exit 0 (this path IS a clean `exit 0`, unlike 6)
+SP_HOME6B="$SP_TMP/home6b"
+mkdir -p "$SP_HOME6B"
+out6b=$(HOME="$SP_HOME6B" bash "$PICKUP" < /dev/null)
+empty_stdin_exit=$?
+assert "pickup: empty stdin yields {}" "{}" "$out6b"
+assert "pickup: empty stdin exits 0" "0" "$empty_stdin_exit"
+
+# 7. jq missing from PATH -> {} and exit 0 (explicit `command -v jq || exit 0`)
+NOJQ_BIN="$(mktemp -d)"
+SP_HOME7="$SP_TMP/home7"
+mkdir -p "$SP_HOME7"
+out7=$(HOME="$SP_HOME7" PATH="$NOJQ_BIN:/usr/bin:/bin" bash "$PICKUP" <<< '{"source":"startup","cwd":"/proj/case7"}')
+nojq_exit=$?
+assert "pickup: jq missing from PATH yields {}" "{}" "$out7"
+assert "pickup: jq missing from PATH exits 0" "0" "$nojq_exit"
+rm -rf "$NOJQ_BIN"
+
+# 8. source values other than startup/clear/resume (e.g. "compact") -> {}
+SP_HOME8="$SP_TMP/home8"
+mkdir -p "$SP_HOME8"
+CWD8="/proj/case8"
+slug8=$(printf '%s' "$CWD8" | tr '/.' '-')
+mkdir -p "$SP_HOME8/.claude/handoffs/$slug8"
+echo "$SP_TMP/doc8.md" > "$SP_HOME8/.claude/handoffs/$slug8/pending"
+echo "doc8" > "$SP_TMP/doc8.md"
+out8="$(run_pickup "$SP_HOME8" "{\"source\":\"compact\",\"cwd\":\"$CWD8\"}")"
+assert "pickup: unrecognized source (e.g. compact) yields {}" "{}" "$out8"
+assert_true "pickup: unrecognized source leaves marker untouched" "$([ -f "$SP_HOME8/.claude/handoffs/$slug8/pending" ]; echo $?)"
+
+# 9. missing cwd key in stdin -> {}
+SP_HOME9="$SP_TMP/home9"
+mkdir -p "$SP_HOME9"
+out9="$(run_pickup "$SP_HOME9" '{"source":"startup"}')"
+assert "pickup: missing cwd key yields {}" "{}" "$out9"
+
+rm -rf "$SP_TMP"
+
+# =============================================================================
+# Summary
+# =============================================================================
+
+END_TIME=$(date +%s)
+RUNTIME=$((END_TIME - START_TIME))
+
+echo ""
+echo "  $PASS passed, $FAIL failed (${RUNTIME}s)"
+[ "$FAIL" -eq 0 ]

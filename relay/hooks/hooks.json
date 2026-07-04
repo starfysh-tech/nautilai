@@ -1,0 +1,16 @@
+{
+  "description": "Auto-inject the pending relay handoff into new sessions",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/session-start-pickup.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
