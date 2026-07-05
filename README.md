@@ -32,7 +32,7 @@ After installing, reload plugins if prompted, then invoke the plugin's skill.
 | Plugin | Description | Install | Docs |
 |---|---|---|---|
 | **commitcraft** | AI git workflow toolkit — conventional commits, issue validation, PR creation, and release guidance. | `/plugin install commitcraft@nautilai` | [commitcraft/](./commitcraft/README.md) |
-| **handoff** | Compact the current conversation into a handoff document so a fresh agent can pick up the work, referencing artifacts by path rather than restating them. | `/plugin install handoff@nautilai` | [handoff/](./handoff/README.md) |
+| **relay** | Session continuity for Claude Code: transcript-grounded handoff documents that a fresh session picks up automatically. Ships the handoff skill. | `/plugin install relay@nautilai` | [relay/](./relay/README.md) |
 | **cc-adoption-audit** | Audit your Claude Code setup against available features — surface what you're not using but should, setup gaps, and recently shipped features you haven't adopted. | `/plugin install cc-adoption-audit@nautilai` | [cc-adoption-audit/](./cc-adoption-audit/README.md) |
 | **pr-comment-review** | Process and address review comments on the current PR — fetch threads, categorize, implement fixes behind approval gates, push, and reply inline. | `/plugin install pr-comment-review@nautilai` | [pr-comment-review/](./pr-comment-review/README.md) |
 | **cc-validate-hooks** | Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional `--fix`. | `/plugin install cc-validate-hooks@nautilai` | [cc-validate-hooks/](./cc-validate-hooks/README.md) |
@@ -52,7 +52,7 @@ nautilai/
 │   ├── .claude-plugin/plugin.json
 │   ├── skills/ scripts/ templates/
 │   └── README.md
-├── handoff/                  # Each plugin is self-contained
+├── relay/                    # Each plugin is self-contained
 │   ├── .claude-plugin/plugin.json
 │   ├── skills/handoff/SKILL.md
 │   └── README.md

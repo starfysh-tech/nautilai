@@ -16,6 +16,20 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-04
 
+- **`handoff` becomes `relay`: transcript-grounded handoffs with automatic
+  pickup** ([`relay`](../relay#readme)). Self-written handoffs inherit the same
+  recency bias as `/compact` — decisions, dead ends, and early constraints
+  documented as the classes compaction drops. The session transcript JSONL
+  retains all of it, so the skill now runs bundled jq extractors over the
+  transcript for ground-truth facts (files touched, commands, failures,
+  verbatim user intents, secret-scrubbed), and a SessionStart hook auto-injects
+  the doc into the next session via a consume-once, 30-minute-TTL marker —
+  `/handoff` → `/clear` with no manual pickup step. The plugin renamed to
+  `relay`; the skill keeps the `handoff` name so trigger phrases survive.
+  A PreCompact hook was rejected as the mechanism: the spec allows observe or
+  block only, no summarizer-instruction injection. Haiku narrative extraction
+  and `/handoff recover` are designed but deferred behind an eval gate.
+
 - **CommitCraft's shipped release-please template no longer lets docs-only
   merges cut releases** ([`commitcraft`](../commitcraft#readme)). release-please
   treats every changelog-visible commit type as release-triggering — nautilai
