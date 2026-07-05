@@ -59,6 +59,23 @@ scrub() {
   '
 }
 
+# Register the trap before creating anything so a failure mid-sequence (or
+# an exit between split and the part-file mv loop) can't leak temp files.
+clean=""
+dialogue=""
+chunk_a=""
+chunk_b=""
+chunk_c=""
+out_a=""
+out_b=""
+out_c=""
+cleanup() {
+  rm -f "$clean" "$dialogue" "$chunk_a" "$chunk_b" "$chunk_c" "$out_a" "$out_b" "$out_c"
+  if [ -n "$dialogue" ]; then
+    rm -f "${dialogue}.part."* 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
 clean=$(mktemp)
 dialogue=$(mktemp)
 chunk_a=$(mktemp)
@@ -67,8 +84,6 @@ chunk_c=$(mktemp)
 out_a=$(mktemp)
 out_b=$(mktemp)
 out_c=$(mktemp)
-cleanup() { rm -f "$clean" "$dialogue" "$chunk_a" "$chunk_b" "$chunk_c" "$out_a" "$out_b" "$out_c"; }
-trap cleanup EXIT
 
 # Same pre-filter pattern as extract-transcript.sh: transcripts can contain
 # interrupted/garbage lines, and a raw parse error inside jq would kill the
@@ -194,12 +209,14 @@ run_with_timeout() {
 # may itself run as a tool call in one) is validated working; no recursion
 # guard needed beyond what the CLI already enforces.
 
+# Short-circuit on the first failed chunk: the run degrades either way, so
+# later chunks would only burn API calls and up to 2 more timeout windows.
 call_ok=1
 run_with_timeout "$chunk_a" "$out_a" || call_ok=0
-if [ "$num_chunks" -ge 2 ]; then
+if [ "$call_ok" -eq 1 ] && [ "$num_chunks" -ge 2 ]; then
   run_with_timeout "$chunk_b" "$out_b" || call_ok=0
 fi
-if [ "$num_chunks" -ge 3 ]; then
+if [ "$call_ok" -eq 1 ] && [ "$num_chunks" -ge 3 ]; then
   run_with_timeout "$chunk_c" "$out_c" || call_ok=0
 fi
 
@@ -212,6 +229,7 @@ extract_section() {
   # next '## ' heading or EOF, so sections can be merged mechanically without
   # a second model call.
   awk -v h="$1" '
+    { sub(/\r$/, "") }
     $0 == "## " h { found=1; next }
     found && /^## / { found=0 }
     found { print }

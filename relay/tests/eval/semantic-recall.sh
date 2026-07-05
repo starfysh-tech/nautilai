@@ -36,10 +36,13 @@ if [ ! -x "$extractor" ]; then
   exit 1
 fi
 
+baseline_out=""
+narrative_out=""
+narrative_err=""
+trap 'rm -f "$baseline_out" "$narrative_out" "$narrative_err"' EXIT
 baseline_out=$(mktemp)
 narrative_out=$(mktemp)
 narrative_err=$(mktemp)
-trap 'rm -f "$baseline_out" "$narrative_out" "$narrative_err"' EXIT
 
 "$extractor" "$fixture" > "$baseline_out"
 
