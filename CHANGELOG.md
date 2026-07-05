@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.10.0](https://github.com/starfysh-tech/nautilai/compare/v2.9.3...v2.10.0) (2026-07-05)
+
+
+### Features
+
+* **relay:** transcript-grounded handoff auto-pickup ([2c41031](https://github.com/starfysh-tech/nautilai/commit/2c4103146b5970ac1e23abf7a1a934bc84a6a01e))
+* **relay:** transcript-grounded handoff with auto-pickup ([9317198](https://github.com/starfysh-tech/nautilai/commit/9317198cb3fb6735c6bc55933b4afa01cf9a6785))
+
+
+### Bug Fixes
+
+* **relay:** filter harness-injected messages structurally ([3a6b71e](https://github.com/starfysh-tech/nautilai/commit/3a6b71eaae1967fec54c2780f0f16bc312de16df))
+* **relay:** harden pickup and extractor per review ([e5bf1a0](https://github.com/starfysh-tech/nautilai/commit/e5bf1a0ab4bacc9a50a3edf169f1b61b1b10e6ec))
+
+
+### Performance
+
+* **relay:** single-pass message formatting, no test sleep ([06507f4](https://github.com/starfysh-tech/nautilai/commit/06507f46f6f979f53d4bf0248f46789fc0c3b7da))
+
 ## [2.9.3](https://github.com/starfysh-tech/nautilai/compare/v2.9.2...v2.9.3) (2026-07-04)
 
 
