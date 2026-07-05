@@ -5,6 +5,13 @@
 # when all cases pass.
 set -uo pipefail
 
+# Fixture repos commit; CI runners have no git identity configured (local
+# machines do, via global gitconfig), so commits silently fail there and any
+# test needing a valid HEAD (git worktree add) breaks. Env identity makes the
+# suite hermetic on both.
+export GIT_AUTHOR_NAME="autodev-test" GIT_AUTHOR_EMAIL="autodev-test@example.com"
+export GIT_COMMITTER_NAME="autodev-test" GIT_COMMITTER_EMAIL="autodev-test@example.com"
+
 HERE="$(cd "$(dirname "$0")" && pwd)"
 AUTODEV_ROOT="$(cd "$(dirname "$HERE")" && pwd)"
 SCRIPTS_DIR="$AUTODEV_ROOT/scripts"

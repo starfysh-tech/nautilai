@@ -16,6 +16,21 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-05
 
+- **relay grows public-readiness controls** ([`relay`](../relay#readme)).
+  Facing users beyond this repo means facing sessions, platforms, and budgets
+  unlike ours: `RELAY_NARRATIVE=off` turns off the narrative layer's live
+  Haiku spend; `RELAY_RETENTION_DAYS` (default 14) stops
+  `~/.claude/handoffs/` accumulating session prose forever (a
+  rename-preserves-mtime bug that made freshly-expired markers sweep
+  themselves surfaced in testing); `SCHEMA.md` inventories every
+  environmental assumption with honest confidence labels (Windows-native:
+  unverified) and `scripts/doctor.sh` lets a bug reporter self-check them;
+  the bundled test suites now run in CI on ubuntu, doubling as the
+  Linux-portability check. A suspected gap — subagent turns polluting the
+  fact pack — was falsified with evidence (sidechains live in separate files
+  the resolver never touches) and documented instead of speculatively
+  filtered.
+
 - **relay ships the Haiku narrative layer** ([`relay`](../relay#readme)). The
   jq fact pack guarantees mechanical fidelity (files, commands, verbatim user
   text) but structurally can't see assistant-turn semantics — the reasoning

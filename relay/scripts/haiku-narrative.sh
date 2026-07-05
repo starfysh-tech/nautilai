@@ -32,6 +32,10 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+case "${RELAY_NARRATIVE:-}" in
+  [Oo][Ff][Ff]) degrade "disabled by RELAY_NARRATIVE=off" ;;
+esac
+
 if ! command -v claude >/dev/null 2>&1; then
   degrade "claude CLI not found in PATH"
 fi

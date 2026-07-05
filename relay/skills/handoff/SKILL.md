@@ -43,9 +43,11 @@ structurally can't see (it only reads tool_use/tool_result/user-text). This
 call can take ~20s for one chunk and up to ~2.5min for a huge transcript
 (chunked to at most 3 calls) — start it right after resolving the transcript
 in step 1 and let it run in the background while you read the fact pack in
-step 2. On exit 3 (degraded — `claude` missing, the call failed/timed out, or
-output was empty), proceed without it and record "narrative: degraded" in the
-doc's Provenance section; never block the handoff on this step.
+step 2. On exit 3 (degraded — `claude` missing, the call failed/timed out,
+output was empty, or the user set `RELAY_NARRATIVE=off`), proceed without it
+and record the degrade reason from stderr in the doc's Provenance section;
+never block the handoff on this step, and never re-prompt the user about a
+deliberate `RELAY_NARRATIVE=off`.
 
 ## 4. Compute the destination
 
