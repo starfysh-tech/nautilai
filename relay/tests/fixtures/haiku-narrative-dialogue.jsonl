@@ -1,0 +1,5 @@
+{"type":"user","message":{"content":"Please fix the login bug in the auth flow."}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"I decided to use approach A because it is simpler."}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","is_error":false,"content":"tool result payload should not appear in dialogue"}]}}
+{"type":"user","isMeta":true,"message":{"content":"META text should not appear in dialogue"}}
+{"type":"user","isCompactSummary":true,"message":{"content":"COMPACT text should not appear in dialogue"}}

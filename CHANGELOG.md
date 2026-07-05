@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.12.0](https://github.com/starfysh-tech/nautilai/compare/v2.11.0...v2.12.0) (2026-07-05)
+
+
+### Features
+
+* **relay:** haiku narrative layer for assistant-turn semantics ([4b1c049](https://github.com/starfysh-tech/nautilai/commit/4b1c049f57297afa68765fdae9eb86657da8288f))
+* **relay:** haiku narrative layer for assistant-turn semantics ([792aa96](https://github.com/starfysh-tech/nautilai/commit/792aa96945ffb978f28a8fd76eb1582dccf37658))
+
+
+### Bug Fixes
+
+* **relay:** short-circuit failed chunks, plug temp leaks ([854dabe](https://github.com/starfysh-tech/nautilai/commit/854dabe1f03cf9a33c0a04cf84472566f416a1e9))
+
 ## [2.11.0](https://github.com/starfysh-tech/nautilai/compare/v2.10.0...v2.11.0) (2026-07-05)
 
 

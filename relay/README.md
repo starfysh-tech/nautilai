@@ -40,6 +40,13 @@ Also triggers from natural language — "hand this off", "pass to next session",
 "relay this", "compact for the next agent", "I'm switching context" — without
 the explicit slash form.
 
+## Requirements
+
+The fact pack extractor needs `jq`. The narrative step additionally needs the
+`claude` CLI on `PATH` and makes 1-3 live Haiku calls per handoff (one per
+transcript chunk, up to 3 for very large transcripts) — skipped gracefully,
+with no impact on the rest of the handoff, when `claude` is unavailable.
+
 ## How it works
 
 1. `scripts/resolve-session.sh` locates the current session's transcript JSONL.
@@ -47,12 +54,20 @@ the explicit slash form.
    touched, commands run, failures, user messages (verbatim, secret-scrubbed,
    with harness-injected content like skill prompts and compaction summaries
    filtered out), and provenance.
-3. The skill writes a handoff doc combining that fact pack with its own
-   understanding of the conversation — goal, decisions, next steps — plus
-   fact-grounded sections (files touched, commands & outcomes, verbatim user
-   intents, dead ends).
-4. It writes a one-line pending marker pointing at the doc.
-5. A `SessionStart` hook atomically claims that marker on the next session,
+3. `scripts/haiku-narrative.sh` reads the same transcript's dialogue turns and
+   prints a narrative pack — Decisions, Dead ends, Constraints — recovered
+   from ASSISTANT prose via headless Haiku. The fact pack is structural (tool
+   calls, verbatim user text) and can't see this; the reasoning behind a
+   decision or why an approach was abandoned only lives in assistant turns,
+   which need a model to summarize. Degrades gracefully (exit 3) if the
+   `claude` CLI is missing or the call fails/times out — the handoff proceeds
+   without it, noted in Provenance.
+4. The skill writes a handoff doc combining the fact pack and narrative pack
+   with its own understanding of the conversation — goal, decisions, next
+   steps — plus fact-grounded sections (files touched, commands & outcomes,
+   verbatim user intents, dead ends).
+5. It writes a one-line pending marker pointing at the doc.
+6. A `SessionStart` hook atomically claims that marker on the next session,
    injects the doc if it's still within its TTL, and renames the marker
    (`consumed-*`) so it only fires once — even with concurrent session starts.
 
@@ -92,9 +107,19 @@ remove its hook registration — the skill itself still writes the doc and the
 
 ## Roadmap
 
-`/handoff recover` is shipped (see Recovery, above). Not yet shipped: a
-Haiku-driven narrative layer to smooth the fact pack into prose, gated on a
-semantic recall eval.
+`/handoff recover` is shipped (see Recovery, above). The Haiku narrative layer
+is also shipped: it recovers 11-12 of 12 planted assistant-turn facts across 3
+eval runs vs 0/12 for the jq fact pack alone (see
+`relay/tests/eval/LEDGER.md`).
+
+## Security note
+
+Transcript text is untrusted input — a session can contain arbitrary content,
+including prose that reads as instructions (found the hard way: a transcript
+about editing CLAUDE.md persona rules hijacked the narrative extractor in
+testing). `haiku-narrative.sh` runs Haiku with a bare `--system-prompt` (no
+CLAUDE.md inheritance) and explicit instructions to treat transcript content
+as data to analyze, never as commands to obey or questions to answer.
 
 ## License
 
