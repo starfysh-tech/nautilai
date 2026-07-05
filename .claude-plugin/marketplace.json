@@ -15,7 +15,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/commitcraft#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/commitcraft.html",
       "license": "MIT"
     },
     {
@@ -26,7 +26,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/relay#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/relay.html",
       "license": "MIT"
     },
     {
@@ -37,7 +37,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-adoption-audit#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/cc-adoption-audit.html",
       "license": "MIT"
     },
     {
@@ -48,7 +48,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/pr-comment-review#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/pr-comment-review.html",
       "license": "MIT"
     },
     {
@@ -59,7 +59,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-validate-hooks#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html",
       "license": "MIT"
     },
     {
@@ -70,7 +70,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-skill-audit#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/cc-skill-audit.html",
       "license": "MIT"
     },
     {
@@ -81,7 +81,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/phi-scan#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/phi-scan.html",
       "license": "MIT"
     },
     {
@@ -92,7 +92,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/review-plan#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/review-plan.html",
       "license": "MIT"
     },
     {
@@ -103,7 +103,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/pr-review-deep#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/pr-review-deep.html",
       "license": "MIT"
     },
     {
@@ -114,7 +114,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/rbac-django#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/rbac-django.html",
       "license": "MIT"
     },
     {
@@ -125,7 +125,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/frontend-review#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/frontend-review.html",
       "license": "MIT"
     },
     {
@@ -136,7 +136,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/wireframe#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/wireframe.html",
       "license": "MIT"
     },
     {
@@ -147,7 +147,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/dep-review#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/dep-review.html",
       "license": "MIT"
     },
     {
@@ -158,7 +158,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/github-issue-auditor#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/github-issue-auditor.html",
       "license": "MIT"
     },
     {
@@ -169,7 +169,7 @@
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/autodev#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/autodev.html",
       "license": "MIT"
     }
   ]
