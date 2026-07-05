@@ -6,6 +6,12 @@
 # assumed."
 set -uo pipefail
 
+# One global trap, registered before any temp file exists (set -u safe via
+# empty init), so an interrupt anywhere can't leak clean or the write probe.
+clean=""
+probe=""
+trap 'rm -f "$clean" "$probe"' EXIT
+
 any_fail=0
 line() {
   status="$1"; shift
@@ -56,7 +62,9 @@ if [ -d "$project_dir" ]; then
   newest_mtime=-1
   for f in "${project_dir}"/*.jsonl; do
     [ -e "$f" ] || continue
-    mtime=$(stat -f '%m' "$f" 2>/dev/null || stat -c '%Y' "$f" 2>/dev/null || echo -1)
+    # GNU first — see resolve-session.sh: GNU `stat -f` succeeds with fs info.
+    mtime=$(stat -c '%Y' "$f" 2>/dev/null || stat -f '%m' "$f" 2>/dev/null || echo -1)
+    case "$mtime" in ''|*[!0-9]*) mtime=-1 ;; esac
     if [ "$mtime" -gt "$newest_mtime" ]; then
       newest_mtime="$mtime"
       newest="$f"
@@ -70,7 +78,6 @@ elif ! command -v jq >/dev/null 2>&1; then
   line warn "skipping transcript parse check -- jq unavailable"
 else
   clean=$(mktemp)
-  trap 'rm -f "$clean"' EXIT
   if jq -cR 'fromjson? | select(type=="object")' "$newest" > "$clean" 2>/dev/null; then
     line_count=$(wc -l < "$clean" | tr -d ' ')
     if [ "$line_count" -eq 0 ]; then
@@ -102,7 +109,6 @@ else
     line FAIL "newest transcript (${newest}) failed to parse as JSONL"
   fi
   rm -f "$clean"
-  trap - EXIT
 fi
 
 # --- handoffs dir writable ---------------------------------------------------

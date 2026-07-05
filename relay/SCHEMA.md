@@ -208,12 +208,16 @@ Confidence key:
 
 - **Built and tested on:** macOS, bash 3.2 compatibility targeted (no
   bash 4+ features used — no associative arrays, no `${var,,}`, no
-  `mapfile`), `jq` present. All `stat` calls try BSD syntax (`stat -f '%m'`)
-  then GNU syntax (`stat -c '%Y'`) as a fallback, specifically for portability
-  — this is the one place cross-platform support was deliberately engineered
-  rather than assumed.
-- **Linux:** expected-compatible based on the `stat`/`find`-fallback pattern
-  used throughout (`resolve-session.sh`'s mtime loop, `session-start-pickup.sh`'s
+  `mapfile`), `jq` present. All `stat` calls try GNU syntax (`stat -c '%Y'`)
+  first, then BSD (`stat -f '%m'`) as the fallback, with a numeric guard on
+  the result. The order matters and was learned from a real CI failure: GNU
+  `stat -f` is FILESYSTEM stat and *succeeds* with a multi-line info block
+  instead of erroring, silently poisoning a BSD-first fallback chain —
+  whereas BSD `stat -c` errors cleanly into its fallback.
+- **Linux:** verified by CI — the bundled suites run on ubuntu in the
+  `validate` workflow (the GNU-stat ordering bug above is exactly what that
+  run caught on its first execution). The pattern relies on
+  (`resolve-session.sh`'s mtime loop, `session-start-pickup.sh`'s
   marker expiry check), but **not verified on an actual Linux machine** as
   part of this review — "expected compatible" is an inference from the
   fallback code existing, not a test result.

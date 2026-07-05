@@ -693,12 +693,12 @@ assert "haiku-narrative: nonexistent transcript path exits 1" "1" "$?"
 # check (case-insensitive), degrading with a reason that names the env var so
 # a handoff reader knows narrative was suppressed deliberately, not that
 # claude failed. Checked with the real (still no-`claude`-required) PATH.
-hn_off_out=$(RELAY_NARRATIVE=off bash "$HN_SCRIPT" "$FIXTURES_DIR/empty.jsonl" 2>/tmp/hn-off-err.$$)
+hn_off_out=$(RELAY_NARRATIVE=off bash "$HN_SCRIPT" "$FIXTURES_DIR/empty.jsonl" 2>"$MAIN_TMP/hn-off-err")
 hn_off_exit=$?
 assert "haiku-narrative: RELAY_NARRATIVE=off exits 3 (degraded)" "3" "$hn_off_exit"
 assert "haiku-narrative: RELAY_NARRATIVE=off emits no stdout" "" "$hn_off_out"
-assert_contains "haiku-narrative: RELAY_NARRATIVE=off stderr names the reason" "$(cat /tmp/hn-off-err.$$)" "disabled by RELAY_NARRATIVE=off"
-rm -f /tmp/hn-off-err.$$
+assert_contains "haiku-narrative: RELAY_NARRATIVE=off stderr names the reason" "$(cat "$MAIN_TMP/hn-off-err")" "disabled by RELAY_NARRATIVE=off"
+rm -f "$MAIN_TMP/hn-off-err"
 
 # 2c. RELAY_NARRATIVE=OFF (mixed case) also trips the switch.
 RELAY_NARRATIVE=OFF bash "$HN_SCRIPT" "$FIXTURES_DIR/empty.jsonl" >/dev/null 2>/dev/null

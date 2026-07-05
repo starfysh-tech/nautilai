@@ -83,9 +83,12 @@ claimed="${marker_dir}/claimed-${epoch}-$$"
 mv "$marker" "$claimed" 2>/dev/null || exit 0
 
 # Expire stale markers (>30 min old) rather than inject a doc from a session
-# that's long gone. stat flags differ between BSD and GNU; try both, and skip
-# the check entirely (fail-open) if neither works.
-mtime=$(stat -f '%m' "$claimed" 2>/dev/null || stat -c '%Y' "$claimed" 2>/dev/null || echo 0)
+# that's long gone. GNU first: on Linux `stat -f` is FILESYSTEM stat and
+# SUCCEEDS with a mount point (not an error), which silently poisons the
+# fallback chain — whereas BSD `stat -c` errors cleanly into the fallback.
+# Numeric guard so a wrong-but-successful stat can never reach the arithmetic.
+mtime=$(stat -c '%Y' "$claimed" 2>/dev/null || stat -f '%m' "$claimed" 2>/dev/null || echo 0)
+case "$mtime" in ''|*[!0-9]*) mtime=0 ;; esac
 if [ "$mtime" -gt 0 ] && [ $((epoch - mtime)) -gt 1800 ]; then
   # touch: mv preserves the stale mtime, and the retention sweep counts from
   # mtime — without a reset, an already-old marker's audit record would be

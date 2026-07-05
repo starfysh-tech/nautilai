@@ -41,8 +41,11 @@ newest=""
 newest_mtime=-1
 for f in "${project_dir}"/*.jsonl; do
   [ -e "$f" ] || continue
-  # macOS/BSD stat and GNU stat use different flags; try both.
-  mtime=$(stat -f '%m' "$f" 2>/dev/null || stat -c '%Y' "$f" 2>/dev/null || echo -1)
+  # GNU first: on Linux `stat -f` is FILESYSTEM stat and SUCCEEDS with a
+  # mount point rather than erroring, poisoning the fallback — BSD `stat -c`
+  # errors cleanly into the fallback instead. Guard non-numeric output.
+  mtime=$(stat -c '%Y' "$f" 2>/dev/null || stat -f '%m' "$f" 2>/dev/null || echo -1)
+  case "$mtime" in ''|-1) mtime=-1 ;; *[!0-9]*) mtime=-1 ;; esac
   if [ "$mtime" -gt "$newest_mtime" ]; then
     newest_mtime="$mtime"
     newest="$f"
