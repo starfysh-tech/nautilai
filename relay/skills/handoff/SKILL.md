@@ -34,7 +34,8 @@ discrepancy in the doc rather than silently picking one.
 ## 3. Compute the destination
 
 ```bash
-slug=$(pwd | tr './' '-')
+# Slug rule must match resolve-session.sh / session-start-pickup.sh.
+slug=$(pwd | tr '/.' '-')
 dir="$HOME/.claude/handoffs/$slug"
 mkdir -p "$dir"
 doc="$dir/$(date +%Y%m%d-%H%M%S).md"

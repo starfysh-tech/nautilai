@@ -116,6 +116,8 @@ assert_not_contains "extract: <local-command- prefixed message skipped" "$MAIN_O
 assert_not_contains "extract: <system-reminder prefixed message skipped" "$MAIN_OUT" "background context injected"
 assert_not_contains "extract: 'Base directory for this skill' skipped"  "$MAIN_OUT" "/some/skill/path"
 assert_not_contains "extract: 'Another Claude session sent a message:' skipped" "$MAIN_OUT" "hey, status update from teammate session"
+assert_not_contains "extract: isMeta:true message skipped structurally" "$MAIN_OUT" "META-INJECTED"
+assert_not_contains "extract: isCompactSummary:true message skipped structurally" "$MAIN_OUT" "COMPACT-SUMMARY"
 
 # --- User messages: kept messages present verbatim ---
 assert_contains "extract: normal user message 1 recovered" "$MAIN_OUT" "Please fix the login bug in the auth flow."

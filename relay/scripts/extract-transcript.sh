@@ -33,6 +33,9 @@ jq -cR 'fromjson? | select(type=="object")' "$transcript" > "$clean"
 
 # Redacts secrets that may have been echoed into tool output or pasted by the
 # user (API keys, tokens, private key blocks) before anything reaches stdout.
+# Intentionally independent of .gitleaks.toml: gitleaks scans committed
+# content with rules compiled into its binary; this scrubs live transcript
+# text with no runtime dependency.
 scrub() {
   awk '
     /-----BEGIN [A-Z ]*PRIVATE KEY-----/ { print "[REDACTED]"; inkey=1; next }
@@ -55,13 +58,12 @@ scrub() {
 {
   echo "## Files touched"
   echo
-  files_json=$(jq -c '
-    select(.type=="assistant") | .message.content[]?
-    | select(.type=="tool_use")
-    | select(.name=="Edit" or .name=="Write" or .name=="Read" or .name=="NotebookEdit")
-    | {path: (.input.file_path // .input.notebook_path // "unknown"), op: .name}
-  ' "$clean" | jq -s '
-    group_by(.path)
+  files_json=$(jq -s '
+    [ .[] | select(.type=="assistant") | .message.content[]?
+      | select(.type=="tool_use")
+      | select(.name=="Edit" or .name=="Write" or .name=="Read" or .name=="NotebookEdit")
+      | {path: (.input.file_path // .input.notebook_path // "unknown"), op: .name} ]
+    | group_by(.path)
     | map({
         path: .[0].path,
         total: length,
@@ -70,7 +72,7 @@ scrub() {
         writes: (map(select(.op=="Write")) | length)
       })
     | sort_by(-.total)
-  ')
+  ' "$clean")
   file_count=$(printf '%s\n' "$files_json" | jq 'length')
   if [ "$file_count" -eq 0 ]; then
     echo "_none_"
@@ -88,22 +90,25 @@ scrub() {
 
   echo "## Commands run"
   echo
-  total_cmds=$(jq -s '[.[] | select(.type=="assistant") | .message.content[]? | select(.type=="tool_use" and .name=="Bash")] | length' "$clean")
-  if [ "$total_cmds" -eq 0 ]; then
+  # One pass builds the full list; the count and the last-50 display both
+  # derive from it, so the selector can't drift between two copies.
+  cmd_list=$(jq -r '
+    select(.type=="assistant") | .message.content[]?
+    | select(.type=="tool_use" and .name=="Bash")
+    | (if (.input.description // "") != "" then .input.description + ": " else "" end)
+      + ((.input.command // "") | split("\n")[0])
+    | if length > 120 then .[0:120] else . end
+    | "- " + .
+  ' "$clean")
+  if [ -z "$cmd_list" ]; then
     echo "_none_"
   else
+    total_cmds=$(printf '%s\n' "$cmd_list" | wc -l | tr -d ' ')
     if [ "$total_cmds" -gt 50 ]; then
       echo "(showing last 50 of ${total_cmds})"
       echo
     fi
-    jq -r '
-      select(.type=="assistant") | .message.content[]?
-      | select(.type=="tool_use" and .name=="Bash")
-      | (if (.input.description // "") != "" then .input.description + ": " else "" end)
-        + ((.input.command // "") | split("\n")[0])
-      | if length > 120 then .[0:120] else . end
-      | "- " + .
-    ' "$clean" | tail -n 50
+    printf '%s\n' "$cmd_list" | tail -n 50
   fi
   echo
 
@@ -131,6 +136,12 @@ scrub() {
   echo
   msgs_json=$(jq -c '
     select(.type=="user")
+    # Structural exclusions: isMeta flags harness-injected content (skill
+    # prompts etc.); isCompactSummary flags compaction continuations the user
+    # never typed. The string prefixes below cover injections that carry no
+    # structural marker in real transcripts.
+    | select(.isMeta != true)
+    | select(.isCompactSummary != true)
     | .message.content as $c
     | (
         if ($c|type)=="string" then $c

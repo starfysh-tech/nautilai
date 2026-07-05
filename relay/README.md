@@ -44,16 +44,17 @@ the explicit slash form.
 
 1. `scripts/resolve-session.sh` locates the current session's transcript JSONL.
 2. `scripts/extract-transcript.sh` reads it and prints a fact pack: files
-   touched, commands run, failures, user messages (verbatim, secret-scrubbed),
-   and provenance.
+   touched, commands run, failures, user messages (verbatim, secret-scrubbed,
+   with harness-injected content like skill prompts and compaction summaries
+   filtered out), and provenance.
 3. The skill writes a handoff doc combining that fact pack with its own
    understanding of the conversation — goal, decisions, next steps — plus
    fact-grounded sections (files touched, commands & outcomes, verbatim user
    intents, dead ends).
 4. It writes a one-line pending marker pointing at the doc.
-5. A `SessionStart` hook checks for that marker on the next session, injects
-   the doc if it's still within its TTL, and consumes it (deletes the marker)
-   so it only fires once.
+5. A `SessionStart` hook atomically claims that marker on the next session,
+   injects the doc if it's still within its TTL, and renames the marker
+   (`consumed-*`) so it only fires once — even with concurrent session starts.
 
 ## Storage layout
 
