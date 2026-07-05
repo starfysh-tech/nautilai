@@ -11,165 +11,165 @@
       "name": "commitcraft",
       "source": "./commitcraft",
       "description": "AI git workflow toolkit: conventional commits, issue validation, PR creation, and release guidance.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/commitcraft#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/commitcraft.html",
       "license": "MIT"
     },
     {
       "name": "relay",
       "source": "./relay",
       "description": "Session continuity for Claude Code: transcript-grounded handoff documents that a fresh session picks up automatically. Ships the handoff skill.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/relay#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/relay.html",
       "license": "MIT"
     },
     {
       "name": "cc-adoption-audit",
       "source": "./cc-adoption-audit",
       "description": "Audit your Claude Code setup against available features and surface what you're not using but should, plus setup gaps.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-adoption-audit#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/cc-adoption-audit.html",
       "license": "MIT"
     },
     {
       "name": "pr-comment-review",
       "source": "./pr-comment-review",
       "description": "Process and address review comments on the current pull request — fetch the threads, categorize, implement agreed fixes behind approval gates, push, and reply inline.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/pr-comment-review#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/pr-comment-review.html",
       "license": "MIT"
     },
     {
       "name": "cc-validate-hooks",
       "source": "./cc-validate-hooks",
       "description": "Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-validate-hooks#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html",
       "license": "MIT"
     },
     {
       "name": "cc-skill-audit",
       "source": "./cc-skill-audit",
       "description": "Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/cc-skill-audit#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/cc-skill-audit.html",
       "license": "MIT"
     },
     {
       "name": "phi-scan",
       "source": "./phi-scan",
       "description": "Scan a repo for Protected Health Information (PHI under HIPAA Safe Harbor) — SSNs, emails, phones, IPs, dates, restricted ZIPs — then AI-triage findings to filter false positives. Optionally runs Django/React OWASP grep checks when that stack is detected.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/phi-scan#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/phi-scan.html",
       "license": "MIT"
     },
     {
       "name": "review-plan",
       "source": "./review-plan",
       "description": "Adversarially validate an implementation plan against the actual codebase before building it — surface risks, breaking changes, gaps, and simplifications, then write findings back into the plan. Built-in agents by default; taps review/Codex plugins when installed.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/review-plan#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/review-plan.html",
       "license": "MIT"
     },
     {
       "name": "pr-review-deep",
       "source": "./pr-review-deep",
       "description": "Rigorous, evidence-based code quality review of a branch or PR — abstraction design, type/boundary contracts, and behavior-preserving structural simplification. Proposes high-leverage restructurings with cited evidence; never performs them or expands scope.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/pr-review-deep#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/pr-review-deep.html",
       "license": "MIT"
     },
     {
       "name": "rbac-django",
       "source": "./rbac-django",
       "description": "Audit a Django/DRF + React codebase for RBAC gaps (missing permission classes, tenant-isolation leaks, IDOR, write-side gaps), threat-model the findings into ranked attacker abuse cases, then generate prioritized remediation playbooks and GitHub issues.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/rbac-django#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/rbac-django.html",
       "license": "MIT"
     },
     {
       "name": "frontend-review",
       "source": "./frontend-review",
       "description": "Audit a React + Tailwind frontend for architecture and design-token health — component size, prop drilling, duplicate-primitive reuse, folder organization, and Tailwind token violations (arbitrary values, dynamic class concatenation, hardcoded colors). Auto-detects the frontend source root; findings cite file:line.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/frontend-review#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/frontend-review.html",
       "license": "MIT"
     },
     {
       "name": "wireframe",
       "source": "./wireframe",
       "description": "Create low-fidelity wireframes for UI planning — ASCII layouts, wiremd interactive prototypes, or Mermaid diagrams for tickets. Use before writing components to sketch structure, flows, and states.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/wireframe#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/wireframe.html",
       "license": "MIT"
     },
     {
       "name": "dep-review",
       "source": "./dep-review",
       "description": "Evaluate Dependabot PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts grounded in the PR diff and codebase usage. Low-risk patch / minor-dev-dep bumps that pass CI auto-merge; other merges and closes gate behind approval.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/dep-review#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/dep-review.html",
       "license": "MIT"
     },
     {
       "name": "github-issue-auditor",
       "source": "./github-issue-auditor",
       "description": "Audit a GitHub repo's issues for cleanup — fuzzy-matched duplicates, orphaned sub-issues, unlabeled or stale items, and inconsistent labels against the repo's own auto-detected taxonomy. Read-only by default; any mutation (close, relabel, comment) is opt-in behind an approval gate.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/github-issue-auditor#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/github-issue-auditor.html",
       "license": "MIT"
     },
     {
       "name": "autodev",
       "source": "./autodev",
       "description": "Bounded autonomous development loop: scripted worktree lanes, fast worker subagents, objective script-based verification, and a hard 3-failure escalation to the user.",
-      "version": "2.11.0",
+      "version": "2.12.0",
       "author": {
         "name": "Randall Noval"
       },
-      "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/autodev#readme",
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/autodev.html",
       "license": "MIT"
     }
   ]
