@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>dep-review — nautilai</title>
+<meta name="description" content="Evaluate Dependabot PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts grounded in the PR diff and codebase usage. Low-risk patch / minor-dev-dep bumps that pass CI auto-merge; other merges and closes gate behind approval." />
+<meta property="og:title" content="dep-review — nautilai" />
+<meta property="og:description" content="Evaluate Dependabot PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts grounded in the PR diff and codebase usage. Low-risk patch / minor-dev-dep bumps that pass CI auto-merge; other merges and closes gate behind approval." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a141d" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --deep:       oklch(0.195 0.034 240);
+    --deep-2:     oklch(0.155 0.032 244);
+    --chamber:    oklch(0.235 0.034 240);
+    --foam:       oklch(0.945 0.014 205);
+    --foam-soft:  oklch(0.74 0.030 212);
+    --tide:       oklch(0.78 0.095 200);
+    --lumen:      oklch(0.80 0.135 58);
+    --line-deep:  oklch(0.55 0.03 225 / 0.28);
+    --col: 68ch;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --r: 16px;
+    --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+    --font-body: "Literata", Georgia, "Times New Roman", serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--foam);
+    font-family: var(--font-body); font-size: 1.0625rem; line-height: 1.65;
+    background-color: oklch(0.16 0.032 244);
+    background-image: linear-gradient(180deg, oklch(0.225 0.034 240) 0%, oklch(0.15 0.032 244) 100%);
+    background-attachment: fixed; background-repeat: no-repeat;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--tide); text-decoration: none; }
+  a:hover { color: var(--foam); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+  h1, h2, .display { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; color: var(--foam); }
+
+  .back { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); padding: 20px 0 0; }
+  .back:hover { color: var(--tide); }
+
+  header.plugin-hero { padding: 24px 0 clamp(28px, 5vw, 44px); border-bottom: 1px solid var(--line-deep); }
+  h1.plugin-name { font-size: clamp(2.2rem, 6vw, 3.2rem); line-height: 1; margin: 14px 0 10px; }
+  p.tagline { font-family: var(--font-body); font-size: 1.15rem; color: var(--foam-soft); max-width: var(--col); margin: 0; }
+
+  section { padding: clamp(28px, 5vw, 40px) 0; border-bottom: 1px solid var(--line-deep); }
+  section:last-of-type { border-bottom: none; }
+  section h2 { font-size: 1.35rem; margin: 0 0 14px; }
+  section p { margin: 0 0 12px; max-width: var(--col); color: var(--foam); }
+  section p:last-child { margin-bottom: 0; }
+
+  .skill-list { display: flex; flex-direction: column; gap: 16px; padding: 0; margin: 0; list-style: none; }
+  .skill-list li { border: 1px solid var(--line-deep); border-radius: 12px; padding: 14px 16px; }
+  .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
+  .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
+
+  .copyfield {
+    display: flex; align-items: center; gap: 12px; max-width: var(--col);
+    padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
+    background: oklch(0.5 0.03 230 / 0.08);
+    transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
+  }
+  .copyfield:hover { border-color: var(--tide); background: oklch(0.6 0.06 205 / 0.10); }
+  .cf-code { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; overflow-x: auto; min-width: 0; flex: 1; }
+  .cf-code .prompt { color: var(--tide); user-select: none; }
+  .copy-btn {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 6px 11px; border-radius: 8px; border: 1px solid var(--line-deep);
+    background: transparent; color: var(--foam-soft); cursor: pointer;
+    font-family: var(--font-mono); font-size: 0.82rem; font-weight: 500;
+    transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
+  }
+  .copy-btn:hover { color: var(--foam); border-color: var(--tide); }
+  .copy-btn svg { width: 14px; height: 14px; }
+  .copy-btn .ic-check, .copy-btn .ic-fail { display: none; }
+  .copy-btn.copied { color: var(--lumen); border-color: var(--lumen); }
+  .copy-btn.copied .ic-copy { display: none; } .copy-btn.copied .ic-check { display: inline; }
+  .copy-btn.failed { color: #ff8c7a; border-color: #ff8c7a; }
+  .copy-btn.failed .ic-copy { display: none; } .copy-btn.failed .ic-fail { display: inline; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  footer { padding: 30px 0 40px; color: var(--foam-soft); font-size: 0.82rem; }
+  .foot-links { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--font-display); }
+  :focus-visible { outline: 2px solid var(--lumen); outline-offset: 3px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div id="copy-live" class="visually-hidden" aria-live="polite" role="status"></div>
+<div class="wrap">
+  <a class="back" href="../index.html#plugins">&larr; all plugins</a>
+
+  <header class="plugin-hero">
+    <h1 class="plugin-name">dep-review</h1>
+    <p class="tagline">Evaluate Dependabot PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts grounded in the diff, changelog, and codebase usage.</p>
+  </header>
+
+  <section id="install">
+    <h2>Install</h2>
+    <div class="copyfield">
+      <code class="cf-code"><span class="prompt">/</span>plugin install dep-review@nautilai</code>
+      <button class="copy-btn" type="button" data-copy="/plugin install dep-review@nautilai" aria-label="Copy install command">
+        <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="cf-label" aria-hidden="true">Copy</span>
+      </button>
+    </div>
+  </section>
+
+  <section id="what">
+    <h2>What it does</h2>
+    <p>Lists open Dependabot PRs, classifies each bump (patch/minor/major), checks CI status, extracts changes from the changelog, and verifies each against your code (cited <code>file:line</code>). Evaluates security (CVE and whether the vulnerable path is used) and EOL status. Applies a decision matrix to land AUTO-MERGE / MERGE / SKIP / INVESTIGATE, handles cross-PR concerns like react/react-dom parity, and produces a report. Low-risk patch and minor-dev-dep bumps with passing CI auto-merge; other actions gate behind approval.</p>
+  </section>
+
+  <section id="commands">
+    <h2>Commands / skills</h2>
+    <ul class="skill-list">
+      <li><div class="sk-name">/dep-review</div><p>Batch evaluate all open Dependabot PRs.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/dep-review &lt;PR#&gt;</div><p>Evaluate a single Dependabot PR by number, e.g. <code>/dep-review 596</code>.</p><div class="sk-triggers">explicit slash form only</div></li>
+    </ul>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p>The skill discovers open Dependabot PRs via GitHub MCP (preferred) or <code>gh</code> CLI, parsing package, versions, and ecosystem from branch prefix. For each PR, it classifies the bump type, checks CI status, extracts the specific changes from the changelog, and verifies each against your code (cited <code>file:line</code>). It evaluates security (CVE + whether the vulnerable path is used) and EOL status.</p>
+    <p>A decision matrix applies the verdict: AUTO-MERGE for low-risk patch and minor-dev-dep bumps with passing CI; MERGE, SKIP, or INVESTIGATE for everything else. The skill reports findings grounded in diff and changelog; when metadata is unreachable it degrades loudly rather than guessing.</p>
+    <p>Shoals: records corrections in <code>.claude/shoals/dep-review.dep-review.md</code> for the next run, learning what to always skip or adjust verdict-wise on specific packages.</p>
+  </section>
+
+  <section id="requirements">
+    <h2>Requirements</h2>
+    <p>Authenticated GitHub client: <code>mcp__github__*</code> MCP server (preferred) or <code>gh</code> CLI. Optional: <code>npm</code> or <code>pip-audit</code> for enhanced registry metadata (falls back to HTTP APIs if absent).</p>
+  </section>
+
+  <footer>
+    <nav class="foot-links">
+      <a href="https://github.com/starfysh-tech/nautilai/tree/main/dep-review" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      <a href="../index.html#plugins">&larr; all plugins</a>
+    </nav>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    function legacyCopy(text) {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed'; ta.style.top = '-9999px';
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch (e) { return false; }
+    }
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return legacyCopy(text); });
+      }
+      return Promise.resolve(legacyCopy(text));
+    }
+    var live = document.getElementById('copy-live');
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.copy-btn');
+      if (!btn) return;
+      var text = btn.getAttribute('data-copy') || '';
+      var label = btn.querySelector('.cf-label');
+      copyText(text).then(function (ok) {
+        clearTimeout(btn._resetT);
+        btn.classList.remove('copied', 'failed');
+        if (ok) {
+          btn.classList.add('copied');
+          if (label) label.textContent = 'Copied';
+          if (live) live.textContent = 'Copied ' + text;
+        } else {
+          btn.classList.add('failed');
+          if (label) label.textContent = 'Press ⌘C';
+          if (live) live.textContent = 'Copy failed — select the command and press Command-C.';
+        }
+        btn._resetT = setTimeout(function () {
+          btn.classList.remove('copied', 'failed');
+          if (label) label.textContent = 'Copy';
+        }, 2000);
+      });
+    });
+  })();
+</script>
+</body>
+</html>
