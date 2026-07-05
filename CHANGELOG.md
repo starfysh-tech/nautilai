@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.11.0](https://github.com/starfysh-tech/nautilai/compare/v2.10.0...v2.11.0) (2026-07-05)
+
+
+### Features
+
+* **relay:** recover compaction losses via /handoff recover ([54f1bd5](https://github.com/starfysh-tech/nautilai/commit/54f1bd5f0976363c5be51675ef151624b07b2a72))
+* **relay:** recover compaction losses via /handoff recover ([de74ac8](https://github.com/starfysh-tech/nautilai/commit/de74ac896138d5f89675542e061d1149339059a7))
+
+
+### Bug Fixes
+
+* **relay:** handle compaction boundary on transcript line 1 ([612bb9a](https://github.com/starfysh-tech/nautilai/commit/612bb9a115c9556698893fe8eff1bafd096d6736))
+
 ## [2.10.0](https://github.com/starfysh-tech/nautilai/compare/v2.9.3...v2.10.0) (2026-07-05)
 
 
