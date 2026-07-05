@@ -134,49 +134,45 @@ scrub() {
 
   echo "## User messages (verbatim)"
   echo
-  msgs_json=$(jq -c '
-    select(.type=="user")
-    # Structural exclusions: isMeta flags harness-injected content (skill
-    # prompts etc.); isCompactSummary flags compaction continuations the user
-    # never typed. The string prefixes below cover injections that carry no
-    # structural marker in real transcripts.
-    | select(.isMeta != true)
-    | select(.isCompactSummary != true)
-    | .message.content as $c
-    | (
-        if ($c|type)=="string" then $c
-        elif ($c|type)=="object" then $c.text // null
-        elif ($c|type)=="array" then
-          ($c | map(select(.type=="text")) | .[0].text // null)
-        else null
-        end
-      ) as $text
-    | select($text != null)
-    | select(
-        ($text | startswith("<command-") | not)
-        and ($text | startswith("<local-command") | not)
-        and ($text | startswith("<system-reminder") | not)
-        and ($text | startswith("Base directory for this skill") | not)
-        and ($text | startswith("Another Claude session sent a message:") | not)
-      )
-    | $text
+  # Numbering and the 1500-char cap happen inside this single jq pass — a
+  # per-message decode loop would spawn one jq process per message, which
+  # dominated runtime on large transcripts. Slurp keeps multi-line messages
+  # as one numbered entry with newlines preserved.
+  msgs_out=$(jq -rs '
+    [ .[] | select(.type=="user")
+      # Structural exclusions: isMeta flags harness-injected content (skill
+      # prompts etc.); isCompactSummary flags compaction continuations the
+      # user never typed. The string prefixes below cover injections that
+      # carry no structural marker in real transcripts.
+      | select(.isMeta != true)
+      | select(.isCompactSummary != true)
+      | .message.content as $c
+      | (
+          if ($c|type)=="string" then $c
+          elif ($c|type)=="object" then $c.text // null
+          elif ($c|type)=="array" then
+            ($c | map(select(.type=="text")) | .[0].text // null)
+          else null
+          end
+        ) as $text
+      | select($text != null)
+      | select(
+          ($text | startswith("<command-") | not)
+          and ($text | startswith("<local-command") | not)
+          and ($text | startswith("<system-reminder") | not)
+          and ($text | startswith("Base directory for this skill") | not)
+          and ($text | startswith("Another Claude session sent a message:") | not)
+        )
+      | $text ]
+    | to_entries
+    | map(((.key + 1)|tostring) + ". "
+        + (if (.value|length) > 1500 then .value[0:1500] + "… [truncated]" else .value end))
+    | join("\n\n")
   ' "$clean")
-  if [ -z "$msgs_json" ]; then
+  if [ -z "$msgs_out" ]; then
     echo "_none_"
   else
-    # Iterate the JSON-encoded lines (one per message) and decode per message,
-    # so a message containing newlines stays a single numbered entry and the
-    # 1500-char cap applies to the whole message, not each line of it.
-    n=0
-    while IFS= read -r jmsg; do
-      [ -n "$jmsg" ] || continue
-      n=$((n + 1))
-      msg=$(printf '%s' "$jmsg" | jq -r '.')
-      if [ "${#msg}" -gt 1500 ]; then
-        msg="${msg:0:1500}… [truncated]"
-      fi
-      printf '%s. %s\n\n' "$n" "$msg"
-    done <<< "$msgs_json"
+    printf '%s\n' "$msgs_out"
   fi
   echo
 

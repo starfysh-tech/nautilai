@@ -243,8 +243,10 @@ assert_true "resolve: \$CLAUDE_SESSION_ID resolves exact transcript" "$rs_env2_o
 (
     cd "$RS_CWD" || exit 1
     slug=$(printf '%s' "$PWD" | tr '/.' '-')
-    sleep 1.1
     printf '{}\n' > "$RS_HOME/.claude/projects/$slug/newest.jsonl"
+    # Explicit future mtime instead of sleeping past a 1s resolution boundary
+    # (same touch -t pattern as the stale-marker case below).
+    touch -t 203701020304 "$RS_HOME/.claude/projects/$slug/newest.jsonl"
     HOME="$RS_HOME" env -u CLAUDE_CODE_SESSION_ID -u CLAUDE_SESSION_ID bash "$SCRIPTS_DIR/resolve-session.sh"
 ) > "$RS_TMP/out3.txt" 2>"$RS_TMP/err3.txt"
 rs_mtime_out="$(cat "$RS_TMP/out3.txt")"
