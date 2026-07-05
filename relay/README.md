@@ -56,11 +56,24 @@ the explicit slash form.
    injects the doc if it's still within its TTL, and renames the marker
    (`consumed-*`) so it only fires once — even with concurrent session starts.
 
+### Recovery
+
+Auto-compact loses the same kinds of things `/compact` does — early
+constraints, dead ends, and the reasoning behind decisions made many turns
+back — without you asking for a handoff. When Claude Code auto-compacts, a
+`PreCompact` hook drops a `compacted-<epoch>` marker in the project's handoff
+directory and emits a systemMessage nudging you to run `/handoff recover`.
+That subcommand re-extracts the fact pack scoped to the transcript region
+*before* the compaction boundary and rebuilds the compaction-lossy classes
+in-session — no new handoff doc, no `/clear` required.
+
 ## Storage layout
 
 ```text
 ~/.claude/handoffs/<project-slug>/
 ├── pending              # absolute path to the doc awaiting pickup
+├── compacted-<epoch>    # marker: an auto-compact happened, recovery not yet run
+├── recovered-<epoch>    # marker: /handoff recover has already run for that compaction
 └── <YYYYMMDD-HHMMSS>.md # the handoff doc(s)
 ```
 
@@ -79,9 +92,9 @@ remove its hook registration — the skill itself still writes the doc and the
 
 ## Roadmap
 
-Not yet shipped: a Haiku-driven narrative layer to smooth the fact pack into
-prose, and a `/handoff recover` subcommand to manually re-inject a specific
-past doc outside the automatic TTL window.
+`/handoff recover` is shipped (see Recovery, above). Not yet shipped: a
+Haiku-driven narrative layer to smooth the fact pack into prose, gated on a
+semantic recall eval.
 
 ## License
 
