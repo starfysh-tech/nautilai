@@ -159,7 +159,7 @@
       } catch (e) { return false; }
     }
     function copyText(text) {
-      if (navigator.clipboard && navigator.clipboard.writeWith) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
         return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return legacyCopy(text); });
       }
       return Promise.resolve(legacyCopy(text));
