@@ -34,3 +34,18 @@ jobs:
             claude plugin validate "./$plugin_dir" --strict
             echo "::endgroup::"
           done
+
+      # Bundled-script suites are offline and self-contained (commitcraft stubs
+      # gh, relay stubs claude via a PATH shim) — no network, no real CLI calls.
+      # Running them in this job keeps them behind the same required status
+      # check, and ubuntu doubles as the Linux-portability check for scripts
+      # developed on macOS/BSD. Separate steps so a failure attributes to its
+      # plugin. jq is preinstalled on ubuntu runners.
+      - name: relay script tests
+        run: bash relay/tests/scripts.test.sh
+
+      - name: autodev script tests
+        run: bash autodev/tests/scripts.test.sh
+
+      - name: commitcraft script tests
+        run: bash commitcraft/tests/detect-rp.test.sh
