@@ -232,6 +232,21 @@ noboundary_unflagged_msgcount=$(printf '%s' "$NOBOUNDARY_UNFLAGGED_OUT" | grep -
 assert "before-last-compact: no-boundary message count matches unflagged" "$noboundary_unflagged_msgcount" "$noboundary_flagged_msgcount"
 rm -f "$NOBOUNDARY_ERR"
 
+# Boundary on line 1: BSD head rejects -n 0, so this exercises the direct-
+# truncate branch — everything is post-boundary, all sections empty, exit 0.
+BOUNDARY1_TMP=$(mktemp -d)
+cat > "$BOUNDARY1_TMP/boundary-first.jsonl" <<'B1EOF'
+{"type": "user", "isCompactSummary": true, "message": {"content": "compact continuation as very first line"}}
+{"type": "user", "message": {"content": "Post-boundary only message"}}
+B1EOF
+BOUNDARY1_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" --before-last-compact "$BOUNDARY1_TMP/boundary-first.jsonl" 2>/dev/null)"
+boundary1_exit=$?
+assert "before-last-compact: boundary on line 1 exits 0" "0" "$boundary1_exit"
+assert_not_contains "before-last-compact: boundary on line 1 drops post-boundary message" "$BOUNDARY1_OUT" "Post-boundary only message"
+assert_contains "before-last-compact: boundary on line 1 still prints Provenance" "$BOUNDARY1_OUT" "## Provenance"
+assert_contains "before-last-compact: boundary on line 1 reports scope: pre-compaction" "$BOUNDARY1_OUT" "- scope: pre-compaction"
+rm -rf "$BOUNDARY1_TMP"
+
 # =============================================================================
 # precompact-notify.sh tests
 # =============================================================================

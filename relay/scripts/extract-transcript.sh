@@ -48,8 +48,16 @@ if [ "$before_last_compact" -eq 1 ]; then
   boundary_line=$(grep -n '"isCompactSummary":true' "$clean" | tail -n 1 | cut -d: -f1 || true)
   if [ -n "$boundary_line" ]; then
     trimmed=$(mktemp)
-    head -n "$((boundary_line - 1))" "$clean" > "$trimmed"
+    # Cover $trimmed in the trap for the window before mv; BSD head rejects
+    # -n 0, so a boundary on line 1 truncates directly instead.
+    trap 'rm -f "$clean" "$trimmed"' EXIT
+    if [ "$boundary_line" -eq 1 ]; then
+      : > "$trimmed"
+    else
+      head -n "$((boundary_line - 1))" "$clean" > "$trimmed"
+    fi
     mv "$trimmed" "$clean"
+    trap 'rm -f "$clean"' EXIT
     scope="pre-compaction"
   else
     echo "extract-transcript.sh: no compaction boundary found; using full transcript" >&2
