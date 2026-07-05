@@ -42,18 +42,24 @@ marker="${marker_dir}/pending"
 
 epoch=$(date +%s)
 
-# Expire stale pending markers (>30 min old) rather than inject a doc from a
-# session that's long gone.
-if [ -n "$(find "$marker" -mmin +30 2>/dev/null)" ]; then
-  mv -f "$marker" "${marker_dir}/expired-${epoch}"
+# Atomically claim the marker before reading it: mv is atomic, so of two
+# concurrent session starts only one wins the rename and injects — the loser
+# exits quietly instead of double-injecting the same doc.
+claimed="${marker_dir}/claimed-${epoch}-$$"
+mv "$marker" "$claimed" 2>/dev/null || exit 0
+
+# Expire stale markers (>30 min old) rather than inject a doc from a session
+# that's long gone. stat flags differ between BSD and GNU; try both, and skip
+# the check entirely (fail-open) if neither works.
+mtime=$(stat -f '%m' "$claimed" 2>/dev/null || stat -c '%Y' "$claimed" 2>/dev/null || echo 0)
+if [ "$mtime" -gt 0 ] && [ $((epoch - mtime)) -gt 1800 ]; then
+  mv -f "$claimed" "${marker_dir}/expired-${epoch}"
   exit 0
 fi
 
-doc_path=$(cat "$marker")
-[ -n "$doc_path" ] || exit 0
-
-if [ ! -f "$doc_path" ]; then
-  mv -f "$marker" "${marker_dir}/broken-${epoch}"
+doc_path=$(cat "$claimed")
+if [ -z "$doc_path" ] || [ ! -f "$doc_path" ]; then
+  mv -f "$claimed" "${marker_dir}/broken-${epoch}"
   exit 0
 fi
 
@@ -66,9 +72,9 @@ prefix='A handoff document from the previous session was found and is included b
 context=$(jq -n --arg prefix "$prefix" --arg doc "$doc_contents" '$prefix + $doc')
 output=$(jq -n --argjson ctx "$context" '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $ctx}}')
 
-# Consume-once: rename the marker so a second session start in the same
-# window doesn't re-inject the same doc.
-mv -f "$marker" "${marker_dir}/consumed-${epoch}"
+# Consume-once: the claimed marker becomes consumed only after the payload
+# is built, so a failure above leaves a claimed-* file as the audit trail.
+mv -f "$claimed" "${marker_dir}/consumed-${epoch}"
 
 printf '%s\n' "$output"
 emitted=1

@@ -71,11 +71,11 @@ scrub() {
       })
     | sort_by(-.total)
   ')
-  file_count=$(echo "$files_json" | jq 'length')
+  file_count=$(printf '%s\n' "$files_json" | jq 'length')
   if [ "$file_count" -eq 0 ]; then
     echo "_none_"
   else
-    echo "$files_json" | jq -r '.[] |
+    printf '%s\n' "$files_json" | jq -r '.[] |
       "- " + .path + " (" +
       ([
         (if .edits > 0 then "edits: " + (.edits|tostring) else empty end),
@@ -99,14 +99,11 @@ scrub() {
     jq -r '
       select(.type=="assistant") | .message.content[]?
       | select(.type=="tool_use" and .name=="Bash")
-      | [(.input.description // ""), ((.input.command // "") | split("\n")[0])] | @tsv
-    ' "$clean" | tail -n 50 | while IFS=$'\t' read -r desc cmd; do
-      line="${desc}: ${cmd}"
-      if [ "${#line}" -gt 120 ]; then
-        line="${line:0:120}"
-      fi
-      echo "- ${line}"
-    done
+      | (if (.input.description // "") != "" then .input.description + ": " else "" end)
+        + ((.input.command // "") | split("\n")[0])
+      | if length > 120 then .[0:120] else . end
+      | "- " + .
+    ' "$clean" | tail -n 50
   fi
   echo
 
@@ -116,6 +113,7 @@ scrub() {
     select(.type=="user") | .message.content[]?
     | select(.type=="tool_result" and .is_error==true)
     | (if (.content|type)=="string" then .content
+       elif (.content|type)=="object" then .content.text // ""
        else (.content // [] | map(.text // "") | join("\n"))
        end)
   ' "$clean")
@@ -123,8 +121,8 @@ scrub() {
     echo "_none_"
   else
     # Truncate first, then flatten newlines so each failure stays one bullet.
-    echo "$fail_json" | jq -r '. as $s | (($s[0:200]) + (if ($s|length) > 200 then "…" else "" end)) | gsub("\n"; " ")' | while IFS= read -r errline; do
-      echo "- ${errline}"
+    printf '%s\n' "$fail_json" | jq -r '. as $s | (($s[0:200]) + (if ($s|length) > 200 then "…" else "" end)) | gsub("\n"; " ")' | while IFS= read -r errline; do
+      printf -- '- %s\n' "${errline}"
     done
   fi
   echo
@@ -136,6 +134,7 @@ scrub() {
     | .message.content as $c
     | (
         if ($c|type)=="string" then $c
+        elif ($c|type)=="object" then $c.text // null
         elif ($c|type)=="array" then
           ($c | map(select(.type=="text")) | .[0].text // null)
         else null
