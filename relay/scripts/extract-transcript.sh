@@ -13,8 +13,14 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 1
 fi
 
+before_last_compact=0
+if [ "${1:-}" = "--before-last-compact" ]; then
+  before_last_compact=1
+  shift
+fi
+
 if [ $# -lt 1 ]; then
-  echo "usage: extract-transcript.sh <transcript.jsonl>" >&2
+  echo "usage: extract-transcript.sh [--before-last-compact] <transcript.jsonl>" >&2
   exit 1
 fi
 
@@ -30,6 +36,33 @@ fi
 clean=$(mktemp)
 trap 'rm -f "$clean"' EXIT
 jq -cR 'fromjson? | select(type=="object")' "$transcript" > "$clean"
+
+# --before-last-compact restricts extraction to the transcript as it was
+# before the most recent auto-compaction, so recovery pulls only the detail
+# that compaction actually summarized away rather than re-deriving context
+# the current session already has.
+scope="full"
+if [ "$before_last_compact" -eq 1 ]; then
+  # grep exits 1 on no match; under pipefail that would kill the script via
+  # set -e, so || true treats "no compaction line found" as a normal outcome.
+  boundary_line=$(grep -n '"isCompactSummary":true' "$clean" | tail -n 1 | cut -d: -f1 || true)
+  if [ -n "$boundary_line" ]; then
+    trimmed=$(mktemp)
+    # Cover $trimmed in the trap for the window before mv; BSD head rejects
+    # -n 0, so a boundary on line 1 truncates directly instead.
+    trap 'rm -f "$clean" "$trimmed"' EXIT
+    if [ "$boundary_line" -eq 1 ]; then
+      : > "$trimmed"
+    else
+      head -n "$((boundary_line - 1))" "$clean" > "$trimmed"
+    fi
+    mv "$trimmed" "$clean"
+    trap 'rm -f "$clean"' EXIT
+    scope="pre-compaction"
+  else
+    echo "extract-transcript.sh: no compaction boundary found; using full transcript" >&2
+  fi
+fi
 
 # Redacts secrets that may have been echoed into tool output or pasted by the
 # user (API keys, tokens, private key blocks) before anything reaches stdout.
@@ -183,5 +216,11 @@ scrub() {
   echo "- transcript: ${transcript}"
   echo "- size: ${size_bytes} bytes"
   echo "- lines: ${line_count}"
+  # Only surface scope when --before-last-compact was requested: the default
+  # (no flag) provenance section must stay byte-identical to preserve the
+  # existing test suite's exact-output assertions.
+  if [ "$before_last_compact" -eq 1 ]; then
+    echo "- scope: ${scope}"
+  fi
   echo "- extractor: ${EXTRACTOR_VERSION}"
 } | scrub

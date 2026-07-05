@@ -1,0 +1,4 @@
+{"type":"user","message":{"content":"Pre-boundary message: implement retry logic"}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"description":"Run build","command":"npm run build"}}]}}
+{"type":"user","isCompactSummary":true,"message":{"content":"Compacted summary of prior session"}}
+{"type":"user","message":{"content":"Post-boundary message: fix the retry logic bug"}}

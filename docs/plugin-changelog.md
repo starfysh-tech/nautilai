@@ -14,6 +14,19 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-05
+
+- **relay makes auto-compact non-fatal with `/handoff recover`**
+  ([`relay`](../relay#readme)). The plugin's premise is that compaction drops
+  decisions, dead ends, and early constraints — but racing auto-compact is a
+  losing game (a PreCompact hook can only observe or block, and blocking near
+  the context ceiling risks wedging the session). So instead of preventing the
+  loss, relay now repairs it: a PreCompact(auto) hook drops a marker and nudges
+  the user, and `/handoff recover` rebuilds exactly the compaction-lossy
+  classes from the pre-compaction region of the transcript
+  (`--before-last-compact` scopes the extractor to before the last
+  `isCompactSummary` boundary), delivered in-session with no `/clear`.
+
 ## 2026-07-04
 
 - **`handoff` becomes `relay`: transcript-grounded handoffs with automatic

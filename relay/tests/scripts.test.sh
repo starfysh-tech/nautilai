@@ -200,6 +200,107 @@ assert_contains "extract: malformed fixture still prints Provenance" "$malformed
 assert_not_contains "extract: malformed fixture emits no parse error on stderr" "$malformed_err" "parse error"
 
 # =============================================================================
+# extract-transcript.sh --before-last-compact tests
+# =============================================================================
+
+echo ""
+echo "=== extract-transcript.sh --before-last-compact tests ==="
+
+# compact-boundary.jsonl: one user message before an isCompactSummary:true
+# line, one after. NOTE: main.jsonl already ends with its own
+# isCompactSummary:true line (used elsewhere to test structural exclusion
+# from "User messages"), so it is NOT a valid "no boundary" fixture for
+# --before-last-compact — that flag would find main.jsonl's line 28 as the
+# boundary and silently trim to it. malformed.jsonl carries no
+# isCompactSummary line at all, so it's used as the genuine no-boundary case
+# instead.
+FLAGGED_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" --before-last-compact "$FIXTURES_DIR/compact-boundary.jsonl" 2>/dev/null)"
+UNFLAGGED_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" "$FIXTURES_DIR/compact-boundary.jsonl" 2>/dev/null)"
+
+assert_contains "before-last-compact: pre-boundary message present"  "$FLAGGED_OUT" "Pre-boundary message: implement retry logic"
+assert_not_contains "before-last-compact: post-boundary message absent" "$FLAGGED_OUT" "Post-boundary message: fix the retry logic bug"
+assert_contains "before-last-compact: provenance scope is pre-compaction" "$FLAGGED_OUT" "- scope: pre-compaction"
+assert_not_contains "unflagged run on same fixture: no scope line in provenance" "$UNFLAGGED_OUT" "- scope:"
+
+NOBOUNDARY_ERR="$(mktemp)"
+NOBOUNDARY_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" --before-last-compact "$FIXTURES_DIR/malformed.jsonl" 2>"$NOBOUNDARY_ERR")"
+NOBOUNDARY_UNFLAGGED_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" "$FIXTURES_DIR/malformed.jsonl" 2>/dev/null)"
+assert_contains "before-last-compact: no-boundary fixture warns on stderr" "$(cat "$NOBOUNDARY_ERR")" "no compaction boundary"
+assert_contains "before-last-compact: no-boundary fixture reports scope: full" "$NOBOUNDARY_OUT" "- scope: full"
+noboundary_flagged_msgcount=$(printf '%s' "$NOBOUNDARY_OUT" | grep -c '^[0-9]*\. ')
+noboundary_unflagged_msgcount=$(printf '%s' "$NOBOUNDARY_UNFLAGGED_OUT" | grep -c '^[0-9]*\. ')
+assert "before-last-compact: no-boundary message count matches unflagged" "$noboundary_unflagged_msgcount" "$noboundary_flagged_msgcount"
+rm -f "$NOBOUNDARY_ERR"
+
+# Boundary on line 1: BSD head rejects -n 0, so this exercises the direct-
+# truncate branch — everything is post-boundary, all sections empty, exit 0.
+BOUNDARY1_TMP=$(mktemp -d)
+cat > "$BOUNDARY1_TMP/boundary-first.jsonl" <<'B1EOF'
+{"type": "user", "isCompactSummary": true, "message": {"content": "compact continuation as very first line"}}
+{"type": "user", "message": {"content": "Post-boundary only message"}}
+B1EOF
+BOUNDARY1_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" --before-last-compact "$BOUNDARY1_TMP/boundary-first.jsonl" 2>/dev/null)"
+boundary1_exit=$?
+assert "before-last-compact: boundary on line 1 exits 0" "0" "$boundary1_exit"
+assert_not_contains "before-last-compact: boundary on line 1 drops post-boundary message" "$BOUNDARY1_OUT" "Post-boundary only message"
+assert_contains "before-last-compact: boundary on line 1 still prints Provenance" "$BOUNDARY1_OUT" "## Provenance"
+assert_contains "before-last-compact: boundary on line 1 reports scope: pre-compaction" "$BOUNDARY1_OUT" "- scope: pre-compaction"
+rm -rf "$BOUNDARY1_TMP"
+
+# =============================================================================
+# precompact-notify.sh tests
+# =============================================================================
+
+echo ""
+echo "=== precompact-notify.sh tests ==="
+
+PRECOMPACT="$SCRIPTS_DIR/precompact-notify.sh"
+
+# 1. trigger=auto -> valid JSON with systemMessage, exit 0, marker file
+# written under sandbox HOME containing the exact transcript_path.
+PC_HOME1="$(mktemp -d)"
+PC_TRANSCRIPT="/proj/precompact1/transcript.jsonl"
+pc_out1=$(HOME="$PC_HOME1" bash "$PRECOMPACT" <<< '{"trigger":"auto","cwd":"/proj/precompact1","transcript_path":"'"$PC_TRANSCRIPT"'"}')
+pc_exit1=$?
+assert_true "precompact: auto trigger emits valid JSON" "$(printf '%s' "$pc_out1" | jq empty >/dev/null 2>&1; echo $?)"
+assert_contains "precompact: auto trigger output has systemMessage key" "$pc_out1" "systemMessage"
+assert "precompact: auto trigger never exits 2 (would block compaction)" "0" "$pc_exit1"
+pc_slug1=$(printf '%s' "/proj/precompact1" | tr '/.' '-')
+pc_marker1=$(find "$PC_HOME1/.claude/handoffs/$pc_slug1" -name 'compacted-*' 2>/dev/null)
+assert_true "precompact: auto trigger writes a compacted-* marker" "$([ -n "$pc_marker1" ]; echo $?)"
+pc_marker1_content=$(cat "$pc_marker1" 2>/dev/null)
+assert "precompact: marker content is the exact transcript_path" "$PC_TRANSCRIPT" "$pc_marker1_content"
+rm -rf "$PC_HOME1"
+
+# 2. trigger=manual -> {} exit 0, no marker written
+PC_HOME2="$(mktemp -d)"
+pc_out2=$(HOME="$PC_HOME2" bash "$PRECOMPACT" <<< '{"trigger":"manual","cwd":"/proj/precompact1","transcript_path":"'"$PC_TRANSCRIPT"'"}')
+pc_exit2=$?
+assert "precompact: manual trigger yields {}" "{}" "$pc_out2"
+assert "precompact: manual trigger exits 0" "0" "$pc_exit2"
+pc_slug2=$(printf '%s' "/proj/precompact1" | tr '/.' '-')
+pc_marker2=$(find "$PC_HOME2/.claude/handoffs/$pc_slug2" -name 'compacted-*' 2>/dev/null)
+assert_true "precompact: manual trigger writes no marker" "$([ -z "$pc_marker2" ]; echo $?)"
+rm -rf "$PC_HOME2"
+
+# 3. malformed stdin -> {} exit 0 (fail-open via EXIT trap after jq errors
+# under set -e)
+PC_HOME3="$(mktemp -d)"
+pc_out3=$(HOME="$PC_HOME3" bash "$PRECOMPACT" 2>/dev/null <<< 'not json at all {{{')
+pc_exit3=$?
+assert "precompact: malformed stdin yields {}" "{}" "$pc_out3"
+assert "precompact: malformed stdin exits 0" "0" "$pc_exit3"
+rm -rf "$PC_HOME3"
+
+# 4. missing cwd (trigger=auto but no cwd key) -> {} exit 0
+PC_HOME4="$(mktemp -d)"
+pc_out4=$(HOME="$PC_HOME4" bash "$PRECOMPACT" <<< '{"trigger":"auto","transcript_path":"'"$PC_TRANSCRIPT"'"}')
+pc_exit4=$?
+assert "precompact: missing cwd yields {}" "{}" "$pc_out4"
+assert "precompact: missing cwd exits 0" "0" "$pc_exit4"
+rm -rf "$PC_HOME4"
+
+# =============================================================================
 # resolve-session.sh tests
 # =============================================================================
 

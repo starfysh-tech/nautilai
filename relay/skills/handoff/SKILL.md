@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Write a transcript-grounded handoff document so a fresh session can pick up the work automatically. Use when the user runs /handoff, says 'hand this off', 'pass to next session', 'relay this', 'compact for the next agent', or 'I'm switching context'. References existing artifacts by path rather than restating them.
+description: Write a transcript-grounded handoff document so a fresh session can pick up the work automatically. Use when the user runs /handoff, says 'hand this off', 'pass to next session', 'relay this', 'compact for the next agent', or 'I'm switching context'. Also use for /handoff recover after auto-compact, 'recover what compaction dropped', or 'rebuild lost context'. References existing artifacts by path rather than restating them.
 argument-hint: 'What will the next session be used for?'
 ---
 
@@ -73,6 +73,28 @@ any existing marker. The `SessionStart` hook reads this file once, within a
 Print the absolute doc path, and tell them that running `/clear` will start a
 fresh session that picks the handoff up automatically (30-minute TTL, consumed
 once) — no need to paste or re-open it manually.
+
+## Recover mode (`/handoff recover`)
+
+Use this after an auto-compact — the `PreCompact` hook posts a systemMessage
+suggesting it — or whenever the session feels like it lost earlier context,
+even without that prompt.
+
+1. Resolve the transcript: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-session.sh`
+2. Extract the pre-compaction region:
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/extract-transcript.sh --before-last-compact <transcript>`
+3. Assemble a **recovery delta** directly in your reply — no file, no `/clear`,
+   no marker. Include only the classes compaction actually drops: verbatim
+   user intents, decisions and their reasoning, dead ends / abandoned
+   approaches, and early constraints. Explicitly skip what compaction
+   preserves well — current state, todos, recent files — there's no value in
+   re-deriving those. Cap the delta to what's genuinely load-bearing; cite the
+   fact pack rather than dumping it.
+4. Where the fact pack contradicts your post-compaction memory, the fact pack
+   wins.
+5. If a `compacted-<epoch>` marker exists in `~/.claude/handoffs/<slug>/`,
+   rename it to `recovered-<epoch>` (`mv`, not delete) now that recovery is
+   done.
 
 ## Notes
 
