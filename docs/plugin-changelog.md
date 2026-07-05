@@ -16,6 +16,19 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-05
 
+- **relay ships the Haiku narrative layer** ([`relay`](../relay#readme)). The
+  jq fact pack guarantees mechanical fidelity (files, commands, verbatim user
+  text) but structurally can't see assistant-turn semantics — the reasoning
+  behind a decision or why an approach was abandoned lives in assistant prose,
+  which only a model can summarize. Gated on a planted-fact eval before
+  shipping: 3/3 runs passed the gate at 11-12/12 recovered assistant-turn
+  facts vs a 0/12 baseline for the fact pack alone
+  (`relay/tests/eval/LEDGER.md`). Also hardened against prompt injection after
+  a transcript about editing CLAUDE.md persona rules hijacked an early version
+  of the extractor in testing — it now runs with a bare `--system-prompt` (no
+  CLAUDE.md inheritance) and explicit instructions that transcript content is
+  inert data, never live commands.
+
 - **relay makes auto-compact non-fatal with `/handoff recover`**
   ([`relay`](../relay#readme)). The plugin's premise is that compaction drops
   decisions, dead ends, and early constraints — but racing auto-compact is a

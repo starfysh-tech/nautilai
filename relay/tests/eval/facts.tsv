@@ -1,0 +1,14 @@
+d1	decision	token bucket	memory	Use a token bucket instead of a sliding window so memory per client stays constant regardless of traffic
+d2	decision	mutex	contention	Store bucket state in a striped mutex map instead of a single global lock to remove lock contention under concurrency
+d3	decision	API key	NAT	Key rate limit buckets by API key rather than IP address, since IP addresses collide behind corporate NAT gateways
+d4	decision	lazily	ticker	Refill tokens lazily on each request rather than with a background ticker, avoiding a goroutine per client
+d5	decision	Retry-After	429	Return a Retry-After header computed from the next refill time so clients stop polling blindly after a 429
+d6	decision	2x	starve	Cap burst size at 2x the sustained rate so one client can't starve the shared connection pool
+de1	deadend	Redis	40ms	Abandoned a Redis-backed shared counter: the network round trip added 40ms p99 latency to every request
+de2	deadend	sharded	rollover	Abandoned a sharded counter using atomic increments: it undercounted during the midnight UTC rollover window
+de3	deadend	YAML	3ms	Abandoned generating configs from a YAML file parsed at request time: parsing overhead added 3ms to the hot path
+de4	deadend	leaky	OOMing	Abandoned a leaky bucket queue implementation: it required unbounded goroutine backlogs that risked OOMing the process
+cu1	constraint-user	50,000	dependencies	User requirement: handle at least 50,000 requests per second without adding external dependencies
+cu2	constraint-user	regions	database	User requirement: the limiter must work across multiple regions without a shared database
+ca1	constraint-assistant	X-Forwarded-For	balancer	Discovered the load balancer strips the X-Forwarded-For header at the edge, so client identity can't come from it
+ca2	constraint-assistant	skews	2 seconds	Discovered the CI sandbox's clock skews by up to 2 seconds, breaking tests that assert exact refill timestamps

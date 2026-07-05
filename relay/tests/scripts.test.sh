@@ -541,6 +541,126 @@ assert "pickup: missing cwd key yields {}" "{}" "$out9"
 rm -rf "$SP_TMP"
 
 # =============================================================================
+# haiku-narrative.sh tests
+# =============================================================================
+
+echo ""
+echo "=== haiku-narrative.sh tests ==="
+
+HN_SCRIPT="$SCRIPTS_DIR/haiku-narrative.sh"
+HN_FIXTURE="$FIXTURES_DIR/haiku-narrative-dialogue.jsonl"
+
+# 1. claude absent from PATH -> degrade (exit 3), stderr says "degraded",
+# stdout empty. jq must still resolve, so build a sandbox bin with only jq
+# symlinked rather than stripping a directory from the real PATH (jq and
+# claude live in the same homebrew bin dir on this machine, so removing one
+# directory would remove both).
+HN_NOCLAUDE_BIN="$(mktemp -d)"
+ln -s "$(command -v jq)" "$HN_NOCLAUDE_BIN/jq"
+HN_BASH_BIN="$(command -v bash)"
+hn_out1=$(PATH="$HN_NOCLAUDE_BIN" "$HN_BASH_BIN" "$HN_SCRIPT" "$FIXTURES_DIR/empty.jsonl" 2>"$HN_NOCLAUDE_BIN/err")
+hn_exit1=$?
+hn_err1="$(cat "$HN_NOCLAUDE_BIN/err")"
+assert "haiku-narrative: claude absent exits 3 (degraded)" "3" "$hn_exit1"
+assert_contains "haiku-narrative: claude absent stderr says degraded" "$hn_err1" "degraded"
+assert "haiku-narrative: claude absent produces no stdout" "" "$hn_out1"
+rm -rf "$HN_NOCLAUDE_BIN"
+
+# 2. usage errors exit 1, not 3 (degrade is reserved for claude-specific
+# failures, not for a missing/nonexistent transcript arg).
+bash "$HN_SCRIPT" >/dev/null 2>/dev/null
+assert "haiku-narrative: no transcript arg exits 1 (usage)" "1" "$?"
+bash "$HN_SCRIPT" "$FIXTURES_DIR/does-not-exist.jsonl" >/dev/null 2>/dev/null
+assert "haiku-narrative: nonexistent transcript path exits 1" "1" "$?"
+
+# Fake `claude` shim: captures the piped dialogue to $FAKE_CLAUDE_CAPTURE and
+# emits canned output controlled by $FAKE_CLAUDE_MODE. Built inline into a
+# tmpdir (never touches the real claude binary), mirroring how commitcraft's
+# tests stub `gh` with a PATH-shadowing executable.
+HN_BIN="$(mktemp -d)"
+cat > "$HN_BIN/claude" <<'SHIM'
+#!/usr/bin/env bash
+if [ -n "${FAKE_CLAUDE_CAPTURE:-}" ]; then
+    cat > "$FAKE_CLAUDE_CAPTURE"
+else
+    cat > /dev/null
+fi
+case "${FAKE_CLAUDE_MODE:-ok}" in
+    slow)
+        sleep 5
+        echo "## Decisions" ;;
+    ok)
+        cat <<'EOF'
+## Decisions
+- Chose approach A because it is simpler
+
+## Dead ends
+- Tried approach B, abandoned due to complexity
+
+## Constraints
+- Must keep the API backward compatible
+EOF
+        ;;
+    empty)
+        : ;;
+    fail)
+        exit 1 ;;
+    secret)
+        printf '## Decisions\n- Rotated leaked key %s\n\n## Dead ends\n_none_\n\n## Constraints\n_none_\n' "${FAKE_SECRET_KEY:-}" ;;
+esac
+SHIM
+chmod +x "$HN_BIN/claude"
+HN_PATH="$HN_BIN:$PATH"
+
+# 3. valid three-heading output from claude -> exit 0, all three headings
+# present, and the dialogue actually piped to claude matches the prefilter:
+# USER:/ASSISTANT: turns present, tool_result/isMeta/isCompactSummary content
+# absent (see haiku-narrative-dialogue.jsonl fixture).
+HN_CAPTURE="$(mktemp)"
+hn_out3=$(PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_CAPTURE="$HN_CAPTURE" bash "$HN_SCRIPT" "$HN_FIXTURE" 2>/dev/null)
+hn_exit3=$?
+assert "haiku-narrative: valid output exits 0" "0" "$hn_exit3"
+assert_contains "haiku-narrative: valid output has Decisions heading" "$hn_out3" "## Decisions"
+assert_contains "haiku-narrative: valid output has Dead ends heading" "$hn_out3" "## Dead ends"
+assert_contains "haiku-narrative: valid output has Constraints heading" "$hn_out3" "## Constraints"
+hn_dialogue="$(cat "$HN_CAPTURE")"
+assert_contains "haiku-narrative: dialogue includes USER: turn" "$hn_dialogue" "USER: Please fix the login bug in the auth flow."
+assert_contains "haiku-narrative: dialogue includes ASSISTANT: turn" "$hn_dialogue" "ASSISTANT: I decided to use approach A because it is simpler."
+assert_not_contains "haiku-narrative: dialogue excludes tool_result content" "$hn_dialogue" "tool result payload should not appear"
+assert_not_contains "haiku-narrative: dialogue excludes isMeta content" "$hn_dialogue" "META text should not appear"
+assert_not_contains "haiku-narrative: dialogue excludes isCompactSummary content" "$hn_dialogue" "COMPACT text should not appear"
+rm -f "$HN_CAPTURE"
+
+# 4. claude emits empty output -> degrade (exit 3)
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=empty bash "$HN_SCRIPT" "$HN_FIXTURE" >/dev/null 2>/dev/null
+assert "haiku-narrative: empty claude output degrades (exit 3)" "3" "$?"
+
+# 5. claude exits nonzero -> degrade (exit 3)
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=fail bash "$HN_SCRIPT" "$HN_FIXTURE" >/dev/null 2>/dev/null
+assert "haiku-narrative: claude nonzero exit degrades (exit 3)" "3" "$?"
+
+# 6. secret scrub: a planted AKIA-style key in claude's own output must be
+# redacted before reaching stdout (assembled from fragments, never a literal
+# secret-shaped string in this file, per repo convention).
+FAKE_SECRET_KEY="AKIA""QWERTYUIOPASDFGH"
+hn_out6=$(PATH="$HN_PATH" FAKE_CLAUDE_MODE=secret FAKE_SECRET_KEY="$FAKE_SECRET_KEY" bash "$HN_SCRIPT" "$HN_FIXTURE" 2>/dev/null)
+assert_contains "haiku-narrative: secret scrub marker present" "$hn_out6" "[REDACTED]"
+assert_not_contains "haiku-narrative: planted secret absent from output" "$hn_out6" "$FAKE_SECRET_KEY"
+
+# Timeout overrun: HAIKU_NARRATIVE_TIMEOUT=1 with a shim that sleeps 5s —
+# the poll loop must kill the call and degrade (exit 3), not hang or emit
+# partial output.
+hn_timeout_out=$(PATH="$HN_PATH" FAKE_CLAUDE_MODE=slow HAIKU_NARRATIVE_TIMEOUT=1 \
+    bash "$HN_SCRIPT" "$FIXTURES_DIR/haiku-narrative-dialogue.jsonl" 2>/tmp/hn-timeout-err.$$)
+hn_timeout_exit=$?
+assert "haiku-narrative: timed-out call exits 3 (degraded)" "3" "$hn_timeout_exit"
+assert "haiku-narrative: timed-out call emits no stdout" "" "$hn_timeout_out"
+assert_contains "haiku-narrative: timeout degrade noted on stderr" "$(cat /tmp/hn-timeout-err.$$)" "degraded"
+rm -f /tmp/hn-timeout-err.$$
+
+rm -rf "$HN_BIN"
+
+# =============================================================================
 # Summary
 # =============================================================================
 
