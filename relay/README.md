@@ -46,6 +46,25 @@ The fact pack extractor needs `jq`. The narrative step additionally needs the
 `claude` CLI on `PATH` and makes 1-3 live Haiku calls per handoff (one per
 transcript chunk, up to 3 for very large transcripts) — skipped gracefully,
 with no impact on the rest of the handoff, when `claude` is unavailable.
+Those calls bill like any other Haiku usage; turn them off entirely with
+`RELAY_NARRATIVE=off` (see Configuration).
+
+## Configuration
+
+Two environment variables, both optional:
+
+- `RELAY_NARRATIVE=off` — skip the narrative step's live Haiku calls entirely.
+  The handoff still runs on the jq fact pack alone; the doc's Provenance
+  section records `narrative: degraded (disabled by RELAY_NARRATIVE=off)`.
+  Default: on.
+- `RELAY_RETENTION_DAYS=<n>` — the pickup hook sweeps old handoff docs and
+  consumed/expired/broken markers from `~/.claude/handoffs/<slug>/` once
+  they're older than `<n>` days. Default: `14`. Set `0` to disable the sweep
+  and keep everything forever. The `pending` marker is never swept — the
+  30-minute TTL owns its lifecycle.
+
+Run `bash <plugin>/scripts/doctor.sh` from a project directory to self-check
+relay's environmental assumptions on your machine (see `SCHEMA.md`).
 
 ## How it works
 
@@ -94,9 +113,11 @@ in-session — no new handoff doc, no `/clear` required.
 
 `<project-slug>` is the working directory path with every `/` and `.` replaced
 by `-`, so handoffs are scoped per project and don't collide across repos or
-worktrees. The `pending` marker has a 30-minute TTL and is consumed (deleted)
-the first time a session picks it up — a doc that isn't claimed within the
-window is left on disk but no longer auto-injected.
+worktrees. The `pending` marker has a 30-minute TTL and is renamed
+(`consumed-<epoch>`) the first time a session picks it up — a doc that isn't
+claimed within the window is left on disk but no longer auto-injected. Docs
+and spent markers are swept after `RELAY_RETENTION_DAYS` (default 14 days,
+`0` disables); `pending` itself is never swept.
 
 ## Disabling auto-pickup
 

@@ -538,6 +538,122 @@ mkdir -p "$SP_HOME9"
 out9="$(run_pickup "$SP_HOME9" '{"source":"startup"}')"
 assert "pickup: missing cwd key yields {}" "{}" "$out9"
 
+# =============================================================================
+# session-start-pickup.sh: retention sweep tests
+# =============================================================================
+# Sweep only runs once marker_dir is derived (source=startup/clear + cwd
+# present), same portable backdate pattern as the stale-marker case above
+# (test 3), just in days instead of minutes.
+backdate_days() {
+    touch -t "$(date -v-"${1}"d +%Y%m%d%H%M 2>/dev/null || date -d "-${1} days" +%Y%m%d%H%M)" "$2"
+}
+
+# 10. old consumed-* marker (20 days, past the 14-day default) is swept
+SP_HOME10="$SP_TMP/home10"
+mkdir -p "$SP_HOME10"
+CWD10="/proj/case10"
+slug10=$(printf '%s' "$CWD10" | tr '/.' '-')
+mkdir -p "$SP_HOME10/.claude/handoffs/$slug10"
+old_consumed10="$SP_HOME10/.claude/handoffs/$slug10/consumed-1111"
+: > "$old_consumed10"
+backdate_days 20 "$old_consumed10"
+run_pickup "$SP_HOME10" "{\"source\":\"startup\",\"cwd\":\"$CWD10\"}" >/dev/null
+assert_true "sweep: old consumed-* marker (20d) removed" "$([ ! -f "$old_consumed10" ]; echo $?)"
+
+# 11. old timestamped doc (*.md, 20 days) is swept
+SP_HOME11="$SP_TMP/home11"
+mkdir -p "$SP_HOME11"
+CWD11="/proj/case11"
+slug11=$(printf '%s' "$CWD11" | tr '/.' '-')
+mkdir -p "$SP_HOME11/.claude/handoffs/$slug11"
+old_doc11="$SP_HOME11/.claude/handoffs/$slug11/20250101-000000.md"
+echo "old handoff doc" > "$old_doc11"
+backdate_days 20 "$old_doc11"
+run_pickup "$SP_HOME11" "{\"source\":\"startup\",\"cwd\":\"$CWD11\"}" >/dev/null
+assert_true "sweep: old timestamped doc (20d) removed" "$([ ! -f "$old_doc11" ]; echo $?)"
+
+# 12. fresh marker + fresh doc (untouched mtime, well under 14 days) are kept
+SP_HOME12="$SP_TMP/home12"
+mkdir -p "$SP_HOME12"
+CWD12="/proj/case12"
+slug12=$(printf '%s' "$CWD12" | tr '/.' '-')
+mkdir -p "$SP_HOME12/.claude/handoffs/$slug12"
+fresh_consumed12="$SP_HOME12/.claude/handoffs/$slug12/consumed-2222"
+fresh_doc12="$SP_HOME12/.claude/handoffs/$slug12/20260101-000000.md"
+: > "$fresh_consumed12"
+echo "fresh handoff doc" > "$fresh_doc12"
+run_pickup "$SP_HOME12" "{\"source\":\"startup\",\"cwd\":\"$CWD12\"}" >/dev/null
+assert_true "sweep: fresh consumed-* marker kept" "$([ -f "$fresh_consumed12" ]; echo $?)"
+assert_true "sweep: fresh doc kept" "$([ -f "$fresh_doc12" ]; echo $?)"
+
+# 13. `pending` is never swept, even when old — and the sweep runs in the same
+# pass that TTL logic already handles it. Note: a raw old `pending` file can't
+# survive a run untouched to be independently checked post-hoc, since the
+# same script invocation's own claim logic (marker_dir derives 1:1 from cwd)
+# always claims whatever is at that exact path first; by the time the EXIT
+# trap's sweep runs, an old `pending` has already been renamed to
+# `expired-<epoch>` by the existing TTL check. This test instead verifies the
+# composite contract: the old `pending` is converted (not raw-deleted) via
+# TTL logic, the resulting expired-* marker is brand new so the *same* sweep
+# pass correctly leaves it alone, and an unrelated old consumed-* marker
+# sitting in the same directory is still correctly swept in that pass.
+SP_HOME13="$SP_TMP/home13"
+mkdir -p "$SP_HOME13"
+CWD13="/proj/case13"
+slug13=$(printf '%s' "$CWD13" | tr '/.' '-')
+dir13="$SP_HOME13/.claude/handoffs/$slug13"
+mkdir -p "$dir13"
+doc13="$SP_TMP/doc13.md"
+echo "doc for case 13" > "$doc13"
+echo "$doc13" > "$dir13/pending"
+backdate_days 20 "$dir13/pending"
+old_consumed13="$dir13/consumed-3333"
+: > "$old_consumed13"
+backdate_days 20 "$old_consumed13"
+out13="$(run_pickup "$SP_HOME13" "{\"source\":\"startup\",\"cwd\":\"$CWD13\"}")"
+assert "sweep: old pending (20d) is stale -> {} (TTL path, not sweep)" "{}" "$out13"
+assert_true "sweep: no file literally named 'pending' remains" "$([ ! -f "$dir13/pending" ]; echo $?)"
+expired13=$(find "$dir13" -name 'expired-*' | wc -l | tr -d ' ')
+assert "sweep: old pending renamed to expired-* (TTL logic, not deleted)" "1" "$expired13"
+assert_true "sweep: brand-new expired-* marker not swept in same pass" "$([ -n "$(find "$dir13" -name 'expired-*')" ]; echo $?)"
+assert_true "sweep: unrelated old consumed-* still swept in same pass" "$([ ! -f "$old_consumed13" ]; echo $?)"
+
+# 14. RELAY_RETENTION_DAYS=0 disables the sweep entirely — old files of both
+# kinds survive.
+SP_HOME14="$SP_TMP/home14"
+mkdir -p "$SP_HOME14"
+CWD14="/proj/case14"
+slug14=$(printf '%s' "$CWD14" | tr '/.' '-')
+mkdir -p "$SP_HOME14/.claude/handoffs/$slug14"
+old_consumed14="$SP_HOME14/.claude/handoffs/$slug14/consumed-4444"
+old_doc14="$SP_HOME14/.claude/handoffs/$slug14/20250101-000000.md"
+: > "$old_consumed14"
+echo "old doc" > "$old_doc14"
+backdate_days 20 "$old_consumed14"
+backdate_days 20 "$old_doc14"
+HOME="$SP_HOME14" RELAY_RETENTION_DAYS=0 bash "$PICKUP" <<< "{\"source\":\"startup\",\"cwd\":\"$CWD14\"}" >/dev/null
+assert_true "sweep: RELAY_RETENTION_DAYS=0 keeps old consumed-* marker" "$([ -f "$old_consumed14" ]; echo $?)"
+assert_true "sweep: RELAY_RETENTION_DAYS=0 keeps old doc" "$([ -f "$old_doc14" ]; echo $?)"
+
+# 15. sweep failure (read-only handoff dir, so rm can't unlink) never changes
+# pickup's own output or exit code — the fail-open contract covers the sweep
+# too, not just jq/JSON errors.
+SP_HOME15="$SP_TMP/home15"
+mkdir -p "$SP_HOME15"
+CWD15="/proj/case15"
+slug15=$(printf '%s' "$CWD15" | tr '/.' '-')
+dir15="$SP_HOME15/.claude/handoffs/$slug15"
+mkdir -p "$dir15"
+old_consumed15="$dir15/consumed-5555"
+: > "$old_consumed15"
+backdate_days 20 "$old_consumed15"
+chmod 555 "$dir15"
+out15=$(run_pickup "$SP_HOME15" "{\"source\":\"startup\",\"cwd\":\"$CWD15\"}")
+pickup15_exit=$?
+assert "sweep: read-only handoff dir still yields {} (no marker present)" "{}" "$out15"
+assert "sweep: read-only handoff dir still exits 0" "0" "$pickup15_exit"
+chmod 755 "$dir15"
+
 rm -rf "$SP_TMP"
 
 # =============================================================================
@@ -572,6 +688,21 @@ bash "$HN_SCRIPT" >/dev/null 2>/dev/null
 assert "haiku-narrative: no transcript arg exits 1 (usage)" "1" "$?"
 bash "$HN_SCRIPT" "$FIXTURES_DIR/does-not-exist.jsonl" >/dev/null 2>/dev/null
 assert "haiku-narrative: nonexistent transcript path exits 1" "1" "$?"
+
+# 2b. RELAY_NARRATIVE=off kill switch short-circuits before the claude PATH
+# check (case-insensitive), degrading with a reason that names the env var so
+# a handoff reader knows narrative was suppressed deliberately, not that
+# claude failed. Checked with the real (still no-`claude`-required) PATH.
+hn_off_out=$(RELAY_NARRATIVE=off bash "$HN_SCRIPT" "$FIXTURES_DIR/empty.jsonl" 2>/tmp/hn-off-err.$$)
+hn_off_exit=$?
+assert "haiku-narrative: RELAY_NARRATIVE=off exits 3 (degraded)" "3" "$hn_off_exit"
+assert "haiku-narrative: RELAY_NARRATIVE=off emits no stdout" "" "$hn_off_out"
+assert_contains "haiku-narrative: RELAY_NARRATIVE=off stderr names the reason" "$(cat /tmp/hn-off-err.$$)" "disabled by RELAY_NARRATIVE=off"
+rm -f /tmp/hn-off-err.$$
+
+# 2c. RELAY_NARRATIVE=OFF (mixed case) also trips the switch.
+RELAY_NARRATIVE=OFF bash "$HN_SCRIPT" "$FIXTURES_DIR/empty.jsonl" >/dev/null 2>/dev/null
+assert "haiku-narrative: RELAY_NARRATIVE=OFF (uppercase) exits 3" "3" "$?"
 
 # Fake `claude` shim: captures the piped dialogue to $FAKE_CLAUDE_CAPTURE and
 # emits canned output controlled by $FAKE_CLAUDE_MODE. Built inline into a

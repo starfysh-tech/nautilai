@@ -7,7 +7,41 @@
 set -euo pipefail
 
 emitted=0
+marker_dir=""
+
+# Retention sweep: deletes consumed/expired/broken/recovered/claimed/compacted
+# markers and timestamped *.md docs older than RELAY_RETENTION_DAYS (default
+# 14; 0 disables the sweep entirely). Runs from the EXIT trap, i.e. strictly
+# after the injection payload (if any) has already been printed above — it
+# can never delay or affect the pickup outcome, only tidy up afterward. Every
+# failure mode (bad env value, unwritable dir, no dir at all) falls open by
+# returning 0 rather than touching output or exit status. `pending` is never
+# a match for either glob set, so it's structurally untouched regardless of
+# age. -maxdepth 1 + -mtime +N are POSIX-portable across BSD and GNU find, so
+# no dual-syntax branch is needed here (unlike the stat call above).
+sweep_retention() {
+  dir="$1"
+  [ -n "$dir" ] && [ -d "$dir" ] || return 0
+
+  days="${RELAY_RETENTION_DAYS:-14}"
+  case "$days" in
+    ''|*[!0-9]*) return 0 ;;
+  esac
+  [ "$days" -gt 0 ] || return 0
+
+  find "$dir" -maxdepth 1 -type f \( \
+    -name 'consumed-*' -o -name 'expired-*' -o -name 'broken-*' \
+    -o -name 'recovered-*' -o -name 'claimed-*' -o -name 'compacted-*' \
+  \) -mtime "+${days}" -exec rm -f {} + 2>/dev/null
+
+  find "$dir" -maxdepth 1 -type f -name '*.md' -mtime "+${days}" \
+    -exec rm -f {} + 2>/dev/null
+
+  return 0
+}
+
 on_exit() {
+  ( sweep_retention "$marker_dir" ) 2>/dev/null || true
   if [ "$emitted" -ne 1 ]; then
     echo '{}'
   fi
@@ -53,13 +87,18 @@ mv "$marker" "$claimed" 2>/dev/null || exit 0
 # the check entirely (fail-open) if neither works.
 mtime=$(stat -f '%m' "$claimed" 2>/dev/null || stat -c '%Y' "$claimed" 2>/dev/null || echo 0)
 if [ "$mtime" -gt 0 ] && [ $((epoch - mtime)) -gt 1800 ]; then
+  # touch: mv preserves the stale mtime, and the retention sweep counts from
+  # mtime — without a reset, an already-old marker's audit record would be
+  # swept in the same pass that created it.
   mv -f "$claimed" "${marker_dir}/expired-${epoch}"
+  touch "${marker_dir}/expired-${epoch}" 2>/dev/null || true
   exit 0
 fi
 
 doc_path=$(cat "$claimed")
 if [ -z "$doc_path" ] || [ ! -f "$doc_path" ]; then
   mv -f "$claimed" "${marker_dir}/broken-${epoch}"
+  touch "${marker_dir}/broken-${epoch}" 2>/dev/null || true
   exit 0
 fi
 
@@ -75,6 +114,7 @@ output=$(jq -n --argjson ctx "$context" '{hookSpecificOutput: {hookEventName: "S
 # Consume-once: the claimed marker becomes consumed only after the payload
 # is built, so a failure above leaves a claimed-* file as the audit trail.
 mv -f "$claimed" "${marker_dir}/consumed-${epoch}"
+touch "${marker_dir}/consumed-${epoch}" 2>/dev/null || true
 
 printf '%s\n' "$output"
 emitted=1
