@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.13.0](https://github.com/starfysh-tech/nautilai/compare/v2.12.0...v2.13.0) (2026-07-05)
+
+
+### Features
+
+* **relay:** public-readiness controls and self-diagnosis ([2e121b2](https://github.com/starfysh-tech/nautilai/commit/2e121b2d6cfe186d9d09edada2463ab08eee25c8))
+* **relay:** public-readiness controls and self-diagnosis ([2670f6c](https://github.com/starfysh-tech/nautilai/commit/2670f6c3fd4bf4ae0010e5a87291c8bbdd361203))
+
+
+### Bug Fixes
+
+* **relay:** gnu-first stat chains, doctor traps ([7b70f0f](https://github.com/starfysh-tech/nautilai/commit/7b70f0f45768ae075085b0f1f5fd83727a9cd165))
+
 ## [2.12.0](https://github.com/starfysh-tech/nautilai/compare/v2.11.0...v2.12.0) (2026-07-05)
 
 
