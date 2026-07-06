@@ -61,6 +61,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -131,12 +159,37 @@
 
   <section id="how">
     <h2>How it works</h2>
-    <ul>
-      <li>The skill begins by auto-detecting the repo's label taxonomy — it does not assume label names like "duplicate" or "backlog" but instead lists all existing labels and groups them by category (status, type, priority, area).</li>
-      <li>It then audits for duplicates (title similarity via Levenshtein distance), orphaned sub-issues (native issue links preferred, body references as fallback), unlabeled issues, items exceeding the stale threshold, and label usage inconsistencies.</li>
-      <li>Findings are reported in order of priority with issue numbers, age, and similarity scores to ground each claim.</li>
-      <li>At the review checkpoint, the skill stops and presents a task list for the user to approve any mutations (close, relabel, comment). All changes are reversible and recorded under the user's GitHub account.</li>
-    </ul>
+    <p>The skill reads issues, detects the repo's label taxonomy, audits for cleanup opportunities, and stops at a review checkpoint before applying any mutations.</p>
+    <div class="flow">
+      <div class="flow-step">list issues</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">detect label taxonomy</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">audit all categories</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">report findings</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">approve mutations</div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li><code>/github-issue-auditor</code> — single skill that reads via GitHub CLI (<code>gh</code>) or GitHub MCP server (whichever available); audits for marked duplicates, fuzzy-matched duplicates (Levenshtein similarity, default 0.75), orphaned sub-issues, unlabeled items, stale issues (default 90 days), and label inconsistencies.</li>
+          <li>Auto-detection: lists repo labels and groups them by inferred category (status/type/priority/area); does not assume label names.</li>
+          <li>Finding dispositions: audit is <code>report</code>; mutations (close/relabel/comment) are <code>ask-user</code> behind Phase 4 gate.</li>
+          <li>Customizable flags: <code>--similarity 0.XX</code> (duplicate threshold), <code>--stale-days N</code> (age threshold).</li>
+          <li>Shoals: <code>.claude/shoals/github-issue-auditor.github-issue-auditor.md</code> — project corrections (e.g. "issues labeled <code>keep-open</code> are never stale").</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Read-only by default: the audit reports findings without mutating the tracker; any change (close/relabel/comment) is behind an explicit user approval gate.</li>
+          <li>Findings-first: prioritized list omits clean categories; evidence (issue numbers, age, similarity %) grounds every claim.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <section id="requirements">

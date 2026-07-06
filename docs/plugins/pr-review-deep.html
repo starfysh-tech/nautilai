@@ -61,6 +61,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -133,6 +161,36 @@
     <p>The skill reads the diff from the current branch or a PR, citing every finding with <code>file:line</code> and verifying claims against the code before raising them. It focuses on implementation quality, maintainability, type/boundary contracts, and behavior-preserving structural simplifications — identifying high-leverage restructurings, not just local cleanups.</p>
     <p>The review reads the diff via a graceful degradation chain: GitHub MCP (preferred), then <code>gh</code> CLI, then plain <code>git diff</code>. All findings are categorized by severity (Blocking, Should-fix, Suggestion) and proposed for your decision — the skill never edits code or expands the PR's scope.</p>
     <p>Shoals: reads and appends user corrections to <code>.claude/shoals/pr-review-deep.pr-review-deep.md</code> in your project.</p>
+
+    <div class="flow">
+      <div class="flow-step">read diff</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">analyze code quality</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">verify vs. code</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">categorize severity</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">propose findings</div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Diff read chain: GitHub MCP (preferred) → <code>gh</code> CLI → <code>git diff</code>, degrading loudly on failure.</li>
+          <li>Finding severity: Blocking, Should-fix, Suggestion.</li>
+          <li>Dispositions (per nautilai conventions): all findings are <code>report</code> (proposes, never auto-fixes); user-actionable proposals are <code>ask-user</code> (never self-resolved).</li>
+          <li>Shoals file: <code>.claude/shoals/pr-review-deep.pr-review-deep.md</code> — records corrections to prevent repeated mistakes.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Evidence-first: every finding cites <code>file:line</code>, verified against the code before raised; behavior-preservation is treated as a hypothesis until proven.</li>
+          <li>Propose, don't perform: describes restructurings concretely and leaves the decision to the author; never edits code or expands the PR's scope.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <footer>

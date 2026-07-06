@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>plugins — nautilai</title>
+<meta name="description" content="All nautilai plugins for Claude Code: git workflows, audits, security, planning, and autonomous development, one line each." />
+<meta property="og:title" content="plugins — nautilai" />
+<meta property="og:description" content="All nautilai plugins for Claude Code: git workflows, audits, security, planning, and autonomous development, one line each." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a141d" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --deep:       oklch(0.195 0.034 240);
+    --deep-2:     oklch(0.155 0.032 244);
+    --chamber:    oklch(0.235 0.034 240);
+    --foam:       oklch(0.945 0.014 205);
+    --foam-soft:  oklch(0.74 0.030 212);
+    --tide:       oklch(0.78 0.095 200);
+    --lumen:      oklch(0.80 0.135 58);
+    --line-deep:  oklch(0.55 0.03 225 / 0.28);
+    --col: 68ch;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --r: 16px;
+    --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+    --font-body: "Literata", Georgia, "Times New Roman", serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--foam);
+    font-family: var(--font-body); font-size: 1.0625rem; line-height: 1.65;
+    background-color: oklch(0.16 0.032 244);
+    background-image: linear-gradient(180deg, oklch(0.225 0.034 240) 0%, oklch(0.15 0.032 244) 100%);
+    background-attachment: fixed; background-repeat: no-repeat;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--tide); text-decoration: none; }
+  a:hover { color: var(--foam); }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 24px; }
+  h1, h2, .display { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; color: var(--foam); }
+
+  .back { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); padding: 20px 0 0; }
+  .back:hover { color: var(--tide); }
+
+  header.page-hero { padding: 24px 0 clamp(24px, 4vw, 36px); border-bottom: 1px solid var(--line-deep); }
+  h1.page-title { font-size: clamp(2.2rem, 6vw, 3.2rem); line-height: 1; margin: 14px 0 10px; }
+  p.tagline { font-family: var(--font-body); font-size: 1.15rem; color: var(--foam-soft); max-width: var(--col); margin: 0; }
+
+  .plugin-list { display: flex; flex-direction: column; gap: 12px; padding: 28px 0 40px; margin: 0; list-style: none; }
+  .plugin-item { display: block; border: 1px solid var(--line-deep); border-radius: 12px; padding: 15px 18px; transition: border-color 0.18s var(--ease), background 0.18s var(--ease); }
+  .plugin-item:hover { border-color: var(--tide); background: oklch(0.6 0.06 205 / 0.06); }
+  .plugin-item .p-name { font-family: var(--font-display); font-weight: 600; font-size: 1.05rem; color: var(--foam); }
+  .plugin-item:hover .p-name { color: var(--tide); }
+  .plugin-item .p-desc { display: block; margin-top: 5px; color: var(--foam-soft); font-size: 0.92rem; line-height: 1.55; }
+
+  footer { padding: 10px 0 40px; color: var(--foam-soft); font-size: 0.82rem; }
+  .foot-links { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--font-display); }
+  :focus-visible { outline: 2px solid var(--lumen); outline-offset: 3px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="../index.html">&larr; nautilai</a>
+
+  <header class="page-hero">
+    <h1 class="page-title">Plugins</h1>
+    <p class="tagline">All 15 plugins in the marketplace — pick one for the install command and full details.</p>
+  </header>
+
+  <ul class="plugin-list">
+    <li class="plugin-item"><a href="commitcraft.html"><span class="p-name">commitcraft</span><span class="p-desc">AI git workflow toolkit: conventional commits, issue validation, PR creation, and release guidance.</span></a></li>
+    <li class="plugin-item"><a href="relay.html"><span class="p-name">relay</span><span class="p-desc">Session continuity for Claude Code: transcript-grounded handoff documents that a fresh session picks up automatically. Ships the handoff skill.</span></a></li>
+    <li class="plugin-item"><a href="cc-adoption-audit.html"><span class="p-name">cc-adoption-audit</span><span class="p-desc">Audit your Claude Code setup against available features and surface what you're not using but should, plus setup gaps.</span></a></li>
+    <li class="plugin-item"><a href="pr-comment-review.html"><span class="p-name">pr-comment-review</span><span class="p-desc">Process and address review comments on the current pull request — fetch the threads, categorize, implement agreed fixes behind approval gates, push, and reply inline.</span></a></li>
+    <li class="plugin-item"><a href="cc-validate-hooks.html"><span class="p-name">cc-validate-hooks</span><span class="p-desc">Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix.</span></a></li>
+    <li class="plugin-item"><a href="cc-skill-audit.html"><span class="p-name">cc-skill-audit</span><span class="p-desc">Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues.</span></a></li>
+    <li class="plugin-item"><a href="phi-scan.html"><span class="p-name">phi-scan</span><span class="p-desc">Scan a repo for Protected Health Information (PHI under HIPAA Safe Harbor) — SSNs, emails, phones, IPs, dates, restricted ZIPs — then AI-triage findings to filter false positives. Optionally runs Django/React OWASP grep checks when that stack is detected.</span></a></li>
+    <li class="plugin-item"><a href="review-plan.html"><span class="p-name">review-plan</span><span class="p-desc">Adversarially validate an implementation plan against the actual codebase before building it — surface risks, breaking changes, gaps, and simplifications, then write findings back into the plan. Built-in agents by default; taps review/Codex plugins when installed.</span></a></li>
+    <li class="plugin-item"><a href="pr-review-deep.html"><span class="p-name">pr-review-deep</span><span class="p-desc">Rigorous, evidence-based code quality review of a branch or PR — abstraction design, type/boundary contracts, and behavior-preserving structural simplification. Proposes high-leverage restructurings with cited evidence; never performs them or expands scope.</span></a></li>
+    <li class="plugin-item"><a href="rbac-django.html"><span class="p-name">rbac-django</span><span class="p-desc">Audit a Django/DRF + React codebase for RBAC gaps (missing permission classes, tenant-isolation leaks, IDOR, write-side gaps), threat-model the findings into ranked attacker abuse cases, then generate prioritized remediation playbooks and GitHub issues.</span></a></li>
+    <li class="plugin-item"><a href="frontend-review.html"><span class="p-name">frontend-review</span><span class="p-desc">Audit a React + Tailwind frontend for architecture and design-token health — component size, prop drilling, duplicate-primitive reuse, folder organization, and Tailwind token violations. Auto-detects the frontend source root; findings cite file:line.</span></a></li>
+    <li class="plugin-item"><a href="wireframe.html"><span class="p-name">wireframe</span><span class="p-desc">Create low-fidelity wireframes for UI planning — ASCII layouts, wiremd interactive prototypes, or Mermaid diagrams for tickets. Use before writing components to sketch structure, flows, and states.</span></a></li>
+    <li class="plugin-item"><a href="dep-review.html"><span class="p-name">dep-review</span><span class="p-desc">Evaluate Dependabot PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts grounded in the PR diff and codebase usage. Low-risk patch / minor-dev-dep bumps that pass CI auto-merge; other merges and closes gate behind approval.</span></a></li>
+    <li class="plugin-item"><a href="github-issue-auditor.html"><span class="p-name">github-issue-auditor</span><span class="p-desc">Audit a GitHub repo's issues for cleanup — fuzzy-matched duplicates, orphaned sub-issues, unlabeled or stale items, and inconsistent labels against the repo's own auto-detected taxonomy. Read-only by default; any mutation is opt-in behind an approval gate.</span></a></li>
+    <li class="plugin-item"><a href="autodev.html"><span class="p-name">autodev</span><span class="p-desc">Bounded autonomous development loop: scripted worktree lanes, fast worker subagents, objective script-based verification, and a hard 3-failure escalation to the user.</span></a></li>
+  </ul>
+
+  <footer>
+    <nav class="foot-links">
+      <a href="https://github.com/starfysh-tech/nautilai" target="_blank" rel="noopener noreferrer">GitHub</a>
+      <a href="../index.html">&larr; nautilai</a>
+    </nav>
+  </footer>
+</div>
+</body>
+</html>

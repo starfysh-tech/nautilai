@@ -61,6 +61,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -135,6 +163,41 @@
     <h2>How it works</h2>
     <p>The skill reads <code>skills/commitcraft/workflows/&lt;argument&gt;.md</code> and follows it; an unrecognized argument falls back to the commit workflow. Workflows shell out to bundled scripts via <code>${CLAUDE_PLUGIN_ROOT}/scripts/…</code>, so paths resolve correctly regardless of where the plugin cache lives.</p>
     <p>The release workflow defers to release-please only when it's actually functional — a detection script distinguishes a working release-please from one that's present but neutered (skip flags, no <code>contents: write</code>, or stuck at <code>0.0.0</code>), falling back to a manual tag/release path with a one-line reason rather than dead-ending on a release PR that will never arrive. On that manual path, release notes are grouped by the repo's own <code>release-please-config.json</code> changelog sections when that file exists, so a repo declares its categories once and gets the same sectioned notes either way.</p>
+
+    <div class="flow">
+      <div class="flow-step">stage files individually</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">branch from main</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">generate message</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">pre-commit hooks</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">commit / PR</div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li><code>SKILL.md</code> reads <code>skills/commitcraft/workflows/&lt;argument&gt;.md</code> and follows it; an unrecognized argument falls back to the commit workflow.</li>
+          <li>Workflows shell out to bundled scripts via <code>${CLAUDE_PLUGIN_ROOT}/scripts/…</code>, so paths resolve regardless of where the plugin cache lives.</li>
+          <li><code>commitcraft-release-detect-rp.sh</code> — classifies release-please as FUNCTIONAL / DISABLED / ABSENT (skip flags, missing <code>contents: write</code>, stuck at <code>0.0.0</code>); tested by <code>bash commitcraft/tests/detect-rp.test.sh</code>.</li>
+          <li><code>commitcraft-release-analyze.sh</code> — semantic version analysis for the manual fallback path.</li>
+          <li><code>commitcraft-issues.sh</code> — branch-based issue validation across github / linear / jira / none.</li>
+          <li>On the manual release path, notes are grouped by the repo's own <code>release-please-config.json</code> <code>changelog-sections</code> when present, falling back to a built-in section table.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Conventional commits only: <code>&lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;</code>, ≤50 char lowercase subject, no emoji, ≤72 char body lines — enforced by commitlint locally and in CI.</li>
+          <li>Files are staged individually (<code>git add &lt;file&gt;</code>), never <code>git add -A</code>.</li>
+          <li>No attribution footers (no <code>Co-Authored-By</code>).</li>
+          <li><code>--no-verify</code> is never used — hook failures are hard stops, not bypasses.</li>
+          <li>The commit workflow auto-creates a feature branch when run on <code>main</code>.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <section id="requirements">

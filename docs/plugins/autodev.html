@@ -64,6 +64,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -140,6 +168,47 @@
       <li>Failures are classified (implementation / environment / specification / transient) and fingerprinted; only implementation failures count toward the cap. After 3 counted failures, or a repeated identical fingerprint, the lane stops and produces a concise guidance handoff.</li>
       <li>Up to 5 lanes can run in parallel, gated by a conservative <code>parallel_safe</code> heuristic.</li>
     </ul>
+
+    <div class="flow">
+      <div class="flow-step">init lane + worktree</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">haiku-worker attempt</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">verify.sh + review gate</div>
+    </div>
+    <div class="flow-lanes">
+      <div class="flow-lane" data-lane="ok"><span class="flow-lane-label">ok</span>
+        <div class="flow-step">pass verdict</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step">DONE.md</div>
+      </div>
+      <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">degrade</span>
+        <div class="flow-step">3rd counted failure</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step">escalate_summary.sh</div>
+      </div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>State lives in <code>.autodev/&lt;slug&gt;/</code> — <code>TASK.md</code>, <code>RUNSTATE.md</code>, <code>DONE.md</code>, optional lane <code>VERIFY.sh</code>, all self-gitignored.</li>
+          <li><code>init_task_lane.sh</code> / <code>create_worktree.sh</code> — lane files + controller state, then a worktree at <code>.autodev-worktrees/&lt;slug&gt;</code> on an <code>autodev/&lt;slug&gt;</code> branch.</li>
+          <li><code>baseline_verify.sh</code> — must pass before autonomous work starts.</li>
+          <li><code>verify.sh</code> — lane <code>VERIFY.sh</code> wins, else auto-detected npm/pytest/go/cargo; receives <code>AUTODEV_PHASE</code> (<code>baseline</code> | <code>attempt</code>).</li>
+          <li><code>classify_failure.sh</code> / <code>fingerprint_failure.sh</code> — bucket a failure log (implementation / environment / specification / transient) and hash it; only implementation failures count toward the 3-cap.</li>
+          <li><code>controller.sh</code> — the state machine over <code>.autodev/state.json</code>; <code>escalate_summary.sh</code> writes the guidance handoff after a hard stop.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>No hooks. An earlier iteration ran the verifier as a <code>Stop</code> hook in every enabled repo — invasive (full suite on every stop, blocking errors where no suite existed) — and was removed; verification runs only inside the <code>/autodev</code> loop.</li>
+          <li>The worker never creates <code>DONE.md</code> — only the orchestrator, after <code>verify.sh</code> passes.</li>
+          <li>Classification heuristics are deliberately narrow: a misclassified implementation failure would be an uncounted retry, so ambiguous logs default to <code>implementation</code>.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <section id="requirements">

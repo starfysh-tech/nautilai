@@ -61,6 +61,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -129,16 +157,37 @@
 
   <section id="how">
     <h2>How it works</h2>
-    <ul>
-      <li>Fetches Anthropic's live skill guidance (grounded against <code>code.claude.com/docs</code> to avoid stale rules)</li>
-      <li>In sweep mode, discovers user, project, and installed-plugin skills</li>
-      <li>Tests the description field for triggering reliability by drafting direct/implicit/alternative phrasings and checking whether they fire correctly</li>
-      <li>Validates frontmatter (required fields, name/description validity)</li>
-      <li>Checks body structure: conciseness, progressive disclosure, gotchas/version block</li>
-      <li>Audits bundled resources for folder conventions, missing files, and TOC presence on large references</li>
-      <li>Checks portability across Claude Code, Cowork, and Claude.ai surfaces</li>
-      <li>Scans for hardcoded credentials, undeclared network access, and commercial deps disguised as open source</li>
-    </ul>
+    <div class="flow">
+      <div class="flow-step">fetch guidance</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">discover skills</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">test triggers</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">audit content</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">report findings</div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Fetches Anthropic's live skill guidance from <code>code.claude.com/docs</code>.</li>
+          <li>In sweep mode, discovers user, project, and installed-plugin skills.</li>
+          <li>Tests description field for triggering reliability by drafting direct/implicit/alternative phrasings.</li>
+          <li>Validates frontmatter (required fields, name/description validity).</li>
+          <li>Checks body structure, portability across surfaces, and bundled resources.</li>
+          <li>Scans for hardcoded credentials, undeclared network access, and commercial deps disguised as open source.</li>
+          <li>Reports findings by severity: Blocker, High, Medium.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Grounds against the live docs at runtime (fetches <code>code.claude.com/docs/llms.txt</code>) rather than trusting a frozen snapshot, so it won't fail a skill on a rule that's since changed.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <footer>

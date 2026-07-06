@@ -37,6 +37,49 @@ README for the full sentence.
 - Don't include a Roadmap/Backlog section from the README — that's contributor-facing, not user-facing.
 - Don't add badges, shields, or icons beyond what the template already provides (the copy button).
 
+## Reusable components: flow diagram + tech detail
+
+Both live in `_TEMPLATE.html`'s inline `<style>` (`.flow`/`.flow-lane*` and
+`details.tech`), with a commented example markup block in the `<section
+id="how">` body — copy the markup, don't reinvent the classes.
+
+**Flow diagram** (`.flow`, `.flow-step`, `.flow-arrow`, `.flow-lanes`/`.flow-lane`)
+— a horizontal row of step boxes joined by `→` arrows, pure HTML/CSS (no SVG,
+no JS). Below 560px it collapses to a column and the arrows become `↓`
+automatically. Use the plain `.flow` for a single sequential mechanism. Use
+`.flow-lanes` (two `.flow-lane[data-lane="ok"|"degrade"]` rows, each with a
+`.flow-lane-label`) only when the README documents an actual branch — a real
+ok/degrade or pass/fail split, not an invented one. **Every plugin page must
+include at least one flow diagram** in "How it works", capturing its core
+mechanism end to end.
+
+- Steps are short mechanism nouns/verbs (`stage files`, `verify.sh`), not
+  sentences — they're labels, not prose.
+- **Cap: 7 steps total** across a diagram, counting every lane. Trim to the
+  steps that carry the mechanism; a diagram that needs more than 7 to make
+  sense should be split into two diagrams or reduced to fewer, larger steps.
+- Only add lanes for a branch the README actually names (e.g. relay's TTL
+  expiry, autodev's review-gate pass vs. 3-strike escalation). Don't invent a
+  success/failure split to fill the component.
+
+**Collapsible tech detail** (`<details class="tech"><summary>…</summary><div
+class="tech-body">…</div></details>`) — native disclosure, no JS, themed
+marker (chamber background, tide summary text, rotating `▸`). Use it for:
+
+- **"Under the hood"** — script/file names and what each does, data flow,
+  exit codes or degrade contracts, env vars, storage paths. **Every plugin
+  page must include at least one of these.**
+- **"Design notes"** (optional) — a decision the README or changelog
+  documents explicitly (e.g. relay's transcript-injection hardening, autodev's
+  removed `Stop`-hook iteration). Skip this block entirely if the README
+  doesn't document a "why we built it this way" decision — don't manufacture
+  one.
+
+Both sections apply the same no-invention rule as everywhere else: every
+bullet must trace to the plugin's own README/SCHEMA/scripts — never inferred
+behavior. **Cap: 25 lines per `<details>` block** (counting bullets, not
+markup) — this is a technical appendix, not the full README pasted in.
+
 ## Structural checklist before calling a page done
 
 1. `<title>` is `"<name> — nautilai"`, exactly.
@@ -45,3 +88,5 @@ README for the full sentence.
 4. Every `<section>` has an `<h2>`, except the requirements section may be omitted entirely — never left as an empty shell.
 5. No unresolved `{{SLOT}}` placeholders remain anywhere in the file.
 6. Run a structural sanity check (balanced tags) before considering the page done — e.g. `python3 -c "import html.parser,sys; p=html.parser.HTMLParser(); p.feed(open(sys.argv[1]).read())" docs/plugins/<name>.html` should raise no exception.
+7. At least one `.flow` (or `.flow-lanes`) diagram appears in "How it works", ≤7 steps total, sourced from the README's own mechanism description.
+8. At least one `<details class="tech">` block is present ("Under the hood" is required; "Design notes" only if the README documents a decision), each ≤25 lines, with no invented facts.
