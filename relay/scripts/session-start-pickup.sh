@@ -82,20 +82,30 @@ epoch=$(date +%s)
 claimed="${marker_dir}/claimed-${epoch}-$$"
 mv "$marker" "$claimed" 2>/dev/null || exit 0
 
-# Expire stale markers (>30 min old) rather than inject a doc from a session
-# that's long gone. GNU first: on Linux `stat -f` is FILESYSTEM stat and
-# SUCCEEDS with a mount point (not an error), which silently poisons the
-# fallback chain — whereas BSD `stat -c` errors cleanly into the fallback.
-# Numeric guard so a wrong-but-successful stat can never reach the arithmetic.
-mtime=$(stat -c '%Y' "$claimed" 2>/dev/null || stat -f '%m' "$claimed" 2>/dev/null || echo 0)
-case "$mtime" in ''|*[!0-9]*) mtime=0 ;; esac
-if [ "$mtime" -gt 0 ] && [ $((epoch - mtime)) -gt 1800 ]; then
-  # touch: mv preserves the stale mtime, and the retention sweep counts from
-  # mtime — without a reset, an already-old marker's audit record would be
-  # swept in the same pass that created it.
-  mv -f "$claimed" "${marker_dir}/expired-${epoch}"
-  touch "${marker_dir}/expired-${epoch}" 2>/dev/null || true
-  exit 0
+# Expire stale markers (>30 min old) on `startup` ONLY, never on `clear`.
+# `clear` is a deliberate hand-off-then-continue: the user ran /handoff
+# *intending* the next session to pick it up, so honor the marker no matter
+# how long the break was — consume-once already bounds it to a single
+# injection. `startup` is opening Claude Code cold, possibly days later on
+# unrelated work; there a long-dead marker would wrongly present stale work as
+# authoritative starting context, so the >30 min TTL guards that path alone.
+# (Time was a poor relevance proxy for `clear` — a legitimate handoff→break→
+# clear routinely exceeds 30 min, which silently dropped the primary flow.)
+if [ "$source" = startup ]; then
+  # GNU first: on Linux `stat -f` is FILESYSTEM stat and SUCCEEDS with a mount
+  # point (not an error), which silently poisons the fallback chain — whereas
+  # BSD `stat -c` errors cleanly into the fallback. Numeric guard so a
+  # wrong-but-successful stat can never reach the arithmetic.
+  mtime=$(stat -c '%Y' "$claimed" 2>/dev/null || stat -f '%m' "$claimed" 2>/dev/null || echo 0)
+  case "$mtime" in ''|*[!0-9]*) mtime=0 ;; esac
+  if [ "$mtime" -gt 0 ] && [ $((epoch - mtime)) -gt 1800 ]; then
+    # touch: mv preserves the stale mtime, and the retention sweep counts from
+    # mtime — without a reset, an already-old marker's audit record would be
+    # swept in the same pass that created it.
+    mv -f "$claimed" "${marker_dir}/expired-${epoch}"
+    touch "${marker_dir}/expired-${epoch}" 2>/dev/null || true
+    exit 0
+  fi
 fi
 
 doc_path=$(cat "$claimed")

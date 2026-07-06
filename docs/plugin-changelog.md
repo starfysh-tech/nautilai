@@ -16,6 +16,17 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-06
 
+- **relay `pending`-marker TTL is now startup-only, never on `/clear`**
+  ([`relay`](../relay#readme)). The 30-minute staleness guard was meant to stop
+  a long-dead marker from injecting a stale session as authoritative context —
+  but it fired on `source=clear` too, where it's actively wrong: a `/clear` is a
+  *deliberate* handoff-then-continue, and a normal handoff→break→clear routinely
+  exceeds 30 minutes, silently dropping the plugin's primary flow (observed live
+  at 36 min). Time was a poor relevance proxy anyway — consume-once already
+  bounds a marker to a single injection. The TTL now guards only `source=startup`
+  (opening Claude Code cold, possibly days later on unrelated work); `/clear`
+  honors the marker regardless of age.
+
 - **relay secret scrub and harness-noise filtering generalized**
   ([`relay`](../relay#readme)). Public sessions carry secrets and injected
   content the original patterns never saw: the scrub now also redacts JWTs,

@@ -60,8 +60,8 @@ Two environment variables, both optional:
 - `RELAY_RETENTION_DAYS=<n>` — the pickup hook sweeps old handoff docs and
   consumed/expired/broken markers from `~/.claude/handoffs/<slug>/` once
   they're older than `<n>` days. Default: `14`. Set `0` to disable the sweep
-  and keep everything forever. The `pending` marker is never swept — the
-  30-minute TTL owns its lifecycle.
+  and keep everything forever. The `pending` marker is never swept —
+  consume-once plus the startup-only TTL own its lifecycle.
 
 Run `bash <plugin>/scripts/doctor.sh` from a project directory to self-check
 relay's environmental assumptions on your machine (see `SCHEMA.md`).
@@ -113,9 +113,12 @@ in-session — no new handoff doc, no `/clear` required.
 
 `<project-slug>` is the working directory path with every `/` and `.` replaced
 by `-`, so handoffs are scoped per project and don't collide across repos or
-worktrees. The `pending` marker has a 30-minute TTL and is renamed
-(`consumed-<epoch>`) the first time a session picks it up — a doc that isn't
-claimed within the window is left on disk but no longer auto-injected. Docs
+worktrees. The `pending` marker is renamed (`consumed-<epoch>`) the first time
+a session picks it up. A 30-minute TTL applies **only** on `source=startup`
+(opening Claude Code cold): there a doc not claimed within the window is left
+on disk but no longer auto-injected. On `source=clear` — a deliberate
+handoff-then-continue — the marker is honored regardless of age, since
+consume-once already bounds it to a single injection. Docs
 and spent markers are swept after `RELAY_RETENTION_DAYS` (default 14 days,
 `0` disables); `pending` itself is never swept.
 

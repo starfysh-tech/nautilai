@@ -518,6 +518,27 @@ assert "pickup: stale marker (>30min) yields {}" "{}" "$out3"
 expired3=$(find "$SP_HOME3/.claude/handoffs/$slug3" -name 'expired-*' | wc -l | tr -d ' ')
 assert "pickup: stale marker renamed to expired-*" "1" "$expired3"
 
+# 3b. same stale (>30 min) marker but source=clear -> the TTL is startup-only,
+# so a deliberate handoff→clear still injects no matter how long the break was.
+# Regression guard: a legitimate handoff-then-break-then-clear used to expire.
+SP_HOME3B="$SP_TMP/home3b"
+mkdir -p "$SP_HOME3B"
+CWD3B="/proj/case3b"
+slug3b=$(printf '%s' "$CWD3B" | tr '/.' '-')
+mkdir -p "$SP_HOME3B/.claude/handoffs/$slug3b"
+doc3b="$SP_TMP/doc3b.md"
+echo "# Deliberate handoff for case 3b" > "$doc3b"
+marker3b="$SP_HOME3B/.claude/handoffs/$slug3b/pending"
+echo "$doc3b" > "$marker3b"
+touch -t "$(date -v-40M +%Y%m%d%H%M 2>/dev/null || date -d '-40 minutes' +%Y%m%d%H%M)" "$marker3b"
+out3b="$(run_pickup "$SP_HOME3B" "{\"source\":\"clear\",\"cwd\":\"$CWD3B\"}")"
+ctx3b=$(printf '%s' "$out3b" | jq -r '.hookSpecificOutput.additionalContext // empty')
+assert_contains "pickup: stale marker + source=clear still injects doc" "$ctx3b" "Deliberate handoff for case 3b"
+consumed3b=$(find "$SP_HOME3B/.claude/handoffs/$slug3b" -name 'consumed-*' | wc -l | tr -d ' ')
+assert "pickup: stale marker + source=clear renamed to consumed-* (not expired)" "1" "$consumed3b"
+expired3b=$(find "$SP_HOME3B/.claude/handoffs/$slug3b" -name 'expired-*' | wc -l | tr -d ' ')
+assert "pickup: stale marker + source=clear produces no expired-*" "0" "$expired3b"
+
 # 4. dangling doc path (doc file missing) -> broken-*, {}
 SP_HOME4="$SP_TMP/home4"
 mkdir -p "$SP_HOME4"
