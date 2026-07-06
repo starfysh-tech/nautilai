@@ -223,23 +223,18 @@ scrub() {
     [ .[] | select(.type=="user")
       # Structural exclusions: isMeta flags harness-injected content (skill
       # prompts etc.); isCompactSummary flags compaction continuations the
-      # user never typed. These are the primary defense. The filters below
-      # are a heuristic secondary defense for injections that carry no
-      # structural marker: a message opening with a hyphenated-tag XML
-      # opener (e.g. <command-message>, <local-command-stdout>,
-      # <system-reminder>, <task-notification>, <bash-stdout>,
-      # <teammate-message ...>) is almost certainly a harness wrapper, not
-      # user prose. Gated on the hyphen specifically: a survey of ~5,200 real
-      # user messages across 91 project transcripts found every
-      # harness-injected "<tag>" opener uses a hyphenated name, while the
-      # only real user messages starting with "<" (pasted HTML, log lines
-      # like "<100k rows") never do — so requiring a hyphen adds zero
-      # observed false positives, whereas matching any lowercase tag (e.g.
-      # bare "<div>") would wrongly exclude genuine pasted markup. Known
-      # miss: a hyphenated custom HTML element (e.g. "<my-component>") would
-      # also be excluded, but none appeared in the survey. The two literal
-      # string prefixes have no tag-shaped marker, so they stay as
-      # exact-prefix checks.
+      # user never typed. These are the primary defense. The filter below
+      # is a heuristic secondary defense for injections that carry no
+      # structural marker: a message opening with a hyphenated-tag XML opener
+      # (e.g. <command-message>, <local-command-stdout>, <system-reminder>,
+      # <task-notification>, <bash-stdout>, <teammate-message>) is almost
+      # certainly a harness wrapper, not user prose. The hyphen gate matters:
+      # every harness wrapper tag observed is hyphenated, while bare HTML a
+      # user might paste (<div>, <head>, <!DOCTYPE) is not — so requiring a
+      # hyphen catches the wrappers without excluding pasted markup. Accepted
+      # miss: a hyphenated custom element like <my-component> would also be
+      # excluded. The two literal string prefixes carry no tag-shaped marker,
+      # so they stay as exact-prefix checks.
       | select(.isMeta != true)
       | select(.isCompactSummary != true)
       | .message.content as $c

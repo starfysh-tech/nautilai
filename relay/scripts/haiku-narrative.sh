@@ -153,9 +153,8 @@ jq -r '
       # Structural exclusions (isMeta/isCompactSummary) are the primary
       # defense; the filter below is a heuristic secondary defense — see
       # extract-transcript.sh, which carries the same block, for the
-      # hyphen-gated leading-tag rationale (corpus survey found every
-      # harness-injected "<tag>" opener hyphenated, while the two real
-      # user messages starting with "<" in the survey never were).
+      # hyphen-gated leading-tag rationale (harness wrapper tags are
+      # hyphenated; bare pasted HTML like <div> is not).
       select($m.isMeta != true)
       | select($m.isCompactSummary != true)
       | $m.message.content as $c
