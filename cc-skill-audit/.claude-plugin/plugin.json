@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "cc-skill-audit",
   "displayName": "CC Skill Audit",
-  "version": "2.13.0",
+  "version": "2.14.0",
   "description": "Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues.",
   "author": {
     "name": "Randall Noval",

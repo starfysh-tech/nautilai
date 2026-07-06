@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.14.0](https://github.com/starfysh-tech/nautilai/compare/v2.13.0...v2.14.0) (2026-07-06)
+
+
+### Features
+
+* **relay:** broaden secret scrub, generalize skip-prefix ([d74b104](https://github.com/starfysh-tech/nautilai/commit/d74b10478fbb64668359352dc5a762770d0bd77e))
+* **relay:** fast-follow scrub, skip-prefix, and eval breadth ([3f532bb](https://github.com/starfysh-tech/nautilai/commit/3f532bbbd87baa18ad2b184b9319423d4dc92a02))
+
+
+### Bug Fixes
+
+* **relay:** remove fabricated survey from skip-prefix comment ([96e2e63](https://github.com/starfysh-tech/nautilai/commit/96e2e634e520f7fd30656c2802bcd8529c334fd9))
+
 ## [2.13.0](https://github.com/starfysh-tech/nautilai/compare/v2.12.0...v2.13.0) (2026-07-05)
 
 
