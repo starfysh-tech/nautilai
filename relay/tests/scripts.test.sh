@@ -68,6 +68,21 @@ PEM_FOOTER="-----END RSA ${PRIV} KEY-----"
 # JSON-escaped newlines (literal backslash-n) — this lands inside a JSONL string.
 FAKE_PEM_JSON="${PEM_HEADER}"'\n'"${FAKE_PEM_B64}"'\n'"KUpRKfFLfRYC9AIKjbJTWit+CqvjWYzvQwECAwEAAQ=="'\n'"${PEM_FOOTER}"
 FAKE_BEARER="abc123.def456.ghi789secrettoken"
+# JWT: three base64url segments joined by dots.
+FAKE_JWT_HDR="eyJ""hbGciOiJIUzI1NiJ9"
+FAKE_JWT_PAYLOAD="eyJzdWIiOiIxMjM0NTY3ODkwIn0"
+FAKE_JWT_SIG="SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+FAKE_JWT="${FAKE_JWT_HDR}.${FAKE_JWT_PAYLOAD}.${FAKE_JWT_SIG}"
+# Google API key: AIza + exactly 35 [0-9A-Za-z_-] chars.
+FAKE_GOOGLE="AIza""SyD4kX9mQ2vL7pR3wZ8yT6nB1cF5hJ0aK9s"
+# DB connection string with inline creds; scheme survives redaction, so only
+# the user:pass@ segment needs to be gone from output.
+FAKE_DBCONN_USER="dbuser"
+FAKE_DBCONN_PASS="dbpass1234"
+FAKE_DBCONN_HOST="prod-db.example.com:5432/mydb"
+FAKE_DBCONN="postgres""://${FAKE_DBCONN_USER}:${FAKE_DBCONN_PASS}@${FAKE_DBCONN_HOST}"
+# Authorization: Basic <base64 blob>.
+FAKE_BASIC="dXNlcm5hbWU6""cGFzc3dvcmQxMjM="
 
 MAIN_TMP=$(mktemp -d)
 trap 'rm -rf "$MAIN_TMP"' EXIT
@@ -77,6 +92,10 @@ main_src=${main_src//@@FAKE_AWS@@/$FAKE_AWS}
 main_src=${main_src//@@FAKE_GHP@@/$FAKE_GHP}
 main_src=${main_src//@@FAKE_PEM@@/$FAKE_PEM_JSON}
 main_src=${main_src//@@FAKE_BEARER@@/$FAKE_BEARER}
+main_src=${main_src//@@FAKE_JWT@@/$FAKE_JWT}
+main_src=${main_src//@@FAKE_GOOGLE@@/$FAKE_GOOGLE}
+main_src=${main_src//@@FAKE_DBCONN@@/$FAKE_DBCONN}
+main_src=${main_src//@@FAKE_BASIC@@/$FAKE_BASIC}
 printf '%s\n' "$main_src" > "$MAIN_FIXTURE"
 
 MAIN_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" "$MAIN_FIXTURE")"
@@ -119,6 +138,16 @@ assert_not_contains "extract: 'Another Claude session sent a message:' skipped" 
 assert_not_contains "extract: isMeta:true message skipped structurally" "$MAIN_OUT" "META-INJECTED"
 assert_not_contains "extract: isCompactSummary:true message skipped structurally" "$MAIN_OUT" "COMPACT-SUMMARY"
 
+# --- User messages: leading-tag heuristic (issue #56) ---
+# A genuine user message that merely mentions/contains a tag later in the
+# body (not as the very first thing) must NOT be excluded.
+assert_contains "extract: user message with non-leading tag kept" "$MAIN_OUT" \
+    "In our config file I saw a tag like <setup-instructions>configure the repo</setup-instructions>"
+# A message that itself opens with a lowercase-hyphen tag is excluded, even
+# though it carries none of the specific literal prefixes.
+assert_not_contains "extract: leading-tag harness wrapper excluded" "$MAIN_OUT" \
+    "this message itself opens with a lowercase-hyphen tag and should be excluded"
+
 # --- User messages: kept messages present verbatim ---
 assert_contains "extract: normal user message 1 recovered" "$MAIN_OUT" "Please fix the login bug in the auth flow."
 assert_contains "extract: normal user message 2 recovered" "$MAIN_OUT" "What's the current status of the test suite?"
@@ -145,6 +174,12 @@ assert_not_contains "extract: ghp_ token redacted"    "$MAIN_OUT" "$FAKE_GHP"
 assert_not_contains "extract: PEM block redacted"     "$MAIN_OUT" "$FAKE_PEM_B64"
 assert_not_contains "extract: PEM header line redacted" "$MAIN_OUT" "$PEM_HEADER"
 assert_not_contains "extract: Bearer token value redacted" "$MAIN_OUT" "$FAKE_BEARER"
+assert_not_contains "extract: JWT redacted"           "$MAIN_OUT" "$FAKE_JWT"
+assert_not_contains "extract: Google API key redacted" "$MAIN_OUT" "$FAKE_GOOGLE"
+assert_not_contains "extract: db conn string user:pass redacted" "$MAIN_OUT" "${FAKE_DBCONN_USER}:${FAKE_DBCONN_PASS}@"
+assert_contains "extract: db conn string scheme preserved" "$MAIN_OUT" "postgres://[REDACTED]@${FAKE_DBCONN_HOST}"
+assert_not_contains "extract: Authorization Basic value redacted" "$MAIN_OUT" "$FAKE_BASIC"
+assert_contains "extract: Authorization Basic marker present" "$MAIN_OUT" "Authorization: Basic [REDACTED]"
 assert_contains "extract: [REDACTED] marker present"  "$MAIN_OUT" "[REDACTED]"
 redacted_count=$(printf '%s' "$MAIN_OUT" | grep -o '\[REDACTED\]' | wc -l | tr -d ' ')
 if [ "$redacted_count" -ge 3 ]; then
@@ -198,6 +233,14 @@ rm -f /tmp/relay-malformed-out.$$ /tmp/relay-malformed-err.$$
 assert "extract: malformed fixture exits 0" "0" "$malformed_exit"
 assert_contains "extract: malformed fixture still prints Provenance" "$malformed_out" "## Provenance"
 assert_not_contains "extract: malformed fixture emits no parse error on stderr" "$malformed_err" "parse error"
+
+# --- scrub() parity: extract-transcript.sh and haiku-narrative.sh carry
+# duplicated-per-script copies of scrub() by house convention (issue #58
+# requires them to stay byte-identical); diff the function bodies directly
+# rather than relying only on separate behavioral assertions in each script.
+SCRUB_A=$(sed -n '/^scrub() {/,/^}/p' "$SCRIPTS_DIR/extract-transcript.sh")
+SCRUB_B=$(sed -n '/^scrub() {/,/^}/p' "$SCRIPTS_DIR/haiku-narrative.sh")
+assert "scrub(): extract-transcript.sh and haiku-narrative.sh copies are byte-identical" "$SCRUB_A" "$SCRUB_B"
 
 # =============================================================================
 # extract-transcript.sh --before-last-compact tests

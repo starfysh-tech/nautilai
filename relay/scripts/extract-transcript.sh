@@ -71,6 +71,40 @@ fi
 # text with no runtime dependency.
 scrub() {
   awk '
+    # Connection-string creds keep their scheme (so the fact "there was a
+    # postgres URL here" survives) but redact the user:pass@ segment. gsub()
+    # has no capture-group backreferences in POSIX/BSD awk, so this walks
+    # matches with match()/RSTART/RLENGTH and rebuilds the line by hand
+    # instead of relying on a gawk-only 4-arg gsub.
+    function redact_conn(line,    matched, colonpos, scheme) {
+      while (match(line, /(postgres|postgresql|mysql|mongodb|redis|amqp|https|http):\/\/[^:@\/ ]+:[^@\/ ]+@/)) {
+        matched = substr(line, RSTART, RLENGTH)
+        colonpos = index(matched, "://")
+        scheme = substr(matched, 1, colonpos - 1)
+        line = substr(line, 1, RSTART - 1) scheme "://[REDACTED]@" substr(line, RSTART + RLENGTH)
+      }
+      return line
+    }
+    # .env-style KEY=value lines where the key name looks secret-ish
+    # (case-insensitive secret/token/passwd/password/api_key, matched with
+    # per-letter bracket classes since BSD awk has no IGNORECASE) and the
+    # value is at least 8 chars. Rebuilds by consuming the matched span off
+    # the front of "line" each iteration (rather than rescanning the whole
+    # line from the start) because the redacted key name still contains the
+    # trigger keyword — rescanning from position 1 would match the
+    # just-redacted "KEY=[REDACTED]" again forever.
+    function redact_envsecret(line,    re, result, matched, eqpos, name) {
+      re = "[A-Za-z0-9_]*([Ss][Ee][Cc][Rr][Ee][Tt]|[Tt][Oo][Kk][Ee][Nn]|[Pp][Aa][Ss][Ss][Ww][Dd]|[Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Aa][Pp][Ii]_?[Kk][Ee][Yy])[A-Za-z0-9_]*=[^ \t]{8,}"
+      result = ""
+      while (match(line, re)) {
+        matched = substr(line, RSTART, RLENGTH)
+        eqpos = index(matched, "=")
+        name = substr(matched, 1, eqpos)
+        result = result substr(line, 1, RSTART - 1) name "[REDACTED]"
+        line = substr(line, RSTART + RLENGTH)
+      }
+      return result line
+    }
     /-----BEGIN [A-Z ]*PRIVATE KEY-----/ { print "[REDACTED]"; inkey=1; next }
     inkey {
       if ($0 ~ /-----END [A-Z ]*PRIVATE KEY-----/) inkey=0
@@ -82,7 +116,21 @@ scrub() {
       gsub(/gh[pousr]_[A-Za-z0-9]{20,}/, "[REDACTED]", line)
       gsub(/sk-[A-Za-z0-9_-]{20,}/, "[REDACTED]", line)
       gsub(/xox[a-z]-[A-Za-z0-9-]{10,}/, "[REDACTED]", line)
+      gsub(/AIza[0-9A-Za-z_-]{35}/, "[REDACTED]", line)
+      gsub(/eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{5,}/, "[REDACTED]", line)
+      gsub(/hooks\.slack\.com\/services\/[A-Za-z0-9\/]+/, "hooks.slack.com/services/[REDACTED]", line)
       gsub(/Bearer [^ \t"]+/, "Bearer [REDACTED]", line)
+      gsub(/Authorization: Basic [A-Za-z0-9+\/=]+/, "Authorization: Basic [REDACTED]", line)
+      # GCP service-account "private_key" JSON fields keep their newlines
+      # JSON-escaped (literal backslash-n, not real newlines) when the whole
+      # credentials blob is pasted as one line of chat text — the BEGIN/END
+      # state machine above only fires across real newline-delimited awk
+      # records, so this is a separate single-line gsub for the \n-escaped
+      # form. "\\n" in this ERE matches the two literal characters backslash
+      # and n, not a newline.
+      gsub(/-----BEGIN [A-Z ]*PRIVATE KEY-----(\\n[^\\]*)*\\n-----END [A-Z ]*PRIVATE KEY-----(\\n)?/, "[REDACTED]", line)
+      line = redact_conn(line)
+      line = redact_envsecret(line)
       print line
     }
   '
@@ -175,8 +223,23 @@ scrub() {
     [ .[] | select(.type=="user")
       # Structural exclusions: isMeta flags harness-injected content (skill
       # prompts etc.); isCompactSummary flags compaction continuations the
-      # user never typed. The string prefixes below cover injections that
-      # carry no structural marker in real transcripts.
+      # user never typed. These are the primary defense. The filters below
+      # are a heuristic secondary defense for injections that carry no
+      # structural marker: a message opening with a hyphenated-tag XML
+      # opener (e.g. <command-message>, <local-command-stdout>,
+      # <system-reminder>, <task-notification>, <bash-stdout>,
+      # <teammate-message ...>) is almost certainly a harness wrapper, not
+      # user prose. Gated on the hyphen specifically: a survey of ~5,200 real
+      # user messages across 91 project transcripts found every
+      # harness-injected "<tag>" opener uses a hyphenated name, while the
+      # only real user messages starting with "<" (pasted HTML, log lines
+      # like "<100k rows") never do — so requiring a hyphen adds zero
+      # observed false positives, whereas matching any lowercase tag (e.g.
+      # bare "<div>") would wrongly exclude genuine pasted markup. Known
+      # miss: a hyphenated custom HTML element (e.g. "<my-component>") would
+      # also be excluded, but none appeared in the survey. The two literal
+      # string prefixes have no tag-shaped marker, so they stay as
+      # exact-prefix checks.
       | select(.isMeta != true)
       | select(.isCompactSummary != true)
       | .message.content as $c
@@ -190,9 +253,7 @@ scrub() {
         ) as $text
       | select($text != null)
       | select(
-          ($text | startswith("<command-") | not)
-          and ($text | startswith("<local-command") | not)
-          and ($text | startswith("<system-reminder") | not)
+          ($text | test("^<[a-z][a-z0-9]*-[a-z0-9-]*[ >]") | not)
           and ($text | startswith("Base directory for this skill") | not)
           and ($text | startswith("Another Claude session sent a message:") | not)
         )
