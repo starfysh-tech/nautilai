@@ -58,11 +58,10 @@ EOF
 
   # Narrative — timed live call; capture exit + heading count, no content.
   ns=$(now_s)
-  nout=$(bash "$NARRATE" "$t" 2>/tmp/lv-nerr.$$); nexit=$?
+  nout=$(bash "$NARRATE" "$t" 2>/dev/null); nexit=$?
   ne=$(now_s); secs=$((ne - ns))
   heads=$(printf '%s\n' "$nout" | grep -c '^## ')
   if [ "$nexit" -eq 0 ]; then nstat="ok"; else nstat="degrade:$nexit"; fi
-  rm -f /tmp/lv-nerr.$$
 
   # Shape label derived only from metrics (size band / compaction / subagents).
   band="sm"; [ "$bytes" -gt 1000000 ] && band="md"; [ "$bytes" -gt 8000000 ] && band="lg"; [ "$bytes" -gt 18000000 ] && band="xl"
