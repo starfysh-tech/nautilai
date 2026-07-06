@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.14.1](https://github.com/starfysh-tech/nautilai/compare/v2.14.0...v2.14.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* **relay:** de-nest pem scrub quantifier (redos) ([0d42084](https://github.com/starfysh-tech/nautilai/commit/0d420846f6ebfbb1cc16f0ab5312c0de0d447e7c))
+* **relay:** de-nest pem scrub quantifier (redos) ([4db2047](https://github.com/starfysh-tech/nautilai/commit/4db2047c38bb8457d6c1fa7bb56350db1ecacde8))
+
 ## [2.14.0](https://github.com/starfysh-tech/nautilai/compare/v2.13.0...v2.14.0) (2026-07-06)
 
 
