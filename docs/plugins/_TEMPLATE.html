@@ -61,6 +61,36 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  /* ── Flow diagram: themed step boxes + arrows, wraps to a column on mobile ── */
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  /* ── Collapsible tech detail: native <details>, no JS ── */
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -131,6 +161,45 @@
     <h2>How it works</h2>
     {{HOW_IT_WORKS}}
     <!-- one or more <p> or a short <ol>/<ul> -->
+
+    <!-- FLOW DIAGRAM example (single lane, ≤7 steps total) — see _slots.md
+    <div class="flow">
+      <div class="flow-step">stage files</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">generate message</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">pre-commit hooks</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">commit</div>
+    </div>
+    -->
+
+    <!-- FLOW DIAGRAM example with branch lanes (ok/degrade), steps across all lanes ≤7 —
+         see _slots.md. Give each lane a data-lane value; "degrade" gets the warm border.
+    <div class="flow">
+      <div class="flow-step">step one</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">step two</div>
+    </div>
+    <div class="flow-lanes">
+      <div class="flow-lane" data-lane="ok"><span class="flow-lane-label">ok</span>
+        <div class="flow-step">within TTL</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step">inject + mark consumed</div>
+      </div>
+      <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">degrade</span>
+        <div class="flow-step">TTL expired</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step">left on disk, not injected</div>
+      </div>
+    </div>
+    -->
+
+    <!-- COLLAPSIBLE TECH DETAIL example — see _slots.md for the no-invention rule and 25-line cap
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li><code>script-name.sh</code> — what it does, sourced from the README.</li>
+          <li>Storage path, env var, or exit code the README documents.</li>
+        </ul>
+      </div>
+    </details>
+    -->
   </section>
 
   <section id="requirements">

@@ -61,6 +61,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -133,6 +161,36 @@
     <p>A simplification pass runs first (reuse, delete, configure, YAGNI, smallest-diff), then risk and edge-case questions, reconciling the two so risks get the cheapest correct fix rather than piling on defensive code. The skill revises the plan in place to the leanest correct version and adds one "Assumptions to validate before implementing" gate.</p>
     <p>Works out of the box with built-in agents (Plan, code-reviewer, Explore). Optionally uses specialists from feature-dev, pr-review-toolkit, or Codex plugins if installed — graceful degradation, no hard fails.</p>
     <p>Shoals: records corrections in <code>.claude/shoals/review-plan.review-plan.md</code> for the next run, preventing repeated mistakes on the same project.</p>
+
+    <div class="flow">
+      <div class="flow-step">extract plan</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">reuse scan</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">dependency + risk analysis</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">simplification pass</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">reconcile risks</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">revise + gate</div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Built-in agents: <code>Plan</code> (architecture), <code>code-reviewer</code> (quality), <code>Explore</code> (code search).</li>
+          <li>Optional specialists: <code>feature-dev:code-explorer</code>, <code>pr-review-toolkit</code> agents (silent-failure-hunter, type-design-analyzer, pr-test-analyzer), Codex (GPT cross-model review).</li>
+          <li>Shoals file: <code>.claude/shoals/review-plan.review-plan.md</code> — learns from user corrections on the same project.</li>
+          <li>Output: verdict (LEAN / ACCEPTABLE / OVER-ENGINEERED), what changed, code you can avoid writing.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Aims for the smallest diff that's still correct at staff-engineer quality — never fewer lines at the cost of correctness.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <footer>

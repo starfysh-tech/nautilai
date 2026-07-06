@@ -61,6 +61,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -129,12 +157,35 @@
 
   <section id="how">
     <h2>How it works</h2>
-    <ul>
-      <li>Each skill resolves the frontend source root by locating the React <code>package.json</code> rather than assuming a hardcoded path like <code>client/</code> or <code>src/</code>.</li>
-      <li>The Tailwind skill also discovers the project's <code>tailwind.config.*</code> file (or v4 CSS <code>@theme</code>) and treats it as the source of truth for what constitutes a valid token.</li>
-      <li>Both skills scan <code>.tsx</code>, <code>.jsx</code>, and <code>.css</code> files, reporting findings-first — every claim about the codebase cites a specific file:line.</li>
-      <li>The Tailwind skill can auto-fix exact token maps (e.g. <code>bg-[#3b82f6]</code> → <code>bg-primary</code> when the values are identical and a token exists), applied only after user approval and visible in version control.</li>
-    </ul>
+    <p>Both audits auto-detect the frontend root and configuration, then scan and report findings with file:line citations.</p>
+    <div class="flow">
+      <div class="flow-step">locate React root</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">scan components</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">scan Tailwind</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">report findings</div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li><code>/react-component-architecture</code> — detects oversized components, prop drilling, duplicated UI patterns, folder organization issues; runs on Glob/Grep/Read (disposition: <code>report</code>).</li>
+          <li><code>/tailwind-design-token-validator</code> — detects arbitrary values, dynamic class concatenation, invalid <code>@apply</code> use, inline styles, design-token violations; runs on Glob/Grep/Read with optional <code>Edit</code> for auto-fixed token swaps (dispositions: <code>auto-fix</code> for 1:1 token maps, <code>report</code> for findings, <code>ask-user</code> for approximate changes).</li>
+          <li>Auto-detection: locates React <code>package.json</code> for source root; discovers <code>tailwind.config.*</code> or v4 CSS <code>@theme</code> as source of truth for tokens.</li>
+          <li>Shoals: <code>.claude/shoals/frontend-review.&lt;skill&gt;.md</code> — project corrections (thresholds, token mappings, patterns to ignore).</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Ported from Python modules (importable libraries, no CLI) to model-driven logic via Glob/Grep/Read for better composability and no hardcoded paths.</li>
+          <li>Both skills are user-invoked only (not auto-firing) and read-heavy, using per-project shoals to carry forward team corrections across runs.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <footer>

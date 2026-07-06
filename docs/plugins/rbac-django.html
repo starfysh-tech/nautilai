@@ -61,6 +61,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -130,12 +158,37 @@
 
   <section id="how">
     <h2>How it works</h2>
-    <ul>
-      <li>The audit skill self-discovers role names, sensitive-data mixins, and through-models from your code rather than assuming a fixed structure, then builds a deterministic inventory via AST and file-walk analysis.</li>
-      <li>It reports every authorization gap (missing permission class, unfiltered queryset, IDOR, scope mismatch) with file:line citations, ranked by severity.</li>
-      <li>The threat-model skill operates like an attacker with a valid account, generating abuse cases grounded in the audit findings and the app description.</li>
-      <li>The remediation skill proposes concrete steps, test patterns, and GitHub issues without editing code on its own — applying fixes is always a deliberate user choice.</li>
-    </ul>
+    <p>The three skills form a sequential security audit pipeline: the first detects authorization gaps via AST and file-walk analysis; the second translates findings into ranked attacker abuse cases; the third proposes remediation without self-editing code.</p>
+    <div class="flow">
+      <div class="flow-step">scan codebase</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">audit for gaps</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">threat-model abuse cases</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">generate playbooks</div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li><code>/rbac-audit-django</code> — self-discovers role names, sensitive-data mixins, through-models; uses AST and file-walk for deterministic analysis; reports findings with file:line citations, severity-ranked (disposition: <code>report</code>).</li>
+          <li><code>/rbac-threat-model</code> — generates 5–10 ranked abuse cases via PACE framework (Principals, Assets, Channels, Escalation) and BIL scoring; operates like an attacker with a valid account (disposition: <code>report</code>).</li>
+          <li><code>/rbac-remediation-playbooks</code> — proposes fixes using project-discovered patterns; never edits code directly; user-invoked only (disposition: <code>ask-user</code>).</li>
+          <li>Optional tools: <code>ast-grep</code> and <code>ripgrep</code> for faster structural analysis; degrades to stdlib AST/file-walk if absent.</li>
+          <li>Storage: <code>docs/rbac-audit/report.md</code>, <code>rbac-audit-findings.json</code>, <code>threat-model.md</code>, <code>remediation-{now,next,later}.md</code>.</li>
+          <li>Shoals: <code>.claude/shoals/rbac-django.&lt;skill&gt;.md</code> — append-only behavioral corrections.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>The audit is deterministic and self-discovering: it infers role names and data structures from your code rather than hardcoding assumptions about "User", "Admin", or tenant-column names.</li>
+          <li>No authorization gap is ever auto-fixed — findings are always <code>report</code> or <code>ask-user</code>; security decisions must be explicit and deliberate.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <section id="requirements">

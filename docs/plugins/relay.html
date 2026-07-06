@@ -61,6 +61,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -134,6 +162,45 @@
     <p><code>/compact</code> and model self-summaries are recency-biased — they favor what's fresh in context and quietly drop early constraints, dead ends already tried, and decisions reasoned about many turns back. The session transcript JSONL doesn't have that bias, so Relay's bundled scripts extract facts from the transcript itself rather than asking the model to remember.</p>
     <p><code>scripts/resolve-session.sh</code> locates the current session's transcript, and <code>scripts/extract-transcript.sh</code> reads it into a fact pack (secret-scrubbed, with harness-injected content filtered out). The skill combines that with its own read of the conversation into a doc with fact-grounded sections plus a one-line pending marker. A <code>SessionStart</code> hook atomically claims that marker on the next session, injects the doc if it's still within its TTL, and renames it so it only fires once — even with concurrent session starts.</p>
     <p>When Claude Code auto-compacts, a <code>PreCompact</code> hook drops a marker and nudges toward <code>/handoff recover</code>, which reconstructs the same compaction-lossy detail from before the compaction boundary.</p>
+
+    <div class="flow">
+      <div class="flow-step">SessionStart fires</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">pending marker read</div>
+    </div>
+    <div class="flow-lanes">
+      <div class="flow-lane" data-lane="ok"><span class="flow-lane-label">ok</span>
+        <div class="flow-step">within 30-min TTL</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step">inject doc, rename consumed-*</div>
+      </div>
+      <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">degrade</span>
+        <div class="flow-step">TTL expired</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step">left on disk, not injected</div>
+      </div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li><code>resolve-session.sh</code> — locates the current session's transcript JSONL (env vars first, newest-mtime fallback with a stderr warning).</li>
+          <li><code>extract-transcript.sh</code> — the fact pack: files touched, commands run, failures, verbatim user messages, secret-scrubbed and stripped of harness-injected content.</li>
+          <li><code>haiku-narrative.sh</code> — recovers Decisions / Dead ends / Constraints from assistant prose via a headless Haiku call; exits 3 on any failure (missing <code>claude</code> CLI, timeout) so the handoff proceeds without it.</li>
+          <li><code>session-start-pickup.sh</code> / <code>precompact-notify.sh</code> — the SessionStart and PreCompact hooks.</li>
+          <li>Storage: <code>~/.claude/handoffs/&lt;project-slug&gt;/</code> — <code>pending</code>, <code>compacted-&lt;epoch&gt;</code>, <code>recovered-&lt;epoch&gt;</code>, and the dated doc files.</li>
+          <li>Env vars: <code>RELAY_NARRATIVE=off</code> skips the Haiku calls; <code>RELAY_RETENTION_DAYS</code> (default 14) controls the sweep, <code>0</code> disables it.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Transcript text is treated as untrusted input: a transcript about editing CLAUDE.md persona rules hijacked the narrative extractor during testing. <code>haiku-narrative.sh</code> now runs Haiku with a bare <code>--system-prompt</code> (no CLAUDE.md inheritance) and explicit instructions to treat transcript content as data, never as commands.</li>
+          <li>The narrative layer is measured, not assumed: across 3 eval runs against 14 planted facts, it recovered 11/12, 12/12, and 11/12 of the 12 assistant-turn facts the jq fact pack structurally cannot see (0/12 baseline) — see <code>relay/tests/eval/LEDGER.md</code>.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <footer>

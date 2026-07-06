@@ -61,6 +61,34 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
+  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane .flow-step { border-color: var(--line-deep); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; text-align: center; }
+    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -132,6 +160,49 @@
     <p>The skill discovers open Dependabot PRs via GitHub MCP (preferred) or <code>gh</code> CLI, parsing package, versions, and ecosystem from branch prefix. For each PR, it classifies the bump type, checks CI status, extracts the specific changes from the changelog, and verifies each against your code (cited <code>file:line</code>). It evaluates security (CVE + whether the vulnerable path is used) and EOL status.</p>
     <p>A decision matrix applies the verdict: AUTO-MERGE for low-risk patch and minor-dev-dep bumps with passing CI; MERGE, SKIP, or INVESTIGATE for everything else. The skill reports findings grounded in diff and changelog; when metadata is unreachable it degrades loudly rather than guessing.</p>
     <p>Shoals: records corrections in <code>.claude/shoals/dep-review.dep-review.md</code> for the next run, learning what to always skip or adjust verdict-wise on specific packages.</p>
+
+    <div class="flow">
+      <div class="flow-step">discover PRs</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">parse + classify</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">extract changelog</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">verify usage + security</div><div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step">apply matrix</div>
+    </div>
+    <div class="flow-lanes">
+      <div class="flow-lane" data-lane="ok"><span class="flow-lane-label">ok</span>
+        <div class="flow-step">patch + CI pass</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step">auto-merge</div>
+      </div>
+      <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">gated</span>
+        <div class="flow-step">minor / major / security</div><div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step">ask user</div>
+      </div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>PR discovery via GitHub MCP (preferred) or <code>gh</code> CLI; parses ecosystem from branch prefix.</li>
+          <li>Bump classification: patch, minor (runtime), minor (dev-dep), major.</li>
+          <li>Changelog extraction from diff; registry metadata via <code>npm</code> / <code>pip-audit</code> (if present) or HTTP APIs (npm, PyPI).</li>
+          <li>Verification: each change cited against codebase (<code>file:line</code>) or marked "not found".</li>
+          <li>Security: CVE checks + tracks whether vulnerable path is used; EOL status from registry.</li>
+          <li>AUTO-MERGE is <code>auto-fix</code> (exception to opt-in mutation); other merges/closes are <code>ask-user</code> approval gates.</li>
+          <li>Shoals file: <code>.claude/shoals/dep-review.dep-review.md</code> — learns package-specific corrections.</li>
+        </ul>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary>Design notes</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Evidence, not reputation: verdicts cite specific changes from diff/changelog, backed with <code>file:line</code> usage claims. Unverifiable metadata lowers confidence and is reported; guessed claims are not made.</li>
+          <li>Bounded auto-merge: only patch/minor-dev-dep with passing CI auto-merges, narrowing the high-risk class; CI passing is the consent.</li>
+        </ul>
+      </div>
+    </details>
   </section>
 
   <section id="requirements">
