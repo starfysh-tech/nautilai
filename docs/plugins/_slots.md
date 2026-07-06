@@ -22,6 +22,40 @@ README for the full sentence.
 | `{{REQUIREMENTS}}` (whole section) | README "Requirements"/"Install" prerequisites | **Omit the entire `<section id="requirements">` block** if the plugin needs nothing beyond Claude Code itself (see relay.html — no requirements section). Otherwise one paragraph: tools/binaries needed, and which are optional vs. degrade gracefully. |
 | Footer source link | Fixed pattern | Always `https://github.com/starfysh-tech/nautilai/tree/main/<plugin-dir>` — `<plugin-dir>` is the top-level directory name, which may differ from the display name (e.g. relay's directory is `relay`, but double-check against the actual repo layout, not assumption). |
 
+## Current-state-only rule
+
+These pages describe what a plugin does now — never how it came to be that way.
+Delete, don't soften, anything that reads as history:
+
+- Past incidents or motivating events ("a transcript hijacked the extractor
+  during testing", "a bug in v1 caused...").
+- Eval-run or benchmark history ("across 3 eval runs it recovered 11/12,
+  12/12...", scorecards, before/after numbers).
+- Rejected alternatives or removed mechanisms ("a `Stop` hook was rejected",
+  "an earlier iteration ran X and was removed").
+- Phase/timeline language: "was built", "used to", "originally", "superseded",
+  "an earlier iteration".
+
+What stays: the current behavior stated as a present-tense fact, even if a
+past incident is *why* that behavior exists. Keep the mechanism, drop the
+story. Example — keep "`haiku-narrative.sh` runs Haiku with a bare
+`--system-prompt` and treats transcript content as data, never commands" (what
+the script does now); drop "a transcript hijacked the extractor during
+testing" (why it was built that way). Keep "recovers Decisions/Dead ends/Constraints
+from assistant prose" (current capability); drop "11/12, 12/12" scorecards
+(how that capability was measured historically).
+
+Net effect on the `<details class="tech">` blocks: a "Design notes" block
+that is *entirely* history gets deleted outright. A block with some
+current-fact bullets and some history gets its history bullets removed and
+the survivors folded into "Under the hood" (or a section literally titled
+"Behavior" if neither fits) — don't leave a near-empty "Design notes" block
+standing. A block that turns out to be all current-state facts (a convention,
+an invariant, a degrade contract) still gets folded into "Under the hood"
+and the "Design notes" heading retired — that heading itself implies a
+decision narrative this rule no longer wants on the page, even when the
+content underneath was already compliant.
+
 ## Tone rules (apply everywhere)
 
 - Nautical, terse, confident — matches the index page's voice ("Browse the reef", "Dive readout"). Don't force a nautical pun into every sentence; the index uses maybe one per section, not one per line.
@@ -39,28 +73,44 @@ README for the full sentence.
 
 ## Reusable components: flow diagram + tech detail
 
-Both live in `_TEMPLATE.html`'s inline `<style>` (`.flow`/`.flow-lane*` and
-`details.tech`), with a commented example markup block in the `<section
-id="how">` body — copy the markup, don't reinvent the classes.
+Both live in `_TEMPLATE.html`'s inline `<style>` (`.flow`/`.flow-lane*`/
+`.flow-split`/`.flow-legend` and `details.tech`), with commented example
+markup blocks in the `<section id="how">` body — copy the markup, don't
+reinvent the classes.
 
-**Flow diagram** (`.flow`, `.flow-step`, `.flow-arrow`, `.flow-lanes`/`.flow-lane`)
-— a horizontal row of step boxes joined by `→` arrows, pure HTML/CSS (no SVG,
-no JS). Below 560px it collapses to a column and the arrows become `↓`
-automatically. Use the plain `.flow` for a single sequential mechanism. Use
-`.flow-lanes` (two `.flow-lane[data-lane="ok"|"degrade"]` rows, each with a
-`.flow-lane-label`) only when the README documents an actual branch — a real
-ok/degrade or pass/fail split, not an invented one. **Every plugin page must
-include at least one flow diagram** in "How it works", capturing its core
-mechanism end to end.
+**Flow diagram** (`.flow`, `.flow-step`, `.flow-arrow`, `.flow-split`,
+`.flow-legend`, `.flow-lanes`/`.flow-lane`) — a row of numbered step boxes
+joined by `→` arrows, pure HTML/CSS (small inline `<svg>` icons are fine as
+markup; no external SVG files, no JS). Below 560px it collapses to a column
+and the arrows become `↓` automatically. **Every plugin page must include at
+least one flow diagram** in "How it works", capturing its core mechanism end
+to end.
 
-- Steps are short mechanism nouns/verbs (`stage files`, `verify.sh`), not
-  sentences — they're labels, not prose.
-- **Cap: 7 steps total** across a diagram, counting every lane. Trim to the
-  steps that carry the mechanism; a diagram that needs more than 7 to make
-  sense should be split into two diagrams or reduced to fewer, larger steps.
-- Only add lanes for a branch the README actually names (e.g. relay's TTL
-  expiry, autodev's review-gate pass vs. 3-strike escalation). Don't invent a
-  success/failure split to fill the component.
+- **Numbered steps.** Every `.flow-step` carries a `<span class="fs-num">`
+  badge with its position (`1`, `2`, `3`…) inside a `<span class="fs-body">`
+  holding a `<span class="fs-label">` (short mechanism noun/verb — a label,
+  not a sentence) and an optional `<span class="fs-sub">` naming the actual
+  script/hook/skill that runs that step, in monospace. Omit `fs-sub` for a
+  step the README doesn't tie to a specific script — don't invent one to fill
+  the slot. Numbering restarts at 1 in each separate `.flow`/`.flow-lanes`
+  group; two diagrams on one page are independently numbered.
+- **Decision points.** Where the README documents an actual branch (a real
+  ok/degrade or pass/fail split, never an invented one), mark the fork with a
+  `.flow-split` connector — a small inline SVG branch icon — between the last
+  shared step and the `.flow-lanes` below it, and add a `.flow-legend` above
+  the lanes pairing each lane's color with its condition in text (e.g. "within
+  TTL" / "TTL expired") so the distinction never rests on color alone.
+- **Lanes.** `.flow-lane[data-lane="ok"]` renders in the tide color with a ✓
+  prefix on its label; `.flow-lane[data-lane="degrade"]` renders in a warm
+  `--lumen` tint with a ⚠ prefix — both the tint and the icon carry the
+  distinction, never color alone. Only add lanes for a branch the README
+  actually names (e.g. relay's TTL expiry, autodev's review-gate pass vs.
+  3-strike escalation).
+- **Cap: 7 steps total** per diagram, counting every lane. A mechanism that
+  needs more than 7 steps to make sense should become two separate diagrams
+  (each independently numbered, each ≤7) rather than one crowded one — see
+  relay's page (write path / SessionStart pickup) and autodev's (pipeline /
+  verify-and-branch) for the pattern.
 
 **Collapsible tech detail** (`<details class="tech"><summary>…</summary><div
 class="tech-body">…</div></details>`) — native disclosure, no JS, themed
@@ -68,12 +118,9 @@ marker (chamber background, tide summary text, rotating `▸`). Use it for:
 
 - **"Under the hood"** — script/file names and what each does, data flow,
   exit codes or degrade contracts, env vars, storage paths. **Every plugin
-  page must include at least one of these.**
-- **"Design notes"** (optional) — a decision the README or changelog
-  documents explicitly (e.g. relay's transcript-injection hardening, autodev's
-  removed `Stop`-hook iteration). Skip this block entirely if the README
-  doesn't document a "why we built it this way" decision — don't manufacture
-  one.
+  page must include at least one of these.** Fold any current-state design
+  facts here too (see the current-state-only rule above) — a standalone
+  "Design notes" heading is retired; don't add one to new pages.
 
 Both sections apply the same no-invention rule as everywhere else: every
 bullet must trace to the plugin's own README/SCHEMA/scripts — never inferred
@@ -88,5 +135,5 @@ markup) — this is a technical appendix, not the full README pasted in.
 4. Every `<section>` has an `<h2>`, except the requirements section may be omitted entirely — never left as an empty shell.
 5. No unresolved `{{SLOT}}` placeholders remain anywhere in the file.
 6. Run a structural sanity check (balanced tags) before considering the page done — e.g. `python3 -c "import html.parser,sys; p=html.parser.HTMLParser(); p.feed(open(sys.argv[1]).read())" docs/plugins/<name>.html` should raise no exception.
-7. At least one `.flow` (or `.flow-lanes`) diagram appears in "How it works", ≤7 steps total, sourced from the README's own mechanism description.
-8. At least one `<details class="tech">` block is present ("Under the hood" is required; "Design notes" only if the README documents a decision), each ≤25 lines, with no invented facts.
+7. At least one `.flow` diagram appears in "How it works" with numbered `fs-num` steps, ≤7 steps total per diagram (split into a second diagram if the mechanism needs more), sourced from the README's own mechanism description; any lane split uses `.flow-split` + `.flow-legend` and both a color and an icon per lane.
+8. At least one `<details class="tech">` block is present ("Under the hood" is required), ≤25 lines, with no invented facts, and no history/incident/eval-run narrative per the current-state-only rule — no standalone "Design notes" heading.

@@ -14,6 +14,20 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-06
+
+- **relay secret scrub and harness-noise filtering generalized**
+  ([`relay`](../relay#readme)). Public sessions carry secrets and injected
+  content the original patterns never saw: the scrub now also redacts JWTs,
+  Google API keys, credentialed DB connection strings, and Basic auth, and the
+  user-message filter replaces three literal harness-wrapper prefixes with one
+  leading-XML-tag heuristic (structural `isMeta`/`isCompactSummary` stay the
+  primary defense). The narrative layer's quality is now measured on more than
+  one session shape — a non-code planning fixture and a twice-compacted one
+  both clear the recall gate, and an adversarial fixture confirms transcript
+  content can't hijack the extractor. (Fast-follows from the public-readiness
+  gap analysis; non-English eval coverage still open on #57.)
+
 ## 2026-07-05
 
 - **relay grows public-readiness controls** ([`relay`](../relay#readme)).

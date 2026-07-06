@@ -61,20 +61,43 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  /* ── Flow diagram: numbered steps, decision splits, color-coded lanes ──
+     See _slots.md for the markup contract and the 7-step cap rule. */
   .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
-  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-step { display: flex; align-items: center; gap: 9px; background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 8px 13px; }
+  .flow-step .fs-num { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--tide); color: var(--deep-2); font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; }
+  .flow-step .fs-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .flow-step .fs-label { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-step .fs-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--foam-soft); white-space: nowrap; }
   .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
   .flow-arrow::after { content: "\2192"; }
-  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
-  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
-  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
-  .flow-lane .flow-step { border-color: var(--line-deep); }
-  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+
+  .flow-split { display: flex; align-items: center; justify-content: center; padding: 0 9px; flex-shrink: 0; color: var(--lumen); }
+  .flow-split svg { width: 20px; height: 20px; display: block; }
+
+  .flow-legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 4px 0 10px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--foam-soft); }
+  .flow-legend .fl-item { display: inline-flex; align-items: center; gap: 6px; }
+  .flow-legend .fl-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .flow-legend .fl-swatch[data-lane="ok"] { background: var(--tide); }
+  .flow-legend .fl-swatch[data-lane="degrade"] { background: var(--lumen); }
+
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 10px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; border-radius: 10px; padding: 7px; }
+  .flow-lane-label { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane[data-lane="ok"] { background: oklch(0.6 0.09 200 / 0.07); }
+  .flow-lane[data-lane="ok"] .flow-step { border-color: oklch(0.62 0.09 200 / 0.4); }
+  .flow-lane[data-lane="ok"] .flow-lane-label::before { content: "\2713"; color: var(--tide); }
+  .flow-lane[data-lane="degrade"] { background: oklch(0.72 0.1 58 / 0.08); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.72 0.13 58 / 0.5); }
+  .flow-lane[data-lane="degrade"] .flow-lane-label::before { content: "\26A0"; color: var(--lumen); }
+
   @media (max-width: 560px) {
     .flow, .flow-lane { flex-direction: column; align-items: stretch; }
-    .flow-step { width: 100%; text-align: center; }
-    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-step { width: 100%; }
+    .flow-arrow { text-align: center; padding: 4px 0; }
     .flow-arrow::after { content: "\2193"; }
+    .flow-split { padding: 4px 0; }
+    .flow-split svg { transform: rotate(90deg); }
     .flow-lane-label { margin: 0 0 4px; }
   }
 
@@ -160,32 +183,23 @@
     <h2>How it works</h2>
     <p>The three skills form a sequential security audit pipeline: the first detects authorization gaps via AST and file-walk analysis; the second translates findings into ranked attacker abuse cases; the third proposes remediation without self-editing code.</p>
     <div class="flow">
-      <div class="flow-step">scan codebase</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">audit for gaps</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">threat-model abuse cases</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">generate playbooks</div>
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">scan & audit</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">threat-model</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">generate playbooks</span></span></div>
     </div>
 
     <details class="tech">
       <summary>Under the hood</summary>
       <div class="tech-body">
         <ul>
-          <li><code>/rbac-audit-django</code> — self-discovers role names, sensitive-data mixins, through-models; uses AST and file-walk for deterministic analysis; reports findings with file:line citations, severity-ranked (disposition: <code>report</code>).</li>
+          <li><code>/rbac-audit-django</code> — self-discovers role names, sensitive-data mixins, through-models; uses AST and file-walk for deterministic analysis (infers data structures from your code rather than hardcoding assumptions); reports findings with file:line citations, severity-ranked (disposition: <code>report</code>).</li>
           <li><code>/rbac-threat-model</code> — generates 5–10 ranked abuse cases via PACE framework (Principals, Assets, Channels, Escalation) and BIL scoring; operates like an attacker with a valid account (disposition: <code>report</code>).</li>
-          <li><code>/rbac-remediation-playbooks</code> — proposes fixes using project-discovered patterns; never edits code directly; user-invoked only (disposition: <code>ask-user</code>).</li>
+          <li><code>/rbac-remediation-playbooks</code> — proposes fixes using project-discovered patterns; never edits code directly; no authorization gap is ever auto-fixed (findings are always <code>report</code> or <code>ask-user</code>); user-invoked only (disposition: <code>ask-user</code>).</li>
           <li>Optional tools: <code>ast-grep</code> and <code>ripgrep</code> for faster structural analysis; degrades to stdlib AST/file-walk if absent.</li>
           <li>Storage: <code>docs/rbac-audit/report.md</code>, <code>rbac-audit-findings.json</code>, <code>threat-model.md</code>, <code>remediation-{now,next,later}.md</code>.</li>
           <li>Shoals: <code>.claude/shoals/rbac-django.&lt;skill&gt;.md</code> — append-only behavioral corrections.</li>
-        </ul>
-      </div>
-    </details>
-
-    <details class="tech">
-      <summary>Design notes</summary>
-      <div class="tech-body">
-        <ul>
-          <li>The audit is deterministic and self-discovering: it infers role names and data structures from your code rather than hardcoding assumptions about "User", "Admin", or tenant-column names.</li>
-          <li>No authorization gap is ever auto-fixed — findings are always <code>report</code> or <code>ask-user</code>; security decisions must be explicit and deliberate.</li>
         </ul>
       </div>
     </details>

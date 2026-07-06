@@ -62,19 +62,40 @@
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
   .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
-  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-step { display: flex; align-items: center; gap: 9px; background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 8px 13px; }
+  .flow-step .fs-num { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--tide); color: var(--deep-2); font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; }
+  .flow-step .fs-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .flow-step .fs-label { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-step .fs-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--foam-soft); white-space: nowrap; }
   .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
   .flow-arrow::after { content: "\2192"; }
-  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
-  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
-  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
-  .flow-lane .flow-step { border-color: var(--line-deep); }
-  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+
+  .flow-split { display: flex; align-items: center; justify-content: center; padding: 0 9px; flex-shrink: 0; color: var(--lumen); }
+  .flow-split svg { width: 20px; height: 20px; display: block; }
+
+  .flow-legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 4px 0 10px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--foam-soft); }
+  .flow-legend .fl-item { display: inline-flex; align-items: center; gap: 6px; }
+  .flow-legend .fl-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .flow-legend .fl-swatch[data-lane="ok"] { background: var(--tide); }
+  .flow-legend .fl-swatch[data-lane="degrade"] { background: var(--lumen); }
+
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 10px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; border-radius: 10px; padding: 7px; }
+  .flow-lane-label { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane[data-lane="ok"] { background: oklch(0.6 0.09 200 / 0.07); }
+  .flow-lane[data-lane="ok"] .flow-step { border-color: oklch(0.62 0.09 200 / 0.4); }
+  .flow-lane[data-lane="ok"] .flow-lane-label::before { content: "\2713"; color: var(--tide); }
+  .flow-lane[data-lane="degrade"] { background: oklch(0.72 0.1 58 / 0.08); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.72 0.13 58 / 0.5); }
+  .flow-lane[data-lane="degrade"] .flow-lane-label::before { content: "\26A0"; color: var(--lumen); }
+
   @media (max-width: 560px) {
     .flow, .flow-lane { flex-direction: column; align-items: stretch; }
-    .flow-step { width: 100%; text-align: center; }
-    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-step { width: 100%; }
+    .flow-arrow { text-align: center; padding: 4px 0; }
     .flow-arrow::after { content: "\2193"; }
+    .flow-split { padding: 4px 0; }
+    .flow-split svg { transform: rotate(90deg); }
     .flow-lane-label { margin: 0 0 4px; }
   }
 
@@ -162,20 +183,31 @@
     <p>Shoals: records corrections in <code>.claude/shoals/dep-review.dep-review.md</code> for the next run, learning what to always skip or adjust verdict-wise on specific packages.</p>
 
     <div class="flow">
-      <div class="flow-step">discover PRs</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">parse + classify</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">extract changelog</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">verify usage + security</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">apply matrix</div>
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">discover PRs</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">parse + classify</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">extract changelog</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">verify usage + security</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">5</span><span class="fs-body"><span class="fs-label">apply matrix</span></span></div>
     </div>
+    <div class="flow-legend">
+      <span class="fl-item"><span class="fl-swatch" data-lane="ok"></span> low-risk patch + CI pass</span>
+      <span class="fl-item"><span class="fl-swatch" data-lane="degrade"></span> minor / major / security</span>
+    </div>
+    <div class="flow-split" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v6"/><path d="M12 10c0 4-6 2-6 7"/><path d="M12 10c0 4 6 2 6 7"/></svg></div>
     <div class="flow-lanes">
       <div class="flow-lane" data-lane="ok"><span class="flow-lane-label">ok</span>
-        <div class="flow-step">patch + CI pass</div><div class="flow-arrow" aria-hidden="true"></div>
-        <div class="flow-step">auto-merge</div>
+        <div class="flow-step"><span class="fs-num">6</span><span class="fs-body"><span class="fs-label">patch + CI pass</span></span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step"><span class="fs-num">7</span><span class="fs-body"><span class="fs-label">auto-merge</span></span></div>
       </div>
-      <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">gated</span>
-        <div class="flow-step">minor / major / security</div><div class="flow-arrow" aria-hidden="true"></div>
-        <div class="flow-step">ask user</div>
+      <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">degrade</span>
+        <div class="flow-step"><span class="fs-num">6</span><span class="fs-body"><span class="fs-label">minor / major / security</span></span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step"><span class="fs-num">7</span><span class="fs-body"><span class="fs-label">ask user</span></span></div>
       </div>
     </div>
 
@@ -188,21 +220,14 @@
           <li>Changelog extraction from diff; registry metadata via <code>npm</code> / <code>pip-audit</code> (if present) or HTTP APIs (npm, PyPI).</li>
           <li>Verification: each change cited against codebase (<code>file:line</code>) or marked "not found".</li>
           <li>Security: CVE checks + tracks whether vulnerable path is used; EOL status from registry.</li>
+          <li>Evidence-based verdicts: cite specific changes from diff/changelog, backed with <code>file:line</code> usage claims; unverifiable metadata is reported, not guessed.</li>
+          <li>Bounded auto-merge: only patch/minor-dev-dep bumps with passing CI auto-merge, narrowing the high-risk class; CI passing is the consent.</li>
           <li>AUTO-MERGE is <code>auto-fix</code> (exception to opt-in mutation); other merges/closes are <code>ask-user</code> approval gates.</li>
           <li>Shoals file: <code>.claude/shoals/dep-review.dep-review.md</code> — learns package-specific corrections.</li>
         </ul>
       </div>
     </details>
 
-    <details class="tech">
-      <summary>Design notes</summary>
-      <div class="tech-body">
-        <ul>
-          <li>Evidence, not reputation: verdicts cite specific changes from diff/changelog, backed with <code>file:line</code> usage claims. Unverifiable metadata lowers confidence and is reported; guessed claims are not made.</li>
-          <li>Bounded auto-merge: only patch/minor-dev-dep with passing CI auto-merges, narrowing the high-risk class; CI passing is the consent.</li>
-        </ul>
-      </div>
-    </details>
   </section>
 
   <section id="requirements">

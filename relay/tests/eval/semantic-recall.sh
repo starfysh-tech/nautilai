@@ -18,8 +18,12 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 script_dir="$(cd "$(dirname "$0")" && pwd)"
-fixture="${script_dir}/fixtures/semantic.jsonl"
-facts_tsv="${script_dir}/facts.tsv"
+# Optional args select a fixture/facts pair so the same gate scores the
+# diverse-shape fixtures (noncode-planning, multi-compact), not just the
+# original coding session. Defaults preserve the original invocation.
+#   semantic-recall.sh [fixture.jsonl] [facts.tsv]
+fixture="${1:-${script_dir}/fixtures/semantic.jsonl}"
+facts_tsv="${2:-${script_dir}/facts.tsv}"
 extractor="${script_dir}/../../scripts/extract-transcript.sh"
 narrator="${script_dir}/../../scripts/haiku-narrative.sh"
 
