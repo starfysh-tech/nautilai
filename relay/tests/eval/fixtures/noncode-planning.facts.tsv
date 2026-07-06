@@ -1,0 +1,9 @@
+p1	decision	biweekly	sustain	Chose a biweekly cadence over weekly so two writers can sustain quality
+p2	decision	listicles	signups	Chose deep-dive tutorials over listicles since listicles rarely drove trial signups
+p3	decision	Priya	objection	Routed enterprise pieces to Priya for her sales-team objection-handling knowledge
+p4	decision	Tuesdays	buried	Chose to publish on Tuesdays since Monday posts get buried under inbox catch-up
+p5	decision	playbook	repeating	Wrote a shared style playbook instead of repeating the same review notes each draft
+p6	deadend	headless	eaten	Abandoned a headless CMS migration this quarter: it would have eaten three weeks of writer time
+p7	deadend	freelance	rewriting	Abandoned outsourcing to a freelance agency: drafts needed too much rewriting for tone
+p8	constraint-user	mandatory	freeze	User requirement: one enterprise piece per month is mandatory even during the August feature freeze
+p9	constraint-assistant	blackout	48	Discovered the pipeline drops posts scheduled less than 48 hours before a holiday blackout

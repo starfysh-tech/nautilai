@@ -1,0 +1,9 @@
+m1	decision	cosine	cross-encoder	Chose cross-encoder reranking over plain cosine similarity after human eval showed it caught intent mismatches
+m2	decision	TTL	tripled	Cached top reranked results with a 10 minute TTL since recomputing per request tripled p95 latency
+m3	decision	nightly	80	Pulled click history via a nightly batch instead of a real-time join that blew the 80ms rerank budget
+m4	decision	decay	predictive	Weighted recency with exponential decay instead of a hard cutoff that discarded still-predictive clicks
+m5	decision	quantized	resident	Stored per-user embeddings in a quantized 8-bit format so the table stays resident in memory
+m6	deadend	destabilized	crawler	Abandoned online learning-to-rank: it destabilized rankings whenever a bot crawler skewed clicks
+m7	deadend	cold-start	visitor	Abandoned a popularity fallback: cold-start recommendations were identical for every new visitor
+m8	constraint-user	VPC	third-party	User requirement: service must stay inside the VPC and never call a third-party ranking API
+m9	constraint-assistant	truncates	64	Discovered the mobile client truncates any response payload over 64 kilobytes
