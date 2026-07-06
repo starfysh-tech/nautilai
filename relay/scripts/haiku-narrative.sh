@@ -103,7 +103,7 @@ scrub() {
       # records, so this is a separate single-line gsub for the \n-escaped
       # form. "\\n" in this ERE matches the two literal characters backslash
       # and n, not a newline.
-      gsub(/-----BEGIN [A-Z ]*PRIVATE KEY-----(\\n[^\\]*)*\\n-----END [A-Z ]*PRIVATE KEY-----(\\n)?/, "[REDACTED]", line)
+      gsub(/-----BEGIN [A-Z ]*PRIVATE KEY-----[A-Za-z0-9+\/=\\n]*-----END [A-Z ]*PRIVATE KEY-----(\\n)?/, "[REDACTED]", line)
       line = redact_conn(line)
       line = redact_envsecret(line)
       print line

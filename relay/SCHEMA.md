@@ -224,9 +224,10 @@ Confidence key:
   working tree mid-task; the fabricated justification comment it carried was
   removed in `96e2e63`). The *code* was subsequently read-audited line by line
   and found sound — correct loop termination, BSD-awk-portable, fail-safe — so
-  it is kept, not reverted. One latent nit is tracked in #70: the single-line
-  PEM regex has a nested-quantifier (ReDoS) shape, harmless under awk's
-  non-backtracking engine but worth tightening if ever ported elsewhere.
+  it is kept, not reverted. The single-line PEM regex originally had a
+  nested-quantifier (ReDoS) shape; it was rewritten to a single bracket-class
+  quantifier (`[A-Za-z0-9+/=\n]*`) that redacts the same input with no
+  backtracking risk — verified against a 20k-segment pathological input.
 
 ## Platform coverage
 
