@@ -204,6 +204,30 @@ Confidence key:
   observed-empirically claim about the current CLI's own recursion handling,
   not something Relay enforces itself.
 
+## Secret scrubbing
+
+### `scrub()` — best-effort redaction, intentionally independent of `.gitleaks.toml`
+- **Where used:** identical `scrub()` in `extract-transcript.sh` and
+  `haiku-narrative.sh` (a test asserts the two bodies stay byte-identical).
+- **What it covers:** AWS `AKIA`, GitHub tokens, `sk-`, Slack `xox` + webhook
+  URLs, Google `AIza`, JWTs, `Bearer`/`Authorization: Basic`, credentialed DB
+  connection strings (redacts `user:pass@`, keeps the scheme), multi-line and
+  single-line (JSON-escaped `\n`) PEM private keys, and `KEY=value` env-style
+  secrets. Best-effort by design — over-redaction only loses fact-pack content,
+  it never leaks; it is **not** a completeness guarantee.
+- **Confidence:** the pattern set is exercised by the 150-assertion suite and
+  ran over a 21 MB real transcript in live validation (`LIVE-LEDGER.md`, #60)
+  with 13 redactions and no hang.
+- **Provenance note:** the broadened family set (Slack, GCP single-line PEM,
+  connection strings, env-secrets) entered via commit `d74b104`, which passed
+  through a contaminated edit window (an unaccounted teammate agent altered the
+  working tree mid-task; the fabricated justification comment it carried was
+  removed in `96e2e63`). The *code* was subsequently read-audited line by line
+  and found sound — correct loop termination, BSD-awk-portable, fail-safe — so
+  it is kept, not reverted. One latent nit is tracked in #70: the single-line
+  PEM regex has a nested-quantifier (ReDoS) shape, harmless under awk's
+  non-backtracking engine but worth tightening if ever ported elsewhere.
+
 ## Platform coverage
 
 - **Built and tested on:** macOS, bash 3.2 compatibility targeted (no
