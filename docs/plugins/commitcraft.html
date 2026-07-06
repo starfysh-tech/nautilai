@@ -62,19 +62,40 @@
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
   .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
-  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-step { display: flex; align-items: center; gap: 9px; background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 8px 13px; }
+  .flow-step .fs-num { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--tide); color: var(--deep-2); font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; }
+  .flow-step .fs-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .flow-step .fs-label { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-step .fs-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--foam-soft); white-space: nowrap; }
   .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
   .flow-arrow::after { content: "\2192"; }
-  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
-  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
-  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
-  .flow-lane .flow-step { border-color: var(--line-deep); }
-  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+
+  .flow-split { display: flex; align-items: center; justify-content: center; padding: 0 9px; flex-shrink: 0; color: var(--lumen); }
+  .flow-split svg { width: 20px; height: 20px; display: block; }
+
+  .flow-legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 4px 0 10px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--foam-soft); }
+  .flow-legend .fl-item { display: inline-flex; align-items: center; gap: 6px; }
+  .flow-legend .fl-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .flow-legend .fl-swatch[data-lane="ok"] { background: var(--tide); }
+  .flow-legend .fl-swatch[data-lane="degrade"] { background: var(--lumen); }
+
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 10px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; border-radius: 10px; padding: 7px; }
+  .flow-lane-label { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane[data-lane="ok"] { background: oklch(0.6 0.09 200 / 0.07); }
+  .flow-lane[data-lane="ok"] .flow-step { border-color: oklch(0.62 0.09 200 / 0.4); }
+  .flow-lane[data-lane="ok"] .flow-lane-label::before { content: "\2713"; color: var(--tide); }
+  .flow-lane[data-lane="degrade"] { background: oklch(0.72 0.1 58 / 0.08); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.72 0.13 58 / 0.5); }
+  .flow-lane[data-lane="degrade"] .flow-lane-label::before { content: "\26A0"; color: var(--lumen); }
+
   @media (max-width: 560px) {
     .flow, .flow-lane { flex-direction: column; align-items: stretch; }
-    .flow-step { width: 100%; text-align: center; }
-    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-step { width: 100%; }
+    .flow-arrow { text-align: center; padding: 4px 0; }
     .flow-arrow::after { content: "\2193"; }
+    .flow-split { padding: 4px 0; }
+    .flow-split svg { transform: rotate(90deg); }
     .flow-lane-label { margin: 0 0 4px; }
   }
 
@@ -165,11 +186,15 @@
     <p>The release workflow defers to release-please only when it's actually functional — a detection script distinguishes a working release-please from one that's present but neutered (skip flags, no <code>contents: write</code>, or stuck at <code>0.0.0</code>), falling back to a manual tag/release path with a one-line reason rather than dead-ending on a release PR that will never arrive. On that manual path, release notes are grouped by the repo's own <code>release-please-config.json</code> changelog sections when that file exists, so a repo declares its categories once and gets the same sectioned notes either way.</p>
 
     <div class="flow">
-      <div class="flow-step">stage files individually</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">branch from main</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">generate message</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">pre-commit hooks</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">commit / PR</div>
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">stage files</span><span class="fs-sub">git add &lt;file&gt;</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">branch from main</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">generate message</span><span class="fs-sub">SKILL.md</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">pre-commit hooks</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">5</span><span class="fs-body"><span class="fs-label">commit / PR</span></span></div>
     </div>
 
     <details class="tech">
@@ -182,18 +207,8 @@
           <li><code>commitcraft-release-analyze.sh</code> — semantic version analysis for the manual fallback path.</li>
           <li><code>commitcraft-issues.sh</code> — branch-based issue validation across github / linear / jira / none.</li>
           <li>On the manual release path, notes are grouped by the repo's own <code>release-please-config.json</code> <code>changelog-sections</code> when present, falling back to a built-in section table.</li>
-        </ul>
-      </div>
-    </details>
-
-    <details class="tech">
-      <summary>Design notes</summary>
-      <div class="tech-body">
-        <ul>
           <li>Conventional commits only: <code>&lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;</code>, ≤50 char lowercase subject, no emoji, ≤72 char body lines — enforced by commitlint locally and in CI.</li>
-          <li>Files are staged individually (<code>git add &lt;file&gt;</code>), never <code>git add -A</code>.</li>
-          <li>No attribution footers (no <code>Co-Authored-By</code>).</li>
-          <li><code>--no-verify</code> is never used — hook failures are hard stops, not bypasses.</li>
+          <li>Files are staged individually (<code>git add &lt;file&gt;</code>), never <code>git add -A</code>; no attribution footers (no <code>Co-Authored-By</code>); <code>--no-verify</code> is never used — hook failures are hard stops, not bypasses.</li>
           <li>The commit workflow auto-creates a feature branch when run on <code>main</code>.</li>
         </ul>
       </div>

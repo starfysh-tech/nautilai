@@ -61,20 +61,43 @@
   .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
   .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
 
+  /* ── Flow diagram: numbered steps, decision splits, color-coded lanes ──
+     See _slots.md for the markup contract and the 7-step cap rule. */
   .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
-  .flow-step { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 9px 13px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-step { display: flex; align-items: center; gap: 9px; background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 8px 13px; }
+  .flow-step .fs-num { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--tide); color: var(--deep-2); font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; }
+  .flow-step .fs-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .flow-step .fs-label { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-step .fs-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--foam-soft); white-space: nowrap; }
   .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
   .flow-arrow::after { content: "\2192"; }
-  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 14px 0; }
-  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; }
-  .flow-lane-label { font-family: var(--font-mono); font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
-  .flow-lane .flow-step { border-color: var(--line-deep); }
-  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.6 0.08 40 / 0.5); }
+
+  .flow-split { display: flex; align-items: center; justify-content: center; padding: 0 9px; flex-shrink: 0; color: var(--lumen); }
+  .flow-split svg { width: 20px; height: 20px; display: block; }
+
+  .flow-legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 4px 0 10px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--foam-soft); }
+  .flow-legend .fl-item { display: inline-flex; align-items: center; gap: 6px; }
+  .flow-legend .fl-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .flow-legend .fl-swatch[data-lane="ok"] { background: var(--tide); }
+  .flow-legend .fl-swatch[data-lane="degrade"] { background: var(--lumen); }
+
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 10px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; border-radius: 10px; padding: 7px; }
+  .flow-lane-label { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane[data-lane="ok"] { background: oklch(0.6 0.09 200 / 0.07); }
+  .flow-lane[data-lane="ok"] .flow-step { border-color: oklch(0.62 0.09 200 / 0.4); }
+  .flow-lane[data-lane="ok"] .flow-lane-label::before { content: "\2713"; color: var(--tide); }
+  .flow-lane[data-lane="degrade"] { background: oklch(0.72 0.1 58 / 0.08); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.72 0.13 58 / 0.5); }
+  .flow-lane[data-lane="degrade"] .flow-lane-label::before { content: "\26A0"; color: var(--lumen); }
+
   @media (max-width: 560px) {
     .flow, .flow-lane { flex-direction: column; align-items: stretch; }
-    .flow-step { width: 100%; text-align: center; }
-    .flow-arrow { text-align: center; padding: 2px 0; }
+    .flow-step { width: 100%; }
+    .flow-arrow { text-align: center; padding: 4px 0; }
     .flow-arrow::after { content: "\2193"; }
+    .flow-split { padding: 4px 0; }
+    .flow-split svg { transform: rotate(90deg); }
     .flow-lane-label { margin: 0 0 4px; }
   }
 
@@ -161,32 +184,26 @@
     <h2>How it works</h2>
     <p>The skill reads issues, detects the repo's label taxonomy, audits for cleanup opportunities, and stops at a review checkpoint before applying any mutations.</p>
     <div class="flow">
-      <div class="flow-step">list issues</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">detect label taxonomy</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">audit all categories</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">report findings</div><div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step">approve mutations</div>
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">list issues</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">detect label taxonomy</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">audit all categories</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">report findings</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">5</span><span class="fs-body"><span class="fs-label">approve mutations</span></span></div>
     </div>
 
     <details class="tech">
       <summary>Under the hood</summary>
       <div class="tech-body">
         <ul>
-          <li><code>/github-issue-auditor</code> — single skill that reads via GitHub CLI (<code>gh</code>) or GitHub MCP server (whichever available); audits for marked duplicates, fuzzy-matched duplicates (Levenshtein similarity, default 0.75), orphaned sub-issues, unlabeled items, stale issues (default 90 days), and label inconsistencies.</li>
+          <li><code>/github-issue-auditor</code> — single skill that reads via GitHub CLI (<code>gh</code>) or GitHub MCP server (whichever available); read-only by default (audit is <code>report</code>); any mutation (close/relabel/comment) is <code>ask-user</code> behind an approval gate. Audits for marked duplicates, fuzzy-matched duplicates (Levenshtein similarity, default 0.75), orphaned sub-issues, unlabeled items, stale issues (default 90 days), and label inconsistencies.</li>
           <li>Auto-detection: lists repo labels and groups them by inferred category (status/type/priority/area); does not assume label names.</li>
-          <li>Finding dispositions: audit is <code>report</code>; mutations (close/relabel/comment) are <code>ask-user</code> behind Phase 4 gate.</li>
+          <li>Reporting: findings-first, prioritized list omits clean categories; evidence (issue numbers, age, similarity %) grounds every claim.</li>
           <li>Customizable flags: <code>--similarity 0.XX</code> (duplicate threshold), <code>--stale-days N</code> (age threshold).</li>
           <li>Shoals: <code>.claude/shoals/github-issue-auditor.github-issue-auditor.md</code> — project corrections (e.g. "issues labeled <code>keep-open</code> are never stale").</li>
-        </ul>
-      </div>
-    </details>
-
-    <details class="tech">
-      <summary>Design notes</summary>
-      <div class="tech-body">
-        <ul>
-          <li>Read-only by default: the audit reports findings without mutating the tracker; any change (close/relabel/comment) is behind an explicit user approval gate.</li>
-          <li>Findings-first: prioritized list omits clean categories; evidence (issue numbers, age, similarity %) grounds every claim.</li>
         </ul>
       </div>
     </details>
