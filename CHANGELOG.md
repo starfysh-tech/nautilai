@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.14.2](https://github.com/starfysh-tech/nautilai/compare/v2.14.1...v2.14.2) (2026-07-06)
+
+
+### Bug Fixes
+
+* **relay:** drop staleness expiry on clear pickup ([49bd9e0](https://github.com/starfysh-tech/nautilai/commit/49bd9e056678675dcd767f53db0744bc0fd537eb))
+* **relay:** drop staleness expiry on clear pickup ([1c822ad](https://github.com/starfysh-tech/nautilai/commit/1c822ad23f92f31fb29fab37106c9e430e7650ac))
+
 ## [2.14.1](https://github.com/starfysh-tech/nautilai/compare/v2.14.0...v2.14.1) (2026-07-06)
 
 
