@@ -82,15 +82,16 @@ keep signal. The first seven sections carry the same semantics as before.
 ## 6. Write the consume-once marker
 
 Write the doc's absolute path (and nothing else) to `$dir/pending`, overwriting
-any existing marker. The `SessionStart` hook reads this file once, within a
-30-minute TTL, to auto-inject the handoff into the next session, then renames it
-`consumed-<epoch>` so it's never injected twice.
+any existing marker. The `SessionStart` hook reads this file once to auto-inject
+the handoff into the next session, then renames it `consumed-<epoch>` so it's
+never injected twice. A 30-minute TTL applies only on `source=startup`; a
+`/clear` handoff is honored regardless of age.
 
 ## 7. Report to the user
 
 Print the absolute doc path, and tell them that running `/clear` will start a
-fresh session that picks the handoff up automatically (30-minute TTL, consumed
-once) — no need to paste or re-open it manually.
+fresh session that picks the handoff up automatically (consumed once, no TTL on
+`/clear`) — no need to paste or re-open it manually.
 
 ## Recover mode (`/handoff recover`)
 
