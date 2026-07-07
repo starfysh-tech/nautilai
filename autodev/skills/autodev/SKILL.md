@@ -53,19 +53,9 @@ For each independent task in the request:
    ```bash
    bash ${CLAUDE_PLUGIN_ROOT}/scripts/create_worktree.sh <slug> [base-branch]
    ```
-   JS workspaces (pnpm/yarn) need their own install in the worktree —
-   workspace symlinks don't survive worktree creation. If a pinned
-   `packageManager` hits a corepack signature error, retry with
-   `COREPACK_INTEGRITY_KEYS=0`; if a transitive native build aborts the
-   install (surfacing later as `<runner>: command not found`), retry with
-   `--ignore-scripts`. Both are environment failures, not task failures.
-
-   Gitignored env files (`.env.local`, `.secrets.local`) don't survive
-   worktree creation either, and the symptom is misleading — tests fail on
-   the *wrong-credential* path (e.g. 401 where 400 is expected), which reads
-   like a real bug. If the suite is env-dependent and self-contained,
-   generate fresh lane-scoped **dummy** credentials in the worktree; never
-   copy real secrets.
+   Worktree failures are often environmental, not code bugs — a 401 where a
+   400 is expected can read like a real bug. Read
+   `references/worktree-gotchas.md` before classifying a failure.
 
 3. **Baseline verify** — confirms the lane starts green so pre-existing
    breakage is never billed to the worker. On failure the lane is flagged
@@ -100,8 +90,8 @@ For each independent task in the request:
    d. On verify pass, run the **review gate** — tests-green is necessary,
       not sufficient. Spawn a `review-gate` agent (fresh context, never the
       worker that wrote the change; if the agent type doesn't resolve, use
-      `general-purpose` with the review-gate.md contract pasted in) with the
-      worktree path, lane dir, and base branch. Then:
+      `general-purpose` with `model: "sonnet"` and the review-gate.md contract
+      pasted in) with the worktree path, lane dir, and base branch. Then:
       - **verdict: pass** →
         ```bash
         bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh record-success <slug>

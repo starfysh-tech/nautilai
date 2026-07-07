@@ -3,7 +3,7 @@ name: phi-scan
 description: Scan a repo for Protected Health Information (PHI under HIPAA Safe Harbor) — SSNs, emails, phones, IPs, dates, restricted ZIP codes — using a deterministic scanner, then AI-triage the findings to filter false positives and catch what regex misses (names, MRNs). Optionally runs Django/React OWASP grep checks when that stack is detected. Use when the user mentions a PHI scan, HIPAA scan, de-identification check, 'find leaked patient data', wants compliance evidence before a PR or release, or (for the OWASP add-on) a quick secrets/SQLi/XSS sweep of a Django or React repo.
 argument-hint: "[path] [--all] [--verbose]"
 context: fork
-allowed-tools: [Read, Glob, Grep, Bash(python3:*), Bash(grep:*)]
+allowed-tools: [Read, Glob, Grep, Task, Bash(python3:*), Bash(grep:*)]
 ---
 
 # PHI Scan
@@ -36,7 +36,7 @@ python3 ${CLAUDE_PLUGIN_ROOT}/scripts/phi_check.py $ARGUMENTS --verbose
 
 ### 2. AI-triage the PHI findings
 
-The scanner is deterministic regex; your job is the judgment it can't do. For each finding (and by reading the flagged files):
+The scanner is deterministic regex; your job is the judgment it can't do. When findings span more than ~5 files, fan the per-file triage out to parallel subagents (Task, `general-purpose`, model: haiku) — one per file or small batch, each returning confirm/dismiss/needs-manual-review plus a one-line rationale — and synthesize the results. Below that, triage inline. For each finding (and by reading the flagged files):
 
 1. **Confirm or dismiss context** — is it test/mock/seed data, a config value, or a comment *about* PHI handling rather than actual PHI?
 2. **Catch what regex missed** — scan free text in the flagged files for names (`Patient: …`, `Dr. …`), medical record numbers (org-specific formats), rare conditions, or uniquely identifying circumstances.

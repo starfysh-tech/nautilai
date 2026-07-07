@@ -30,8 +30,9 @@ gh pr view --json state,url 2>/dev/null
 ```
 
 **Handling:**
-- If PR exists → Display URL, ask if user wants to update description or exit
 - If no PR found → Continue to Phase 2
+- If PR exists with `state: OPEN` → Display URL, ask if user wants to update description or exit
+- If PR exists with `state: CLOSED` or `state: MERGED` → It's not blocking; continue to Phase 2 to create a fresh PR
 
 ## Phase 2: Gather Context
 
@@ -39,8 +40,13 @@ Collect branch and commit information:
 
 ```bash
 BRANCH=$(git branch --show-current)
-git log main..HEAD --oneline
-git diff main...HEAD --stat
+BASE=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+if [ -z "$BASE" ]; then
+    BASE=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null)
+fi
+BASE="${BASE:-main}"
+git log "$BASE"..HEAD --oneline
+git diff "$BASE"...HEAD --stat
 ```
 
 Parse commits to understand:
@@ -136,7 +142,7 @@ Display result:
 ```
 ✓ PR created: <url>
 ✓ Branch: <branch>
-✓ Commits: N commits since main
+✓ Commits: N commits since <base branch>
 ```
 
 Or if skipped:

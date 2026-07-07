@@ -59,6 +59,12 @@ is recoverable; a wrong silent edit is not.
 | **phi-scan** | *none* (never auto-remediates PHI) | scanner candidates; triage results; OWASP grep hits | confirmed PHI exposure — remediation is the user's call |
 | **cc-adoption-audit** | *none* | the full prioritized audit | acting on a recommendation ("set up X?") |
 | **pr-review-deep** | *none* (propose-only; never edits code) | every review finding, with cited `file:line` | acting on a proposed restructuring ("apply this?") |
+| **github-issue-auditor** | *none by default* (Phase 4 applies only user-approved batches) | the full audit report | every mutation — behind the Phase 4 gate |
+
+**Noted exception:** autodev's `review-gate` agent is a pipeline-internal gate, not
+a user-facing review — it returns `pass`/`block` with blocking/advisory findings.
+`block` maps to `ask-user` (the orchestrator decides), `advisory` maps to `report`,
+and there is no `auto-fix` (the reviewer is read-only). See `autodev/README.md`.
 
 ## Why this came from `no-mistakes`
 

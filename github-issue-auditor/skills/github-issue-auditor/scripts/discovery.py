@@ -66,11 +66,16 @@ class DiscoveryEngine:
         """
         print("Starting discovery phase...")
 
+        # find_unlabeled and find_orphaned both need the full open-issue list;
+        # fetch it once here and pass it to both instead of issuing the same
+        # `gh issue list` query twice.
+        open_issues = self._fetch_open_issues()
+
         findings = {
             'duplicates': self.find_duplicates(),
-            'unlabeled': self.find_unlabeled(),
+            'unlabeled': self.find_unlabeled(open_issues),
             'stale_backlog': self.find_stale_backlog(),
-            'orphaned': self.find_orphaned(),
+            'orphaned': self.find_orphaned(open_issues),
             'potential_duplicates': []  # Computed in analyzer
         }
 
@@ -103,23 +108,36 @@ class DiscoveryEngine:
         print(f"✓ {len(issues)} found")
         return issues
 
-    def find_unlabeled(self) -> List[Dict[str, Any]]:
+    def _fetch_open_issues(self) -> List[Dict[str, Any]]:
         """
-        Find issues with zero labels.
+        Fetch all open issues (unfiltered by label).
 
         Returns:
             List of issue dictionaries
         """
-        print("  Finding unlabeled...", end=" ", flush=True)
-
         cmd = [
             'gh', 'issue', 'list',
             '--state', 'open',
             '--json', 'number,title,createdAt,body,labels',
             '--limit', '1000'
         ]
+        return self.gh_wrapper.run_gh_command(cmd)
 
-        all_issues = self.gh_wrapper.run_gh_command(cmd)
+    def find_unlabeled(self, open_issues: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
+        """
+        Find issues with zero labels.
+
+        Args:
+            open_issues: Pre-fetched open issues to filter (avoids a duplicate
+                `gh issue list` call when the caller already has the list).
+                Fetched if not provided.
+
+        Returns:
+            List of issue dictionaries
+        """
+        print("  Finding unlabeled...", end=" ", flush=True)
+
+        all_issues = open_issues if open_issues is not None else self._fetch_open_issues()
         unlabeled = [issue for issue in all_issues if len(issue.get('labels', [])) == 0]
 
         print(f"✓ {len(unlabeled)} found")
@@ -157,24 +175,21 @@ class DiscoveryEngine:
         print(f"✓ {len(stale)} found")
         return stale
 
-    def find_orphaned(self) -> List[Dict[str, Any]]:
+    def find_orphaned(self, open_issues: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
         """
         Find orphaned sub-issues (parent is closed).
+
+        Args:
+            open_issues: Pre-fetched open issues to scan (avoids a duplicate
+                `gh issue list` call when the caller already has the list).
+                Fetched if not provided.
 
         Returns:
             List of issue dictionaries with parent_issue field added
         """
         print("  Finding orphaned sub-issues...", end=" ", flush=True)
 
-        # Get all open issues
-        cmd = [
-            'gh', 'issue', 'list',
-            '--state', 'open',
-            '--json', 'number,title,createdAt,body,labels',
-            '--limit', '1000'
-        ]
-
-        all_issues = self.gh_wrapper.run_gh_command(cmd)
+        all_issues = open_issues if open_issues is not None else self._fetch_open_issues()
 
         # Parent reference patterns
         patterns = [

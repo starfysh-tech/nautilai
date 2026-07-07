@@ -40,7 +40,12 @@ Flag: user-controlled input rendered through `|safe`, `mark_safe()`, `innerHTML`
 ## 4. Authorization gaps (Django REST)
 
 ```bash
-grep -rnE "class.*ViewSet|class.*APIView" "$TARGET_PATH" --include="*.py" -A 10 | grep -v "permission_classes"
+grep -rnE "class.*ViewSet|class.*APIView" "$TARGET_PATH" --include="*.py" -A 10
+```
+
+Read the matches above and check by eye for classes whose 10-line context has no `permission_classes`. (A piped `grep -v` here would need `Bash(grep:*)` to auto-approve a compound pipeline, which it may not — run this as a single invocation and filter manually.)
+
+```bash
 grep -rnE "#.*@login_required|#.*IsAuthenticated" "$TARGET_PATH" --include="*.py"
 ```
 

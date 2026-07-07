@@ -7,18 +7,31 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+# Default taxonomy label names. These are the repo conventions the original
+# skill assumed. They are configurable (see IssueAnalyzer.__init__) so the
+# auditor can pass the taxonomy it detected for the target repo (SKILL.md
+# Phase 1a) instead of assuming, mirroring DiscoveryEngine's label params.
+DEFAULT_LABEL_MAP = {
+    'bug': 'type: bug',
+    'enhancement': 'type: enhancement',
+    'documentation': 'type: documentation',
+}
+
 
 class IssueAnalyzer:
     """Analyzes issues and suggests actions."""
 
-    def __init__(self, similarity_threshold: float = 0.75):
+    def __init__(self, similarity_threshold: float = 0.75, label_map: Optional[Dict[str, str]] = None):
         """
         Initialize issue analyzer.
 
         Args:
             similarity_threshold: Minimum similarity for potential duplicates (0.0-1.0)
+            label_map: Taxonomy labels detected for the target repo, keyed by
+                bug/enhancement/documentation. Falls back to DEFAULT_LABEL_MAP.
         """
         self.similarity_threshold = similarity_threshold
+        self.label_map = label_map or DEFAULT_LABEL_MAP
         self.title_similarity = TitleSimilarity()
 
     def analyze_findings(self, findings: Dict[str, List[Dict[str, Any]]]) -> Dict[str, List[Dict[str, Any]]]:
@@ -52,10 +65,11 @@ class IssueAnalyzer:
         """Analyze duplicate issues."""
         for issue in issues:
             original_number = self._extract_duplicate_reference(issue.get('body', ''))
-            issue['suggested_action'] = 'close'
             if original_number:
+                issue['suggested_action'] = 'close'
                 issue['rationale'] = f"Already marked as duplicate of #{original_number}"
             else:
+                issue['suggested_action'] = 'investigate'
                 issue['rationale'] = "Labeled as duplicate but no reference found"
 
         return issues
@@ -72,17 +86,17 @@ class IssueAnalyzer:
             # Bug detection keywords
             bug_keywords = ['bug', 'error', 'issue', 'problem', 'broken', 'crash', 'fail']
             if any(keyword in title or keyword in body for keyword in bug_keywords):
-                suggested_labels.append('type: bug')
+                suggested_labels.append(self.label_map['bug'])
 
             # Feature detection keywords
             feature_keywords = ['add', 'new', 'feature', 'enhancement', 'implement', 'support']
             if any(keyword in title or keyword in body for keyword in feature_keywords):
-                suggested_labels.append('type: enhancement')
+                suggested_labels.append(self.label_map['enhancement'])
 
             # Documentation detection keywords
             doc_keywords = ['doc', 'documentation', 'readme', 'guide', 'example']
             if any(keyword in title or keyword in body for keyword in doc_keywords):
-                suggested_labels.append('type: documentation')
+                suggested_labels.append(self.label_map['documentation'])
 
             issue['suggested_action'] = 'label'
             issue['suggested_labels'] = suggested_labels

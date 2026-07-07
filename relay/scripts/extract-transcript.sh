@@ -242,7 +242,8 @@ scrub() {
           if ($c|type)=="string" then $c
           elif ($c|type)=="object" then $c.text // null
           elif ($c|type)=="array" then
-            ($c | map(select(.type=="text")) | .[0].text // null)
+            ([$c[] | select(.type=="text") | .text] | join("\n")) as $joined
+            | (if ($joined|length) > 0 then $joined else null end)
           else null
           end
         ) as $text

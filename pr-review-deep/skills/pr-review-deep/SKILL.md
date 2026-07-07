@@ -1,7 +1,7 @@
 ---
 name: pr-review-deep
 description: Use for a rigorous, evidence-based code quality review of a branch or PR — focused on implementation quality, maintainability, abstraction design, type/boundary contracts, and behavior-preserving structural simplification. The reviewer proposes high-leverage restructurings with cited evidence; it does not perform them or expand the PR's scope. User-invoked — run /pr-review-deep; the agent will not auto-fire it.
-allowed-tools: Read, Grep, Glob, Write, Task, ToolSearch, Bash(git:*), Bash(gh:*), mcp__github__pull_request_read, mcp__github__get_pull_request_diff, mcp__github__get_pull_request_files
+allowed-tools: Read, Grep, Glob, Write, Bash(git:*), Bash(gh:*), mcp__github__pull_request_read
 disable-model-invocation: true
 context: fork
 ---

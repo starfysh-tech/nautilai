@@ -2,7 +2,7 @@
 
 **Grouped PRs:**
 - If any package in the group has breaking changes → INVESTIGATE
-- If all are patches/minor dev deps → MERGE
+- If all are patches/minor dev deps and CI is passing → AUTO-MERGE
 - Process as single unit (don't split)
 
 **@types/* packages:**

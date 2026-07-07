@@ -18,9 +18,17 @@ You MUST call `ToolSearch` with query `select:AskUserQuestion` RIGHT NOW before 
 
 **Every git command runs in the foreground. One attempt per phase. No retries, no background tasks, no `--no-verify`.** Pre-commit hooks can take 60-90 seconds — wait for them.
 
-Read `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/$ARGUMENTS.md` and follow its instructions exactly. If the file does not exist or cannot be read, read `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/commit.md` instead. Do not skip steps.
+Take the first whitespace-delimited token of `$ARGUMENTS` as the subcommand; any
+remaining words are context to pass into the workflow, not part of the dispatch.
 
-Working directory: `$WORKING_DIRECTORY`
+- If `$ARGUMENTS` is empty, read `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/commit.md`.
+- If the first token is one of `commit|push|pr|release|setup|check`, read
+  `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/<token>.md` and follow its
+  instructions exactly, using the remaining words as context. Do not skip steps.
+- Otherwise, do not default to commit — tell the user the subcommand wasn't
+  recognized and list the valid ones: `commit, push, pr, release, setup, check`.
+
+Run all commands from the repo root.
 
 ## Shoals (project corrections)
 

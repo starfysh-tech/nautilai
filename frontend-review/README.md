@@ -21,8 +21,11 @@ Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
 /plugin install frontend-review@nautilai
 ```
 
-No runtime dependencies — both skills run entirely on `Glob`/`Grep`/`Read` (the
-Tailwind skill also uses `Edit`, gated, for exact token swaps).
+Each skill ships a bundled Python analysis engine (`python3` 3.10+) under its
+`scripts/` dir — `Glob`/`Grep`/`Read` confirm and contextualize findings, not run the
+checks. The Tailwind skill's config analyzer also shells out to `node` when present
+(to resolve the config via Tailwind's `resolveConfig`), falling back to regex parsing
+otherwise; it also uses `Edit`, gated, for exact token swaps.
 
 ## Use
 
@@ -39,8 +42,8 @@ mid-conversation.
 
 ## What it does
 
-The skills perform the analysis directly (the model is the analyzer); they don't ship
-a separate engine. Each:
+Each skill's bundled Python engine performs the analysis; the model drives it and uses
+`Glob`/`Grep`/`Read` to confirm and contextualize the results. Each:
 
 1. **Resolves the frontend root** by finding the React `package.json` and its source
    dir, rather than assuming `client/` or `src/`. The Tailwind skill also finds the
@@ -68,15 +71,6 @@ This plugin follows the [nautilai conventions](../docs/conventions/README.md):
   `.claude/shoals/frontend-review.<skill>.md` in your project and reads them back on
   the next run — append-only, committed by default (teammates inherit them),
   `.gitignore` the path if you'd rather keep them per-developer.
-
-### Note on the port
-
-These skills were ported from a private repo where they shipped a set of Python
-modules. Those modules had **no CLI entrypoint** (importable libraries, never wired to
-run), so shipping them would be dead code that violates the spirit of the bundled-script
-convention (#8 — scripts must be invokable and `${CLAUDE_PLUGIN_ROOT}`-rooted). The
-audit logic they described is now carried out by the model via `Glob`/`Grep`/`Read`,
-which is simpler and removes the hardcoded `client/` source path.
 
 ## Shoals (project corrections)
 

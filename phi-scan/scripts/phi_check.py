@@ -142,6 +142,7 @@ class Finding:
     value: str
     line_content: str
     is_test_data: bool = False
+    restricted: bool = False
 
 
 # ============================================================================
@@ -183,12 +184,10 @@ def scan_line(line: str, line_number: int, file_path: str) -> Iterator[Finding]:
         for match in pattern.finditer(line):
             value = match.group(0)
 
-            # Special handling for ZIP codes
-            if identifier_type == "zip_5":
-                prefix = value[:3]
-                if prefix not in RESTRICTED_ZIP_PREFIXES:
-                    # Non-restricted full ZIP - still a finding but lower priority
-                    pass
+            # Special handling for ZIP codes: HIPAA Safe Harbor requires the
+            # 17 restricted prefixes (population < 20,000) to be flagged as
+            # higher priority than an ordinary 5-digit ZIP.
+            restricted = identifier_type == "zip_5" and value[:3] in RESTRICTED_ZIP_PREFIXES
 
             yield Finding(
                 file_path=file_path,
@@ -198,6 +197,7 @@ def scan_line(line: str, line_number: int, file_path: str) -> Iterator[Finding]:
                 value=value,
                 line_content=line.rstrip(),
                 is_test_data=is_test_data(line, value, file_path),
+                restricted=restricted,
             )
 
 
@@ -285,7 +285,8 @@ def format_findings(findings: list[Finding], verbose: bool = False) -> str:
         lines.append(f"\n{file_path}:")
         for f in sorted(file_findings, key=lambda x: x.line_number):
             marker = "[TEST]" if f.is_test_data else "[PHI]"
-            lines.append(f"  {f.line_number}:{f.column} {marker} {f.identifier_type}: {f.value}")
+            identifier_label = f"{f.identifier_type}(restricted)" if f.restricted else f.identifier_type
+            lines.append(f"  {f.line_number}:{f.column} {marker} {identifier_label}: {f.value}")
             if verbose:
                 lines.append(f"    > {f.line_content[:80]}")
 

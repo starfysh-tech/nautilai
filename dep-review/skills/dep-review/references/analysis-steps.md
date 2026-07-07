@@ -41,7 +41,7 @@ impact NONE | LOW | MEDIUM | HIGH>
 - active | deprecated | unmaintained | yanked-target
 
 ### Recommended verdict
-- Verdict: MERGE | SKIP | INVESTIGATE
+- Verdict: AUTO-MERGE | MERGE | SKIP | INVESTIGATE
 - Confidence: High | Medium | Low
 - Reasoning: <1-2 sentences, grounded in the evidence above>
 ```

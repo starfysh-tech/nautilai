@@ -9,19 +9,25 @@ echo "RELEASE_ANALYZE_START"
 echo "=== CommitCraft Release Analysis ==="
 echo ""
 
-# Check we're on main branch
+# Determine the default branch — releases must be cut from it.
+DEFAULT_BRANCH=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')
+if [ -z "$DEFAULT_BRANCH" ]; then
+    DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null || echo "")
+fi
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-if [ "$CURRENT_BRANCH" != "main" ]; then
-    echo "✗ Not on main branch"
+if [ "$CURRENT_BRANCH" != "$DEFAULT_BRANCH" ]; then
+    echo "✗ Not on $DEFAULT_BRANCH branch"
     echo ""
     echo "Current branch: $CURRENT_BRANCH"
-    echo "Releases must be created from the main branch"
+    echo "Releases must be created from the $DEFAULT_BRANCH branch"
     echo ""
-    echo "Run: git checkout main"
+    echo "Run: git checkout $DEFAULT_BRANCH"
     exit 1
 fi
 
-echo "✓ On main branch"
+echo "✓ On $DEFAULT_BRANCH branch"
 
 # Check for gh CLI — analysis is pure git; gh is only needed later to publish the
 # release (gh release create). Warn but do not abort, so version analysis still works.
@@ -35,23 +41,23 @@ elif ! gh auth status &> /dev/null; then
 fi
 
 # A tag is commit-based: it points at HEAD, not at the working tree. The hard
-# requirement is that HEAD matches origin/main, or we'd tag the wrong commit.
+# requirement is that HEAD matches origin/$DEFAULT_BRANCH, or we'd tag the wrong commit.
 # Uncommitted/untracked files don't change the tagged commit — warn, don't block.
-git fetch --quiet origin main 2>/dev/null || true
-if git rev-parse --verify --quiet origin/main >/dev/null; then
-    AHEAD=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
-    BEHIND=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+git fetch --quiet origin "$DEFAULT_BRANCH" 2>/dev/null || true
+if git rev-parse --verify --quiet "origin/$DEFAULT_BRANCH" >/dev/null; then
+    AHEAD=$(git rev-list --count "origin/$DEFAULT_BRANCH"..HEAD 2>/dev/null || echo 0)
+    BEHIND=$(git rev-list --count HEAD.."origin/$DEFAULT_BRANCH" 2>/dev/null || echo 0)
     if [ "$AHEAD" != "0" ] || [ "$BEHIND" != "0" ]; then
-        echo "✗ Local main is out of sync with origin/main ($AHEAD ahead, $BEHIND behind)"
+        echo "✗ Local $DEFAULT_BRANCH is out of sync with origin/$DEFAULT_BRANCH ($AHEAD ahead, $BEHIND behind)"
         echo ""
         echo "A tag points at HEAD — sync first so the release tags the right commit:"
         [ "$BEHIND" != "0" ] && echo "  git pull --ff-only"
         [ "$AHEAD" != "0" ] && echo "  git push"
         exit 1
     fi
-    echo "✓ Local main is in sync with origin/main"
+    echo "✓ Local $DEFAULT_BRANCH is in sync with origin/$DEFAULT_BRANCH"
 else
-    echo "⚠  No origin/main to compare against — skipping the sync check"
+    echo "⚠  No origin/$DEFAULT_BRANCH to compare against — skipping the sync check"
 fi
 
 # Uncommitted/untracked files: warn only — a commit-based tag won't include them.

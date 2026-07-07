@@ -87,7 +87,7 @@
     {
       "name": "review-plan",
       "source": "./review-plan",
-      "description": "Adversarially validate an implementation plan against the actual codebase before building it — surface risks, breaking changes, gaps, and simplifications, then write findings back into the plan. Built-in agents by default; taps review/Codex plugins when installed.",
+      "description": "Adversarially validate an implementation plan against the actual codebase — surface risks, breaking changes, gaps, and simplifications before you build. Uses built-in agents by default and opportunistically taps review/Codex plugins when installed.",
       "version": "2.14.2",
       "author": {
         "name": "Randall Noval"

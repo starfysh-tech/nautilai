@@ -1,6 +1,6 @@
 ---
 name: github-issue-auditor
-description: Audit a GitHub repository's issues for cleanup — find fuzzy-matched duplicate titles, orphaned sub-issues whose parent is closed, unlabeled or stale items, and labels inconsistent with the repo's own taxonomy. Use when the user says 'audit issues', 'clean up the backlog', 'find duplicate issues', 'stale issues', 'issue hygiene', or wants to triage a noisy tracker. Inspection is read-only; any change to the tracker is opt-in behind an approval gate.
+description: Audits a GitHub repository's issues for cleanup — finds fuzzy-matched duplicate titles, orphaned sub-issues whose parent is closed, unlabeled or stale items, and labels inconsistent with the repo's own taxonomy. Inspection is read-only; any change to the tracker is opt-in behind an approval gate. Invoked via `/github-issue-auditor`.
 argument-hint: "[owner/repo] [--stale-days N] [--similarity 0.0-1.0]"
 disable-model-invocation: true
 allowed-tools: Read, Grep, Glob, AskUserQuestion, Bash(gh:*), mcp__github__list_issues, mcp__github__issue_read, mcp__github__search_issues, mcp__github__list_issue_types, mcp__github__get_label, mcp__github__issue_write, mcp__github__sub_issue_write, mcp__github__add_issue_comment
@@ -164,10 +164,14 @@ graceful-degradation order above still holds — the scripts shell out to `gh`.
   `python3 ${CLAUDE_PLUGIN_ROOT}/skills/github-issue-auditor/scripts/discovery.py`.
 - `analyzer.py` — **Phase 2** normalized Levenshtein title similarity (default
   threshold `0.75`, honor `--similarity`), parent-reference extraction, age, and a
-  suggested disposition per finding. `IssueAnalyzer(similarity_threshold=0.75)`.
+  suggested disposition per finding. `IssueAnalyzer(similarity_threshold=0.75,
+  label_map={...})`: pass the `bug`/`enhancement`/`documentation` labels you
+  detected in **Phase 1a** instead of the defaults (`type: bug`, `type:
+  enhancement`, `type: documentation`) when this repo's taxonomy differs.
 - `interactive_review.py` — **Phase 3** per-item approval reference flow. In-skill,
   the `AskUserQuestion` gate is the canonical approval control; this is its CLI
-  equivalent (`InteractiveReviewer.review_all`).
+  equivalent (`InteractiveReviewer.review_all`). Do not run it from within a
+  session — it blocks on stdin; use `AskUserQuestion` instead.
 - `executor.py` — **Phase 4** applies approved actions via `gh`
   (`ActionExecutor(dry_run=...)`: close-with-comment, add-label, comment,
   investigation comment). Supports a dry-run preview.

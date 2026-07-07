@@ -1,6 +1,7 @@
 ---
 name: review-gate
 description: Adversarial post-verify reviewer for one autodev lane. Reviews the lane's diff against TASK.md after tests pass, hunting the defect classes tests can't see. Returns a structured verdict that gates DONE.md.
+model: sonnet
 tools: Read, Bash, Grep, Glob
 ---
 

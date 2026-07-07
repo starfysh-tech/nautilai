@@ -22,7 +22,7 @@ Requires `python3` (or `python`) on your PATH.
 
 ## What it does
 
-Validates the hooks configuration in your project and user `settings.json` files:
+Validates the hooks configuration in your project, project-local, and user `settings.json` files (`.claude/settings.json`, `.claude/settings.local.json`, `~/.claude/settings.json`):
 
 1. **JSON & schema** — parses each `settings.json` and checks the `hooks` block against the expected shape.
 2. **Event names** — the known Claude Code hook event names are kept in sync from the docs; unknown events are flagged as warnings (not hard errors) so newly shipped events don't false-positive.

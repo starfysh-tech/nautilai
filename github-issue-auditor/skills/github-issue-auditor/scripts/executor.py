@@ -160,13 +160,13 @@ class ActionExecutor:
             print("(dry run)")
             return
 
-        # Add labels
-        for label in labels:
-            cmd = [
-                'gh', 'issue', 'edit', str(issue_number),
-                '--add-label', label
-            ]
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
+        # Add labels: `gh issue edit --add-label` accepts a comma-separated
+        # list, so one call covers all labels instead of one call per label.
+        cmd = [
+            'gh', 'issue', 'edit', str(issue_number),
+            '--add-label', ','.join(labels)
+        ]
+        subprocess.run(cmd, check=True, capture_output=True, text=True)
 
         print("✓")
         self.executed_actions.append(action)

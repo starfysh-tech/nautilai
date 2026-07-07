@@ -2,7 +2,8 @@
 name: cc-skill-audit
 description: Audit existing Claude Code skills against Anthropic's authoring guidance. Use when reviewing a SKILL.md's quality, diagnosing why a skill under- or over-triggers, tightening a description for better trigger reliability, restructuring a bloated SKILL.md, checking a skill for cross-surface portability or security before sharing, or sweeping a skills directory (including installed plugins) for skills that need work.
 argument-hint: "[skill-name-or-path]"
-allowed-tools: [Read, Edit, Glob, Grep, Bash(python3:*), Bash(grep:*), Bash(ls:*), Bash(git:*), WebFetch]
+context: fork
+allowed-tools: [Read, Write, Edit, Glob, Grep, Task, Bash(python3:*), Bash(grep:*), Bash(ls:*), Bash(git:*), WebFetch]
 ---
 
 # Auditing Skills
@@ -57,9 +58,10 @@ Run the audit in this order. Stop after any step where the user wants to discuss
      - Skip Anthropic-shipped skills under `/mnt/skills/public/` by default; they're maintained by Anthropic and unlikely to need user fixes. Include them only if the user explicitly asks ("audit all skills including built-ins").
    - **Argument passed**: single-skill mode. The argument is a skill name (e.g., `cc-skill-audit`) or a path (e.g., `~/.claude/skills/cc-skill-audit/SKILL.md`). Resolve the name to a path by checking the standard locations. If the argument doesn't match a known skill, ask before proceeding.
 
-2. **Read the SKILL.md(s).** Always read the file before commenting on it. Do not audit from memory. For sweeps, read all files first, then audit; do not interleave reads and reports.
+2. **Read the SKILL.md(s).** Always read the file before commenting on it. Do not audit from memory. For sweeps, gather the full skill list and names first — duplicate-name detection needs only names, no file reads.
 
 3. **Run the checks** in `references/audit-checklist.md`. The checklist is grouped by category (frontmatter, description, body, bundled resources, portability, security). Apply every check that's relevant; skip ones that don't apply (for example, the bundled-resources checks if there are no bundled files).
+   - **Sweep mode fan-out**: once the skill list is gathered, spawn parallel subagents (Task, `general-purpose`, model: haiku) in batches of ~5 skills each. Each subagent reads its batch's SKILL.md files and applies the mechanical checklist from `references/audit-checklist.md`, returning structured findings (per-skill severity-tagged list) — no judgment calls. The parent does only the judgment synthesis: trigger-overlap analysis across skills, description rewrite recommendations, and the duplicate-name check from step 1. Single-skill mode runs inline; the fan-out is sweep-only.
 
 4. **Test the triggers.** The description is the trigger, so don't just judge it by eye — test it. For each audited skill, draft 4 short prompts and predict whether the skill *should* fire:
    - one **direct** request (uses the skill's own keywords),
@@ -139,31 +141,11 @@ Summary table first. One row per skill. Columns: name, blockers, high, medium, v
 
 ## Key principles to enforce
 
-These are the principles the audit checklist operationalizes. Keep them in mind when judging severity and writing recommendations.
+These are the principles the audit checklist operationalizes; `references/audit-checklist.md` and `references/description-patterns.md` operationalize the rest. Keep them in mind when judging severity and writing recommendations.
 
-**The description is the trigger.** Per Anthropic's authoring guide, Claude pre-loads only the `name` and `description` from every installed skill into the system prompt. The body of SKILL.md is read only when a skill becomes relevant. A skill with a perfect body and a vague description will not fire. Audit the description harder than anything else, and test it (workflow step 4).
-
-**Skills tend to undertrigger.** Anthropic's own skill-creator skill notes that Claude has a tendency to undertrigger skills. Descriptions should be a little "pushy": explicitly say "use this skill when…" and enumerate the user phrases or contexts that should trigger it. A description that reads like a job listing rarely fires; one that reads like a stage direction does.
-
-**Conciseness in the body matters.** Once the body loads, every line is a recurring token cost. Anthropic recommends keeping the body concise; ~500 lines is the working ceiling. Long reference material belongs in `references/` and should be loaded on demand. State what to do, not why.
-
-**Don't restate what Claude already knows.** A skill that re-teaches generic syntax or generic patterns is dead weight. The skill is a senior practitioner whispering "watch out for this in our codebase / our domain / this specific workflow."
-
-**Progressive disclosure is real architecture.** A skill folder should match this shape when bundled resources exist:
-
-```
-skill-name/
-├── SKILL.md            (required)
-├── references/         (loaded by Claude on demand)
-├── scripts/            (executed; not loaded into context unless Claude reads them)
-└── assets/             (templates, fonts, images used in output)
-```
-
-If the body of SKILL.md is reproducing content that should be in `references/`, flag it.
-
-**Portability across surfaces.** Claude Code, Cowork, and Claude.ai all read the same SKILL.md format, but the execution environments differ. See `references/portability-notes.md`. Flag anything that breaks one surface.
-
-**Security comes first.** No hardcoded credentials, no skills that override safety defaults silently, no commercial APIs disguised as open source. See `references/security-checks.md`.
+- **The description is the trigger.** Claude pre-loads only `name` and `description` into the system prompt; the body loads only once the skill becomes relevant. Audit the description harder than anything else, and test it (workflow step 4).
+- **Skills tend to undertrigger** — bias descriptions to be explicit and "pushy" ("use this skill when…") rather than reading like a job listing.
+- **Conciseness in the body matters** — the body is a recurring token cost loaded whole on every trigger; ~500 lines is the working ceiling, long material belongs in `references/`.
 
 ## What to read when
 
@@ -178,10 +160,7 @@ If the body of SKILL.md is reproducing content that should be in `references/`, 
 - **Verify documented-field claims against live docs.** The frontmatter rules in `references/audit-checklist.md` are a snapshot. Before flagging a field as "undocumented" or citing the description character limit, confirm against `https://code.claude.com/docs/en/skills.md` (see "Ground the audit against current docs first"). Don't fail a skill on a rule this skill has outgrown.
 - **Reserved words in the name field.** The `name` must not contain "anthropic" or "claude". Hyphens and lowercase only; check the current max-length limit in the live docs.
 - **When installed as a plugin, sweep mode can find this skill twice.** This skill ships inside the `cc-skill-audit` plugin (`~/.claude/plugins/*/skills/cc-skill-audit/`). If the user also keeps a standalone `~/.claude/skills/cc-skill-audit/`, sweep mode will discover both and may report a self-collision. That's expected — note it as a duplicate and don't audit the two copies as if they were unrelated skills.
-- **Cowork ZIP upload may flatten nested subdirectories (observed, not documented).** During testing in 2026, a skill packaged with files in `references/` was installed with those files at the top level. Anthropic's Claude Code docs explicitly support nested subdirectories within a skill, so this is unexpected behavior, not a design constraint. After any UI upload, verify the installed structure matches SKILL.md's path references. See `references/portability-notes.md` for mitigations.
-- **Cowork doesn't always rescan `~/.claude/skills/` on startup.** There's a reported issue where Cowork loads only previously registered skills, not every skill in the directory. If the user reports a skill missing from Cowork's UI but present in Claude Code, that's the cause. The fix is on Anthropic's side; the workaround is to re-add via the Cowork UI. Do not treat this as a skill authoring problem.
-- **`<available_skills>` in Cowork is a subset of disk.** When sweeping in a Cowork session, audit from `/mnt/skills/public/`, `/mnt/skills/examples/`, and `/mnt/skills/user/` on disk rather than from the system prompt's `<available_skills>` listing. The two don't always match.
-- **Claude.ai uploads are zip files of the skill folder.** If the user is heading to Claude.ai, the deliverable is a zip, not a folder. Validate that the zip contains exactly one top-level folder containing SKILL.md.
+- **Cowork and Claude.ai surface gotchas** (ZIP upload flattening, Cowork's rescan behavior, `<available_skills>` being a disk subset, Claude.ai's zip packaging requirement) live in `references/portability-notes.md` — read it before auditing a skill that targets either surface.
 - **A "monolith" skill that tries to do everything won't trigger reliably for any one thing.** If the description spans multiple unrelated domains, recommend splitting.
 - **Don't audit from memory.** Always read the file before commenting. The file is the ground truth, not what the user said about the file.
 - **Don't rewrite without confirmation for judgment calls.** Fixing invalid YAML is mechanical. Rewriting a description is a judgment call. Confirm the direction first.

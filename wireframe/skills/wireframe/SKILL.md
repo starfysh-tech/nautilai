@@ -1,6 +1,6 @@
 ---
 name: wireframe
-description: Create low-fidelity wireframes for UI planning — ASCII layouts, wiremd interactive prototypes, or Mermaid diagrams for tickets. Use when the user mentions 'wireframe', 'sketch the UI', 'ASCII mockup', 'prototype this layout', 'add a Mermaid diagram for the ticket', or wants a quick layout before writing components.
+description: Create low-fidelity wireframes for UI planning — ASCII layouts, wiremd interactive prototypes, or Mermaid user-flow/screen-state diagrams for tickets. Use when the user mentions 'wireframe', 'sketch the UI', 'ASCII mockup', 'prototype this layout', 'Mermaid diagram for a user flow or screen states', or wants a quick layout before writing components.
 model: haiku
 effort: low
 allowed-tools: [Read, Grep, Glob, Write, Bash(python3:*)]
@@ -21,7 +21,7 @@ Keep output low-fidelity: structure and hierarchy, not colors or fonts.
 Default to **ASCII** unless the request names another mode:
 
 - **wiremd** — "wiremd", "interactive", "renderable", "generate HTML/React".
-- **Mermaid** — "mermaid", "diagram", "flowchart", "sequence", "state machine", "user flow".
+- **Mermaid** — "mermaid", "user flow diagram", "screen-state diagram", "flowchart for the ticket", "sequence diagram", "state machine".
 
 ## Workflow
 
@@ -50,14 +50,19 @@ python3 ${CLAUDE_PLUGIN_ROOT}/skills/wireframe/scripts/extract_components.py [co
   directory (e.g. `client/src/components`, `app/components`).
 - **Fails open**: an absent directory prints "no catalog" and exits 0 — that
   just means wireframe freehand, not an error.
-- Resolve the interpreter (`python3`, else `python`); if neither exists, skip
-  this step and wireframe without a catalog.
+- Requires `python3` on the PATH; if it's missing, skip this step and
+  wireframe without a catalog.
 - Pass `--json` for machine-readable output, or `--output catalog.json` to also
   write a JSON file.
-- Pass `--update-reference` to inject the catalog into
-  `references/reference.md` between its `<!-- WIREFRAME-CATALOG-START/END -->`
-  markers (idempotent; re-stamps the timestamp only when the catalog changed).
-  Use `--reference <path>` to target a different doc.
+- Pass `--update-reference` to inject the catalog into a **project-local**
+  `.claude/wireframe-catalog.md` (created if absent) between its
+  `<!-- WIREFRAME-CATALOG-START/END -->` markers (idempotent; re-stamps the
+  timestamp only when the catalog changed). Use `--reference <path>` to target
+  a different doc. Project-local, not the bundled skill doc — the install
+  cache is shared across projects and wiped on every plugin update.
+- If `.claude/wireframe-catalog.md` exists in the project, read it alongside
+  the bundled `references/reference.md` so previously-extracted real
+  component names are available even without re-running the script.
 
 ## Common layouts
 
@@ -87,59 +92,18 @@ navigation, tables, symbols).
 ## wiremd mode
 
 Use when a clickable prototype or a React-component export is the goal.
+Rendering requires the `wiremd` CLI on the user's machine (not bundled).
 
-```markdown
-{.nav}
-
-- [Items](#)
-- [Dashboard](#)
-
-# Item List
-
-**Search**: [____]!
-**Filter**: [Select ▼]
-
-[Add Item]*
-
-| ID  | Name       | Status | Actions |
-| --- | ---------- | ------ | ------- |
-| 001 | First Row  | Active | [View]  |
-| 002 | Second Row | Paused | [View]  |
-
-[< Previous] [Next >]
-```
-
-Rendering (requires the `wiremd` CLI on the user's machine — not bundled):
-
-```bash
-wiremd design.md                       # HTML preview
-wiremd design.md --style sketch        # Hand-drawn style
-wiremd design.md --format react        # React components
-wiremd design.md --watch --serve 3000  # Live dev server
-```
-
-See `references/reference.md` for the wiremd syntax cheat sheet.
+See `references/reference.md` for the wiremd syntax cheat sheet, CLI usage,
+and a sample prototype.
 
 ## Mermaid mode
 
-Use for diagrams embedded in GitHub issues/PRs or docs — user flows, state
-machines, API sequences.
+Use for user-flow / screen-state diagrams embedded in GitHub issues/PRs or
+docs — flowcharts, state machines, API sequences.
 
-````
-```mermaid
-flowchart TD
-    A[Login] --> B{Authenticated?}
-    B -->|Yes| C[Dashboard]
-    B -->|No| D[Error]
-```
-````
-
-- **State diagrams** don't support curly braces `{ }` in labels — use a
-  flowchart for complex data structures.
-- For better layout in VS Code, add `%%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%` as the first line (GitHub ignores it and auto-renders).
-- Renders in: GitHub issues/PRs/markdown, VS Code with the Mermaid extension, and the Mermaid Live Editor (https://mermaid.live).
-
-See `references/reference.md` for the full Mermaid syntax cheat sheet.
+See `references/reference.md` for the full Mermaid syntax cheat sheet,
+rendering caveats, and a sample flow.
 
 ## Best practices
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Hooks validator for Claude Code.
-# Checks .claude/settings.json (project) and ~/.claude/settings.json (user)
-# for hook schema/structure errors.
+# Checks .claude/settings.json (project), .claude/settings.local.json (project
+# local), and ~/.claude/settings.json (user) for hook schema/structure errors.
 #
 # NOTE: intentionally NO `set -e`. This script does explicit error handling and
 # accumulates an exit code from the core validator; `set -e` would abort early
@@ -47,31 +47,44 @@ validate_json() {
     return 0
   fi
 
-  # Validate hook structure via the core script.
+  # Validate hook structure via the core script. It exits 0 whenever it ran to
+  # completion (error/warning counts come from the sentinel lines below) and
+  # only exits nonzero if it crashed — a nonzero exit here means the validator
+  # itself failed, not that it found errors.
   local output exit_code
   output=$("$PYTHON" "$SCRIPT_DIR/validate-hooks-core.py" "$file" "$FIX_MODE")
   exit_code=$?
 
-  # Extract the warning count from the sentinel line.
-  local warn_count
+  if [[ "$exit_code" -ne 0 ]]; then
+    echo "$output"
+    echo "ERROR: validator crashed on $file (exit $exit_code)"
+    ERRORS=$((ERRORS + 1))
+    echo ""
+    return 0
+  fi
+
+  # Extract the error/warning counts from the sentinel lines.
+  local err_count warn_count
+  err_count=$(echo "$output" | grep "^__ERRORS__:" | cut -d: -f2 || echo "0")
   warn_count=$(echo "$output" | grep "^__WARNINGS__:" | cut -d: -f2 || echo "0")
 
-  # Display everything except the sentinel line.
-  echo "$output" | grep -v "^__WARNINGS__:" || true
+  # Display everything except the sentinel lines.
+  echo "$output" | grep -v "^__ERRORS__:" | grep -v "^__WARNINGS__:" || true
 
   if [[ -n "$warn_count" ]] && [[ "$warn_count" != "0" ]]; then
     WARNINGS=$((WARNINGS + warn_count))
   fi
 
-  if [[ "$exit_code" -ne 0 ]]; then
-    ERRORS=$((ERRORS + exit_code))
+  if [[ -n "$err_count" ]] && [[ "$err_count" != "0" ]]; then
+    ERRORS=$((ERRORS + err_count))
   fi
 
   echo ""
 }
 
-# Validate project then user settings.
+# Validate project, project-local, then user settings.
 validate_json ".claude/settings.json" "Project settings"
+validate_json ".claude/settings.local.json" "Project local settings"
 validate_json "$HOME/.claude/settings.json" "User settings"
 
 # Summary.

@@ -1,7 +1,7 @@
 ---
 name: cc-adoption-audit
 description: Audit your Claude Code setup against available features and surface what you're not using but should, plus setup gaps. User-invoked — run /cc-adoption-audit; the agent will not auto-fire it.
-allowed-tools: Read, Glob, Grep, Bash, WebFetch
+allowed-tools: Read, Glob, Grep, Bash, WebFetch, Task
 disable-model-invocation: true
 ---
 
@@ -11,7 +11,11 @@ You are running an adoption audit: compare what this user has set up against the
 
 ## Anti-hallucination rule
 
-Every feature you describe as "available" must come from a source you actually fetched in Step 1. If you cannot find it there, mark it `[unverified]` — never invent features, versions, dates, or behavior. Likewise, base "the user has X" on config you actually read in Step 2; if a path doesn't resolve, say "not found" — do not assume absence means the feature is unused.
+Every feature you describe as "available" must come from a source you actually fetched in Step 1. If you cannot find it there, mark it `[unverified]` — never invent features, versions, dates, or behavior. Likewise, base "the user has X" on config you actually read in Step 2; if a path doesn't resolve, say "not found" — do not assume absence means the feature is unused. This rule transfers to any subagent you delegate to below: trust only the returned, source-cited inventory, and mark anything it couldn't verify `[unverified]`.
+
+Steps 1 and 2 are independent — they may run in parallel. Each may also be
+delegated to a subagent (Task, `general-purpose`, model: haiku) that returns a
+distilled inventory with cited sources rather than raw fetch/read output.
 
 ## Step 1 — What's available (feature surface + freshness)
 
@@ -21,13 +25,14 @@ Every feature you describe as "available" must come from a source you actually f
 3. Freshness + recent window:
    - `WebFetch https://api.github.com/repos/anthropics/claude-code/releases?per_page=30` → the newest entry's `tag_name` + `published_at` is the latest available version; entries with `published_at` within the last ~30 days of today are the **recent launches**.
    - `claude --version` (Bash) → the user's installed version. **Comparing the user's version to latest is itself a finding** — flag it if they're behind.
-4. Recent launch detail: `WebFetch https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md` → the per-version feature bullets. Map the in-window versions from step 3 to their changelog entries to get the feature text for the "What's new" section. (Stateless: always the last ~30 days — no per-run memory.)
+4. Recent launch detail: `WebFetch https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/CHANGELOG.md` with a prompt that extracts **only the entries for the in-window versions identified in step 3** (not the whole cumulative file) → the per-version feature bullets for the "What's new" section. (Stateless: always the last ~30 days — no per-run memory.)
 
 ## Step 2 — What you have (this environment)
 
 First resolve the absolute home directory (`echo "$HOME"` via Bash, or `%USERPROFILE%` on Windows) — Read/Glob/Grep require absolute paths and do **not** expand `~` or `$HOME`. Use that resolved path for every read below. Report what's missing as "not found", never as silent absence. Config lives under `<home>/.claude/` on macOS/Linux and `%USERPROFILE%\.claude\` on Windows.
 
-- **Global config:** `<home>/.claude/settings.json`, `<home>/.claude/CLAUDE.md`, `<home>/.claude.json` (user-level plugins/MCP live here).
+- **Global config:** `<home>/.claude/settings.json`, `<home>/.claude/CLAUDE.md`. For `<home>/.claude.json` (user-level MCP servers live here), **don't Read the whole file** — it routinely runs to hundreds of KB of unrelated state. Extract only the `mcpServers` key via Bash:
+  `python3 -c "import json,os; d=json.load(open(os.path.expanduser('~/.claude.json'))); print(json.dumps({'mcpServers': d.get('mcpServers')}, indent=2))"`
 - **Project config:** `.claude/settings.json`, `.claude/settings.local.json`, `./CLAUDE.md`, `./CLAUDE.local.md`.
 - **Installed extensions:** dirs under `<home>/.claude/plugins/`, `<home>/.claude/skills/`, `<home>/.claude/commands/`, `<home>/.claude/agents/`, and the project's `.claude/skills|commands|agents/`.
 - **MCP servers:** entries in `<home>/.claude.json` and project `.mcp.json`.

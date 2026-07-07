@@ -89,13 +89,16 @@ in single-PR mode, one subagent. Each subagent gets the PR number, metadata,
 ecosystem, and the per-PR procedure, and returns structured evidence + a
 recommended verdict. The main context keeps Phases 1, 3, and 4 (discovery,
 verdicts, gated/auto actions). This keeps a large batch fast and each PR's
-evidence isolated.
+evidence isolated. Run each per-PR subagent on `model: sonnet` — the work
+(semver parsing, CI status, changelog extraction) doesn't need the parent model.
 
 **Code-search mandate (precision over raw grep).** Within analysis, verify usage
 with the structured tools, not ad-hoc text search:
 
 - **Find callers / usages of a changed symbol** → `Grep` to locate, then
-  **`LSP findReferences`** to confirm real references (not comments/strings).
+  **`LSP findReferences`** to confirm real references (not comments/strings). If
+  the LSP tool isn't available, confirm references by reading the `Grep` matches
+  instead.
 - **Structural queries** (all classes/subclasses, call shapes) → **`ast-grep`**.
 - **Never raw `grep`** — use the `Grep` tool with `pattern` / `path` / `glob`.
 
