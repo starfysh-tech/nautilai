@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "rbac-django",
   "displayName": "RBAC for Django/DRF",
-  "version": "2.14.3",
+  "version": "2.14.4",
   "description": "Audit a Django/DRF + React codebase for RBAC gaps (missing permission classes, tenant-isolation leaks, IDOR, write-side gaps), threat-model the findings into ranked attacker abuse cases, then generate prioritized remediation playbooks and GitHub issues.",
   "author": {
     "name": "Randall Noval",

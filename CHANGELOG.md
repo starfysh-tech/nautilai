@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.14.4](https://github.com/starfysh-tech/nautilai/compare/v2.14.3...v2.14.4) (2026-07-08)
+
+
+### Bug Fixes
+
+* adopt hardening lessons from no-mistakes review ([2e6cc83](https://github.com/starfysh-tech/nautilai/commit/2e6cc83520c60bf457d20c2d16658b27ed961e1b))
+* adopt hardening lessons from no-mistakes review ([7e52c6a](https://github.com/starfysh-tech/nautilai/commit/7e52c6aa64a198dc40ea7844e713bc422c0de60e))
+* **autodev:** keep transient cap alive across record-failure ([e4210a5](https://github.com/starfysh-tech/nautilai/commit/e4210a55fbd9bfe4237f81bd3a9a24dc239a76e0))
+
 ## [2.14.3](https://github.com/starfysh-tech/nautilai/compare/v2.14.2...v2.14.3) (2026-07-08)
 
 
