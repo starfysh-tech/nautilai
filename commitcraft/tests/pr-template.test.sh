@@ -23,7 +23,7 @@ status_of() {
 }
 # path_of <dir> -> echoes the first PATH value
 path_of() {
-    ( cd "$1" && bash "$SCRIPT" ) | sed -n 's/^PATH: //p' | head -1
+    ( cd "$1" && bash "$SCRIPT" ) | sed -n 's/^PATH: //p' | head -n 1
 }
 # npaths <dir> -> echoes the count of PATH lines
 npaths() {

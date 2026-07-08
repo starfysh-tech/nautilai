@@ -23,7 +23,7 @@ set -euo pipefail
 REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
 cd "$REPO_ROOT"
 
-shopt -s nocaseglob nullglob
+shopt -s nocaseglob nullglob nocasematch
 
 # 1. A PULL_REQUEST_TEMPLATE/ dir is a deliberate multi-choice set — highest signal
 #    of author intent. Check it first, in GitHub's location precedence.
@@ -51,7 +51,9 @@ fi
 for dir in .github . docs; do
     for f in "$dir"/*; do
         [ -f "$f" ] || continue
-        if [ "$(basename "$f" | tr '[:upper:]' '[:lower:]')" = "pull_request_template.md" ]; then
+        # ${f##*/} is basename; nocasematch makes [[ ]] case-insensitive. Both avoid
+        # spawning basename/tr per directory entry (bash 3.2-safe, unlike ${f,,}).
+        if [[ "${f##*/}" == "pull_request_template.md" ]]; then
             echo "STATUS: FOUND"
             echo "PATH: ${f#./}"   # strip the ./ the root-dir glob prepends
             exit 0

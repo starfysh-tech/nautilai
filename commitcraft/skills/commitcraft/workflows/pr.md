@@ -163,7 +163,10 @@ and `--body-file` preserves it exactly:
 
 ```bash
 # BODY_FILE holds the Phase 3A filled template or the Phase 3B generic body.
+# Write it under a temp dir (not the repo) and remove it after, so no untracked
+# file is left behind.
 gh pr create --title "<type>(<scope>): <summary>" --body-file "$BODY_FILE"
+rm -f "$BODY_FILE"
 ```
 
 Add `--draft` if draft was selected. Capture the PR URL from output.
