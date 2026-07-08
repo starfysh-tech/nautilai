@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.2](https://github.com/starfysh-tech/nautilai/compare/v2.16.1...v2.16.2) (2026-07-08)
+
+
+### Bug Fixes
+
+* **commitcraft:** raise commit subject cap to 72 ([41e2a12](https://github.com/starfysh-tech/nautilai/commit/41e2a121730d6401bc3507aa32c3485a88263a48))
+
 ## [2.16.1](https://github.com/starfysh-tech/nautilai/compare/v2.16.0...v2.16.1) (2026-07-08)
 
 
