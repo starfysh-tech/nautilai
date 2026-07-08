@@ -2,7 +2,9 @@
 
 This is the working checklist. Apply every relevant check; skip ones that don't apply to the skill at hand.
 
-> **Snapshot, not ground truth.** The frontmatter rules below (field names, character limits, name constraints) reflect Anthropic's docs as last verified 2026-06-18. Before failing a skill on one of them, confirm against the live docs — fetch `https://code.claude.com/docs/en/skills.md` (the parent SKILL.md's "Ground the audit against current docs first" step). If the live docs disagree, trust them and note the divergence.
+> **Snapshot, not ground truth.** The frontmatter rules below (field names, character limits, name constraints) reflect Anthropic's docs as last verified 2026-07-08. Before failing a skill on one of them, confirm against the live docs — fetch `https://code.claude.com/docs/en/skills.md` (the parent SKILL.md's "Ground the audit against current docs first" step). If the live docs disagree, trust them and note the divergence.
+>
+> Per that 2026-07-08 verification: Claude Code's frontmatter table marks `name` **optional** (defaults to the directory name) and `description` **Recommended** (first paragraph used if omitted); the combined `description` + `when_to_use` text is truncated at **1,536 characters** in the skill listing. Checks 1.1–1.2 below are therefore a **quality bar**, not a documented requirement — a missing description degrades triggering even though it doesn't break the skill. Newer documented fields to recognize rather than flag as unknown: `when_to_use`, `arguments`, `user-invocable`.
 
 For each finding, score severity:
 - **Blocker**: skill is broken or unsafe
@@ -24,10 +26,10 @@ For each finding, score severity:
 - [ ] Lowercase letters, numbers, and hyphens only
 - [ ] No spaces, underscores, or capital letters
 - [ ] Within the documented maximum length (verify the current limit in the live docs)
-- [ ] Does not contain the reserved words "anthropic" or "claude"
+- [ ] Does not contain the reserved words "anthropic" or "claude" (a claude.ai/Agent-Skills packaging rule — Claude Code's own frontmatter table documents no name constraints; downgrade to Medium if the skill targets Claude Code only)
 - [ ] Does not contain XML tags
 
-**Severity if invalid**: Blocker.
+**Severity if invalid**: Blocker (Medium for the reserved-word check on Claude Code-only skills).
 
 ### 1.3 `name` field is well-chosen
 - [ ] Specific enough to disambiguate from other skills (including publicly published skills that may share a name — a collision means two skills fight for the trigger)

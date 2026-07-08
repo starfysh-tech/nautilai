@@ -65,7 +65,7 @@
     {
       "name": "cc-skill-audit",
       "source": "./cc-skill-audit",
-      "description": "Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues.",
+      "description": "Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues, with a scored sweep that ranks every skill worst-to-best.",
       "version": "2.14.4",
       "author": {
         "name": "Randall Noval"
