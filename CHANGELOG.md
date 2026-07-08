@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.16.0](https://github.com/starfysh-tech/nautilai/compare/v2.15.0...v2.16.0) (2026-07-08)
+
+
+### Features
+
+* add community-health files ([1c64076](https://github.com/starfysh-tech/nautilai/commit/1c64076fbf68f722aa28741c8ec1e5d4f66f6f69))
+* community-health files and pr-template respect ([37aa4b9](https://github.com/starfysh-tech/nautilai/commit/37aa4b9b2c35d97af3062bfe69e00e28b016662c))
+
+
+### Bug Fixes
+
+* **ci:** pin commitlint action versions ([fcad30b](https://github.com/starfysh-tech/nautilai/commit/fcad30b81bf0f6ea602a46c55731cbbfd0811d9e))
+* **commitcraft:** fill repo pr template instead of overwriting ([7050bfa](https://github.com/starfysh-tech/nautilai/commit/7050bfacea96184afcfd18bc79388b58448c88b1))
+
 ## [2.15.0](https://github.com/starfysh-tech/nautilai/compare/v2.14.4...v2.15.0) (2026-07-08)
 
 
