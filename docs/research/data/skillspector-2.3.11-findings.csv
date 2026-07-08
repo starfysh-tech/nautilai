@@ -1,0 +1,57 @@
+corpus,skill,score,recommendation,rule_id,severity,confidence,file,line,matched
+nautilai,autodev/skills/autodev,0,SAFE,,,,,,
+nautilai,cc-adoption-audit/skills/cc-adoption-audit,37,CAUTION,AS1,HIGH,0.85,SKILL.md,32,Grep require absolute paths and do **not** expand `~` or `$HOME`. Use that resol
+nautilai,cc-adoption-audit/skills/cc-adoption-audit,37,CAUTION,AS1,HIGH,0.9,SKILL.md,34,/.claude/settings.json
+nautilai,cc-adoption-audit/skills/cc-adoption-audit,37,CAUTION,E1,MEDIUM,0.5,SKILL.md,26,https://api.github.com/
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,AS1,HIGH,0.85,SKILL.md,227,find this skill twice.** This skill ships inside the `cc-skill-audit` plugin (`~
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,AS3,MEDIUM,0.85,SKILL.md,27,ls (`.claude/skills
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,AS3,MEDIUM,0.85,SKILL.md,28,ls (`~/.claude/skills
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,AS3,MEDIUM,0.85,SKILL.md,30,ls (same `~/.claude/skills
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,AS3,MEDIUM,0.85,SKILL.md,227,find this skill twice.** This skill ships inside the `cc-skill-audit` plugin (`~
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,AS3,MEDIUM,0.85,scripts/workflow.js,98,"ls (scope ""global"" = ~/.claude/skills, ""project"" = repo .claude/skills"
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,AR2,HIGH,0.255,references/audit-checklist.md,106,Don't judge
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,EA2,MEDIUM,0.75,SKILL.md,231,without confirmation
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,P1,HIGH,0.24,references/security-checks.md,76,ignore previous instructions
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,RA2,MEDIUM,0.6,SKILL.md,45,write a description for better trigger reliability - Restructure a SKILL.md that
+nautilai,cc-skill-audit/skills/cc-skill-audit,68,DO_NOT_INSTALL,SC2,HIGH,0.27,references/security-checks.md,47,curl … | bash
+nautilai,cc-validate-hooks/skills/cc-validate-hooks,22,CAUTION,AS1,HIGH,0.9,SKILL.md,3,~/.claude/settings.json
+nautilai,commitcraft/skills/commitcraft,18,SAFE,TM1,HIGH,0.75,SKILL.md,19,--no-verify
+nautilai,commitcraft/skills/commitcraft,18,SAFE,TM1,HIGH,0.75,workflows/commit.md,128,--no-verify
+nautilai,commitcraft/skills/commitcraft,18,SAFE,TM1,HIGH,0.75,workflows/commit.md,129,--no-verify
+nautilai,commitcraft/skills/commitcraft,18,SAFE,TM1,HIGH,0.75,workflows/commit.md,133,--no-verify
+nautilai,commitcraft/skills/commitcraft,18,SAFE,TM1,HIGH,0.75,workflows/push.md,84,--no-verify
+nautilai,commitcraft/skills/commitcraft,18,SAFE,TM1,HIGH,0.75,workflows/push.md,85,--no-verify
+nautilai,commitcraft/skills/commitcraft,18,SAFE,TM1,HIGH,0.75,workflows/push.md,89,--no-verify
+nautilai,dep-review/skills/dep-review,0,SAFE,,,,,,
+nautilai,frontend-review/skills/react-component-architecture,36,CAUTION,LP1,HIGH,0.75,scripts/architecture_reporter.py,1,
+nautilai,frontend-review/skills/react-component-architecture,36,CAUTION,LP1,HIGH,0.75,scripts/folder_structure_validator.py,1,
+nautilai,frontend-review/skills/tailwind-design-token-validator,39,CAUTION,AST4,MEDIUM,0.7,scripts/analyze_tailwind_config.py,103,"result = subprocess.run( ['node', '-e', node_script, str(self.config_path.absolu"
+nautilai,frontend-review/skills/tailwind-design-token-validator,39,CAUTION,LP1,HIGH,0.75,scripts/analyze_tailwind_config.py,1,
+nautilai,frontend-review/skills/tailwind-design-token-validator,39,CAUTION,E3,MEDIUM,0.5,scripts/scan_components.py,37,Recursively find all files
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,AST4,MEDIUM,0.7,scripts/discovery.py,283,"subprocess.run( ['gh', '--version'], stdout=subprocess.PIPE, stderr=subprocess.P"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,AST4,MEDIUM,0.7,scripts/discovery.py,301,"subprocess.run( ['gh', 'repo', 'view', '--json', 'name'], stdout=subprocess.PIPE"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,AST4,MEDIUM,0.7,scripts/discovery.py,325,"result = subprocess.run( cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, ch"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,AST4,MEDIUM,0.7,scripts/executor.py,134,"subprocess.run(comment_cmd, check=True, capture_output=True, text=True)"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,AST4,MEDIUM,0.7,scripts/executor.py,138,"subprocess.run(close_cmd, check=True, capture_output=True, text=True)"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,AST4,MEDIUM,0.7,scripts/executor.py,169,"subprocess.run(cmd, check=True, capture_output=True, text=True)"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,AST4,MEDIUM,0.7,scripts/executor.py,194,"subprocess.run(cmd, check=True, capture_output=True, text=True)"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,AST4,MEDIUM,0.7,scripts/executor.py,221,"subprocess.run(cmd, check=True, capture_output=True, text=True)"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,LP1,HIGH,0.75,scripts/report_generator.py,1,
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,LP1,HIGH,0.75,scripts/discovery.py,1,
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,OH1,HIGH,0.95,scripts/executor.py,134,"subprocess.run(comment_cmd, check=True, capture_output"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,OH1,HIGH,0.95,scripts/executor.py,138,"subprocess.run(close_cmd, check=True, capture_output"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,OH1,HIGH,0.95,scripts/executor.py,169,"subprocess.run(cmd, check=True, capture_output"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,OH1,HIGH,0.95,scripts/executor.py,194,"subprocess.run(cmd, check=True, capture_output"
+nautilai,github-issue-auditor/skills/github-issue-auditor,100,DO_NOT_INSTALL,OH1,HIGH,0.95,scripts/executor.py,221,"subprocess.run(cmd, check=True, capture_output"
+nautilai,phi-scan/skills/phi-scan,0,SAFE,,,,,,
+nautilai,pr-comment-review/skills/pr-comment-review,40,CAUTION,P1,HIGH,0.8,SKILL.md,59,ignore previous instructions
+nautilai,pr-comment-review/skills/pr-comment-review,40,CAUTION,YR4,HIGH,0.8,SKILL.md,5,model; model; ignore previous instructions
+nautilai,pr-review-deep/skills/pr-review-deep,0,SAFE,,,,,,
+nautilai,rbac-django/skills/rbac-audit-django,64,DO_NOT_INSTALL,AST4,MEDIUM,0.7,scripts/rbac_scanner.py,43,"result = subprocess.run( # noqa: S603 cmd, capture_output=True, text=True, cwd=c"
+nautilai,rbac-django/skills/rbac-audit-django,64,DO_NOT_INSTALL,LP1,HIGH,0.75,scripts/rbac_scanner.py,1,
+nautilai,rbac-django/skills/rbac-audit-django,64,DO_NOT_INSTALL,OH1,HIGH,0.95,scripts/rbac_scanner.py,43,"subprocess.run( # noqa: S603 cmd, capture_output"
+nautilai,rbac-django/skills/rbac-remediation-playbooks,10,SAFE,AS3,MEDIUM,0.8,scripts/discover_platform.py,221,skills/rbac-audit-django/SKILL.md
+nautilai,rbac-django/skills/rbac-threat-model,20,SAFE,YR4,HIGH,0.8,SKILL.md,138,social-engineer
+nautilai,relay/skills/handoff,0,SAFE,,,,,,
+nautilai,review-plan/skills/review-plan,0,SAFE,,,,,,
+nautilai,wireframe/skills/wireframe,5,SAFE,P2,HIGH,0.21,references/reference.md,152,<!-- WIREFRAME-CATALOG-START --> <!-- WIREFRAME-CATALOG-END --> --- ## Accessibi
