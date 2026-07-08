@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.16.1](https://github.com/starfysh-tech/nautilai/compare/v2.16.0...v2.16.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **docs:** self-host anime.js instead of cdn ([72195b6](https://github.com/starfysh-tech/nautilai/commit/72195b60545c9e67ab37fb65df7cf67b4dc8ee42))
+
 ## [2.16.0](https://github.com/starfysh-tech/nautilai/compare/v2.15.0...v2.16.0) (2026-07-08)
 
 
