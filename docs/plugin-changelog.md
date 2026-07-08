@@ -16,6 +16,16 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-08
 
+- **commitcraft** ([`workflows/pr.md`](../commitcraft/skills/commitcraft/workflows/pr.md)).
+  `/commitcraft pr` now fills a repo's own PR template instead of overwriting it with
+  a generic body. A repo's `.github/pull_request_template.md` is what description bots
+  (CodeRabbit, etc.) grade against, but `gh pr create --body` bypasses template
+  resolution — so the generic body silently failed those checks. The skill now detects
+  the template (new `commitcraft-pr-template.sh`, covered by `pr-template.test.sh`),
+  preserves its headings verbatim, writes an honest `N/A` for sections the diff can't
+  answer, and never ticks a human attestation checkbox. No repo template → unchanged
+  generic body.
+
 - **cc-skill-audit** ([`skills/cc-skill-audit`](../cc-skill-audit/skills/cc-skill-audit/SKILL.md)).
   Two audit tools had grown to do one user-facing job — a personal scorecard
   skill scored and ranked every skill quantitatively, while this plugin's
