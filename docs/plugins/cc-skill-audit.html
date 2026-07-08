@@ -200,7 +200,7 @@
         <ul>
           <li>Fetches Anthropic's live skill guidance from <code>code.claude.com/docs</code> at runtime, so it won't fail a skill on a rule that's since changed.</li>
           <li>Sweep mode discovers user, project, and installed-plugin skills, then runs a scored Workflow: a Haiku worker scores each SKILL.md on clarity, frontmatter validity, and trigger quality; a Sonnet fact-checker verifies every factual claim against the skill's actual files on disk; a final agent ranks the full set worst-to-best with cross-set patterns into <code>skill-audit-report.md</code>.</li>
-          <li>Falls back to batched Task fan-out (~5 skills per haiku subagent, checklist-only, no scoring) when the Workflow tool is unavailable — the parent still does judgment synthesis: trigger-overlap analysis, description rewrites, duplicate detection.</li>
+          <li>Falls back to batched Task fan-out (~5 skills per haiku subagent) when the Workflow tool is unavailable — subagents score against the same rubric, the parent fact-checks their claims against disk, then ranks and writes the same report, marked as self-reported scores without independent verification.</li>
           <li>Runs in an isolated <code>fork</code> context.</li>
           <li>Tests description field for triggering reliability by drafting direct/implicit/alternative phrasings.</li>
           <li>Validates frontmatter (required fields, name/description validity).</li>
