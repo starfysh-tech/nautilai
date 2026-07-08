@@ -86,7 +86,7 @@ PR that makes the change:
 
 This repo follows the CommitCraft conventions it ships (see `commitcraft/README.md`):
 
-- **Conventional Commits**: `<type>(<scope>): <subject>` — types `feat|fix|docs|style|refactor|test|chore|perf|ci|revert`; imperative, lowercase subject ≤50 chars, no emoji, no attribution footers (`Co-Authored-By`, etc.).
+- **Conventional Commits**: `<type>(<scope>): <subject>` — types `feat|fix|docs|style|refactor|test|chore|perf|ci|revert`; imperative, lowercase subject ≤72 chars, no emoji, no attribution footers (`Co-Authored-By`, etc.).
 - **Stage files individually** with `git add <file>` — never `git add -A`.
 - **Never use `--no-verify`.** Hook failures (gitleaks secrets, commitlint, tests) are hard stops, not bypasses. Auto-fixers (prettier/eslint) are soft blocks — re-stage and retry.
 - **Pre-commit hooks take 60–90s** — run them in the foreground and wait; never background them.

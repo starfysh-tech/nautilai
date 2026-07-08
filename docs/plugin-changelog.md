@@ -16,6 +16,13 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-08
 
+- **commitcraft** ([`templates/.commitlintrc.yml`](../commitcraft/templates/.commitlintrc.yml)).
+  Raised the commit `subject-max-length` from 50 to 72 (the Conventional Commits
+  default) in the shipped commitlint templates and the commit-generation guidance.
+  Dependabot's subjects for long-named actions (e.g. `googleapis/release-please-action`)
+  run ~60 chars and were failing the required commitlint check at 50, blocking
+  auto-merge; 72 clears them without hand-amending each PR.
+
 - **commitcraft** ([`workflows/pr.md`](../commitcraft/skills/commitcraft/workflows/pr.md)).
   `/commitcraft pr` now fills a repo's own PR template instead of overwriting it with
   a generic body. A repo's `.github/pull_request_template.md` is what description bots

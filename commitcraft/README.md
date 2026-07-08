@@ -81,7 +81,7 @@ correctly regardless of where the plugin cache lives.
 
 ## Behavioral conventions
 
-- **Conventional commits** — `<type>(<scope>): <subject>`; subject ≤50 chars, lowercase, no emoji; body lines ≤72 chars. Enforced by the commitlint hook locally **and** in CI (see `.commitlintrc.yml`)
+- **Conventional commits** — `<type>(<scope>): <subject>`; subject ≤72 chars, lowercase, no emoji; body lines ≤72 chars. Enforced by the commitlint hook locally **and** in CI (see `.commitlintrc.yml`)
 - **No `git add -A`** — each file is staged individually (`git add <file>`)
 - **No attribution footers** (no `Co-Authored-By` or similar)
 - **Never `--no-verify`** — hook failures are hard stops, not bypasses

@@ -208,7 +208,7 @@
           <li>The PR base branch is derived via <code>git symbolic-ref</code> against <code>origin/HEAD</code>, falling back to <code>gh repo view</code>'s default branch and then <code>main</code> — never hardcoded.</li>
           <li><code>commitcraft-issues.sh</code> — branch-based issue validation across github / linear / jira / none; the GitHub path only trusts a trailing <code>-&lt;num&gt;</code> branch suffix (e.g. <code>fix/thing-305</code>) as the issue number, not any number appearing elsewhere in the branch name.</li>
           <li>On the manual release path, notes are grouped by the repo's own <code>release-please-config.json</code> <code>changelog-sections</code> when present, falling back to a built-in section table.</li>
-          <li>Conventional commits only: <code>&lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;</code>, ≤50 char lowercase subject, no emoji, ≤72 char body lines — enforced by commitlint locally and in CI.</li>
+          <li>Conventional commits only: <code>&lt;type&gt;(&lt;scope&gt;): &lt;subject&gt;</code>, ≤72 char lowercase subject, no emoji, ≤72 char body lines — enforced by commitlint locally and in CI.</li>
           <li>Files are staged individually (<code>git add &lt;file&gt;</code>), never <code>git add -A</code>; no attribution footers (no <code>Co-Authored-By</code>); <code>--no-verify</code> is never used — hook failures are hard stops, not bypasses.</li>
           <li>The commit workflow auto-creates a feature branch when run on <code>main</code>.</li>
         </ul>
