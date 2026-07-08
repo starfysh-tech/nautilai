@@ -209,10 +209,11 @@
       <summary>Under the hood</summary>
       <div class="tech-body">
         <ul>
-          <li><code>phi_check.py</code> — matches HIPAA Safe Harbor patterns (SSN, email, phone, IPv4, US/ISO dates, 5-digit ZIPs with 17 restricted prefixes).</li>
+          <li><code>phi_check.py</code> — matches HIPAA Safe Harbor patterns (SSN, email, phone, IPv4, US/ISO dates, 5-digit ZIPs); a ZIP in one of the 17 restricted prefixes is reported as <code>zip_5(restricted)</code>, higher priority than an ordinary ZIP match.</li>
           <li>Filters test data markers (<code>test</code>, <code>mock</code>, <code>@example.com</code>, <code>123-45-6789</code>) and respects inline <code># phi-safe</code> / <code>// phi-safe</code> suppressions.</li>
           <li>Exits non-zero on real findings (doubles as a git pre-commit hook).</li>
-          <li>AI triage: reads flagged files to judge context, dismiss config/test/comment matches, catch names and medical record numbers.</li>
+          <li>AI triage: reads flagged files to judge context, dismiss config/test/comment matches, catch names and medical record numbers; findings spanning more than ~5 files fan out to parallel <code>general-purpose</code> subagents on Haiku, one per file or small batch, synthesized afterward.</li>
+          <li>Optional <code>PreToolUse</code> write guard (<code>hooks/hooks.json</code> → <code>scripts/phi_guard.py</code>): scans <code>Write</code>/<code>Edit</code>/<code>MultiEdit</code> content before it lands on disk and cancels the call on a real PHI match; off by default, enabled per shell via <code>PHI_SCAN_GUARD=1</code>; fails open on a malformed payload or scanner error.</li>
           <li>OWASP layer (off by default, Django/React only): runs shallow <code>grep</code> heuristics for hardcoded secrets, raw-SQL injection, <code>mark_safe</code>/<code>innerHTML</code> XSS, PHI/secrets in logs — not a real SAST; pair with semgrep/bandit for serious work.</li>
         </ul>
       </div>

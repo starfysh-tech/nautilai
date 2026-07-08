@@ -54,7 +54,7 @@ is recoverable; a wrong silent edit is not.
 |---|---|---|---|
 | **cc-validate-hooks** | `--fix`: add missing `type`, drop unused matcher (writes `.bak`) | passing checks; warnings (unknown event/type) | malformed config that `--fix` won't touch |
 | **cc-skill-audit** | mechanical SKILL.md fixes (YAML, missing field) | clean skills; the findings list | description rewrites, monolith splits |
-| **review-plan** | revise the plan file in place to the leaner correct version | verdict, footprint, dropped speculative risks | conflicting/ambiguous plan decisions |
+| **review-plan** | revise the plan file in place to the leaner correct version (backs up untracked plans to `<plan>.bak` first; tracked plans rely on VCS history) | verdict, footprint, dropped speculative risks | conflicting/ambiguous plan decisions |
 | **pr-comment-review** | trivially mechanical review comments (still shown in the task list) | refuted false positives (reply with evidence) | every substantive comment — behind the Phase 3 gate |
 | **phi-scan** | *none* (never auto-remediates PHI) | scanner candidates; triage results; OWASP grep hits | confirmed PHI exposure — remediation is the user's call |
 | **cc-adoption-audit** | *none* | the full prioritized audit | acting on a recommendation ("set up X?") |

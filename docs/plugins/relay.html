@@ -181,7 +181,7 @@
   <section id="how">
     <h2>How it works</h2>
     <p><code>/compact</code> and model self-summaries are recency-biased — they favor what's fresh in context and quietly drop early constraints, dead ends already tried, and decisions reasoned about many turns back. The session transcript JSONL doesn't have that bias, so Relay's bundled scripts extract facts from the transcript itself rather than asking the model to remember.</p>
-    <p><code>scripts/resolve-session.sh</code> locates the current session's transcript, and <code>scripts/extract-transcript.sh</code> reads it into a fact pack (secret-scrubbed, with harness-injected content filtered out). The skill combines that with its own read of the conversation into a doc with fact-grounded sections plus a one-line pending marker. A <code>SessionStart</code> hook atomically claims that marker on the next session, injects the doc if it's still within its TTL, and renames it so it only fires once — even with concurrent session starts.</p>
+    <p><code>scripts/resolve-session.sh</code> locates the current session's transcript, and <code>scripts/extract-transcript.sh</code> reads it into a fact pack (secret-scrubbed, with harness-injected content filtered out). The narrative step starts in the background immediately after the transcript resolves, so its Haiku calls overlap the fact-pack extraction instead of waiting for it. The skill combines both packs with its own read of the conversation into a doc with fact-grounded sections plus a one-line pending marker. A <code>SessionStart</code> hook atomically claims that marker on the next session, injects the doc if it's still within its TTL, and renames it so it only fires once — even with concurrent session starts.</p>
     <p>When Claude Code auto-compacts, a <code>PreCompact</code> hook drops a marker and nudges toward <code>/handoff recover</code>, which reconstructs the same compaction-lossy detail from before the compaction boundary.</p>
 
     <div class="flow">
@@ -189,7 +189,7 @@
       <div class="flow-arrow" aria-hidden="true"></div>
       <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">extract transcript</span><span class="fs-sub">extract-transcript.sh</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">narrate</span><span class="fs-sub">haiku-narrative.sh</span></span></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">narrate (background)</span><span class="fs-sub">haiku-narrative.sh</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
       <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">assemble handoff</span><span class="fs-sub">handoff skill</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
@@ -223,8 +223,9 @@
         <ul>
           <li><code>resolve-session.sh</code> — locates the current session's transcript JSONL (env vars first, newest-mtime fallback with a stderr warning).</li>
           <li><code>extract-transcript.sh</code> — the fact pack: files touched, commands run, failures, verbatim user messages, secret-scrubbed and stripped of harness-injected content.</li>
-          <li><code>haiku-narrative.sh</code> — recovers Decisions / Dead ends / Constraints from assistant prose via a headless Haiku call; exits 3 on any failure (missing <code>claude</code> CLI, timeout) so the handoff proceeds without it. It runs Haiku with a bare <code>--system-prompt</code> (no CLAUDE.md inheritance) and treats transcript content strictly as data, never as commands.</li>
+          <li><code>haiku-narrative.sh</code> — recovers Decisions / Dead ends / Constraints from assistant prose via a headless Haiku call; started in the background right after transcript resolution, ahead of the fact-pack step; exits 3 on any failure (missing <code>claude</code> CLI, timeout) so the handoff proceeds without it. It runs Haiku with a bare <code>--system-prompt</code> (no CLAUDE.md inheritance) and treats transcript content strictly as data, never as commands.</li>
           <li><code>session-start-pickup.sh</code> / <code>precompact-notify.sh</code> — the SessionStart and PreCompact hooks.</li>
+          <li><code>/handoff recover</code> follows <code>skills/handoff/workflows/recover.md</code>, re-extracting the fact pack scoped to the transcript region before the compaction boundary.</li>
           <li>Storage: <code>~/.claude/handoffs/&lt;project-slug&gt;/</code> — <code>pending</code>, <code>compacted-&lt;epoch&gt;</code>, <code>recovered-&lt;epoch&gt;</code>, and the dated doc files.</li>
           <li>Env vars: <code>RELAY_NARRATIVE=off</code> skips the Haiku calls; <code>RELAY_RETENTION_DAYS</code> (default 14) controls the sweep, <code>0</code> disables it.</li>
         </ul>

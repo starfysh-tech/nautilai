@@ -180,6 +180,7 @@
     <h2>How it works</h2>
     <p>The skill discovers open Dependabot PRs via GitHub MCP (preferred) or <code>gh</code> CLI, parsing package, versions, and ecosystem from branch prefix. For each PR, it classifies the bump type, checks CI status, extracts the specific changes from the changelog, and verifies each against your code (cited <code>file:line</code>). It evaluates security (CVE + whether the vulnerable path is used) and EOL status.</p>
     <p>A decision matrix applies the verdict: AUTO-MERGE for low-risk patch and minor-dev-dep bumps with passing CI; MERGE, SKIP, or INVESTIGATE for everything else. The skill reports findings grounded in diff and changelog; when metadata is unreachable it degrades loudly rather than guessing.</p>
+    <p>Each PR's per-PR analysis runs as its own parallel subagent on <code>model: sonnet</code>, launched together in batch mode; the main context keeps discovery, verdicts, and gated actions.</p>
     <p>Shoals: records corrections in <code>.claude/shoals/dep-review.dep-review.md</code> for the next run, learning what to always skip or adjust verdict-wise on specific packages.</p>
 
     <div class="flow">
@@ -216,6 +217,7 @@
       <div class="tech-body">
         <ul>
           <li>PR discovery via GitHub MCP (preferred) or <code>gh</code> CLI; parses ecosystem from branch prefix.</li>
+          <li>Per-PR analysis runs as a parallel <code>general-purpose</code> subagent (<code>model: sonnet</code>) per PR; batch mode launches all subagents together.</li>
           <li>Bump classification: patch, minor (runtime), minor (dev-dep), major.</li>
           <li>Changelog extraction from diff; registry metadata via <code>npm</code> / <code>pip-audit</code> (if present) or HTTP APIs (npm, PyPI).</li>
           <li>Verification: each change cited against codebase (<code>file:line</code>) or marked "not found".</li>

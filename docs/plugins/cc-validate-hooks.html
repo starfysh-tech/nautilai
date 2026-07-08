@@ -4,9 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>cc-validate-hooks — nautilai</title>
-<meta name="description" content="Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix." />
+<meta name="description" content="Validate the local Claude Code hooks configuration in settings.json and settings.local.json (project and user) — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix." />
 <meta property="og:title" content="cc-validate-hooks — nautilai" />
-<meta property="og:description" content="Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix." />
+<meta property="og:description" content="Validate the local Claude Code hooks configuration in settings.json and settings.local.json (project and user) — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix." />
 <meta property="og:type" content="website" />
 <meta name="theme-color" content="#0a141d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -169,7 +169,7 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>Validates the hooks block in your project and user <code>settings.json</code> files. Parses JSON, checks event names against the known Claude Code hook event list, validates matcher shapes and regex, and verifies each hook's type, command, and timeout fields. With <code>--fix</code>, it repairs simple issues in place and writes a backup.</p>
+    <p>Validates the hooks block in your project <code>settings.json</code> and <code>settings.local.json</code> and user <code>settings.json</code> files. Parses JSON, checks event names against the known Claude Code hook event list, validates matcher shapes and regex, and verifies each hook's type, command, and timeout fields. With <code>--fix</code>, it repairs simple issues in place and writes a backup.</p>
   </section>
 
   <section id="commands">
@@ -196,12 +196,14 @@
       <summary>Under the hood</summary>
       <div class="tech-body">
         <ul>
-          <li>Reads both project and user <code>settings.json</code> files.</li>
+          <li>Reads the project <code>settings.json</code>, project <code>settings.local.json</code>, and user <code>settings.json</code> files.</li>
           <li>Parses JSON syntax and validates the hook structure (event → matchers → hooks).</li>
           <li>Checks event names against the known Claude Code hook event list (warns on unrecognized).</li>
           <li>Compiles matcher regex patterns to catch malformed expressions.</li>
           <li>Validates each hook's <code>type</code>, <code>command</code>, and <code>timeout</code> fields.</li>
           <li>With <code>--fix</code>, corrects unused matchers and missing type defaults, writing a backup.</li>
+          <li>Error and warning counts are reported via <code>__ERRORS__</code>/<code>__WARNINGS__</code> sentinel lines rather than the process exit code, so the shell wrapper can tell "ran, found errors" apart from "crashed".</li>
+          <li>Runs as a forked skill on Haiku, since hook validation is mechanical and doesn't need a larger model.</li>
         </ul>
       </div>
     </details>

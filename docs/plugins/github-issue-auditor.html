@@ -167,7 +167,7 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>The skill audits a GitHub repository's open issues via read-only inspection for cleanup opportunities. It detects fuzzy-matched duplicate titles using normalized Levenshtein similarity (default threshold 0.75, customizable), orphaned sub-issues whose parent issues are closed, unlabeled or stale items (default 90 days, customizable), and labels inconsistent with the repo's own auto-detected taxonomy. It reports findings-first with issue numbers and evidence (age, similarity score), then stops at a review checkpoint. Any mutations — closing duplicates, relabeling, or commenting — execute only after explicit user approval via a gated task list, with changes recorded under the user's GitHub account.</p>
+    <p>The skill audits a GitHub repository's open issues via read-only inspection for cleanup opportunities. It detects fuzzy-matched duplicate titles using normalized Levenshtein similarity (default threshold 0.75, customizable), orphaned sub-issues whose parent issues are closed, unlabeled or stale items (default 30 days, customizable), and labels inconsistent with the repo's own auto-detected taxonomy. It reports findings-first with issue numbers and evidence (age, similarity score), then stops at a review checkpoint. Any mutations — closing duplicates, relabeling, or commenting — execute only after explicit user approval via a gated task list, with changes recorded under the user's GitHub account.</p>
   </section>
 
   <section id="commands">
@@ -175,7 +175,7 @@
     <ul class="skill-list">
       <li><div class="sk-name">/github-issue-auditor</div><p>Audit the current repository for duplicates, orphaned sub-issues, unlabeled items, stale issues, and label inconsistencies.</p><div class="sk-triggers">explicit slash form only</div></li>
       <li><div class="sk-name">/github-issue-auditor owner/repo</div><p>Audit a specific repository by owner/repo slug.</p><div class="sk-triggers">explicit slash form only</div></li>
-      <li><div class="sk-name">/github-issue-auditor --stale-days 60</div><p>Customize the stale threshold in days (default 90).</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/github-issue-auditor --stale-days 60</div><p>Customize the stale threshold in days (default 30).</p><div class="sk-triggers">explicit slash form only</div></li>
       <li><div class="sk-name">/github-issue-auditor --similarity 0.85</div><p>Customize the duplicate-detection threshold (default 0.75); higher values require closer title matches.</p><div class="sk-triggers">explicit slash form only</div></li>
     </ul>
   </section>
@@ -199,8 +199,9 @@
       <summary>Under the hood</summary>
       <div class="tech-body">
         <ul>
-          <li><code>/github-issue-auditor</code> — single skill that reads via GitHub CLI (<code>gh</code>) or GitHub MCP server (whichever available); read-only by default (audit is <code>report</code>); any mutation (close/relabel/comment) is <code>ask-user</code> behind an approval gate. Audits for marked duplicates, fuzzy-matched duplicates (Levenshtein similarity, default 0.75), orphaned sub-issues, unlabeled items, stale issues (default 90 days), and label inconsistencies.</li>
-          <li>Auto-detection: lists repo labels and groups them by inferred category (status/type/priority/area); does not assume label names.</li>
+          <li><code>/github-issue-auditor</code> — single skill that reads via GitHub CLI (<code>gh</code>) or GitHub MCP server (whichever available); read-only by default (audit is <code>report</code>); any mutation (close/relabel/comment) is <code>ask-user</code> behind an approval gate. Audits for marked duplicates, fuzzy-matched duplicates (Levenshtein similarity, default 0.75), orphaned sub-issues, unlabeled items, stale issues (default 30 days), and label inconsistencies.</li>
+          <li>Auto-detection: lists repo labels and groups them by inferred category (status/type/priority/area); does not assume label names. The analyzer accepts a detected-taxonomy label map for unlabeled-item suggestions instead of hardcoding label names.</li>
+          <li>Discovery fetches the open-issue list once and reuses it across categories rather than re-querying per category.</li>
           <li>Reporting: findings-first, prioritized list omits clean categories; evidence (issue numbers, age, similarity %) grounds every claim.</li>
           <li>Customizable flags: <code>--similarity 0.XX</code> (duplicate threshold), <code>--stale-days N</code> (age threshold).</li>
           <li>Shoals: <code>.claude/shoals/github-issue-auditor.github-issue-auditor.md</code> — project corrections (e.g. "issues labeled <code>keep-open</code> are never stale").</li>

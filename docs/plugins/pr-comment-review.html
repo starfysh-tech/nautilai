@@ -177,7 +177,7 @@
 
   <section id="how">
     <h2>How it works</h2>
-    <p>The skill fetches all feedback threads on the current PR and categorizes each comment as actionable, issue, question, or suggestion. It verifies claims against the actual code before accepting a fix — a comment can be a false positive worth refuting rather than changing. When you approve the scope, it implements the agreed fixes, runs your project's check command, then pushes to the repo and replies inline to each thread.</p>
+    <p>The skill fetches all feedback threads on the current PR — inline review threads, formal reviews, and comments — in a single GraphQL query, falling back to three separate REST calls if it fails. It categorizes each comment as actionable, issue, question, or suggestion; above roughly 10 threads, a <code>haiku</code> subagent does the initial category triage while the main agent keeps claim verification and every disposition decision. It verifies claims against the actual code before accepting a fix — a comment can be a false positive worth refuting rather than changing. When you approve the scope, it implements the agreed fixes, runs your project's check command, then pushes to the repo and replies inline to each thread.</p>
     <p>Graceful degradation: reads and replies via the <code>mcp__github__*</code> MCP server (preferred) or the <code>gh</code> CLI; pushes via <code>/commitcraft push</code> if installed, otherwise plain <code>git push</code>; runs checks via a detected runner (mise, npm, make, cargo, pytest) or skips with your confirmation.</p>
     <p>Shoals: records corrections in <code>.claude/shoals/pr-comment-review.pr-comment-review.md</code> for the next run, preventing repeated mistakes on the same project.</p>
 
@@ -201,7 +201,8 @@
       <summary>Under the hood</summary>
       <div class="tech-body">
         <ul>
-          <li>GitHub reads/replies via <code>mcp__github__*</code> MCP tools (preferred) or <code>gh</code> CLI.</li>
+          <li>GitHub reads/replies via <code>mcp__github__*</code> MCP tools (preferred) or <code>gh</code> CLI; thread/review/comment fetch prefers one <code>gh api graphql</code> query over separate REST calls, falling back to REST on failure.</li>
+          <li>At scale (&gt;~10 threads), a <code>general-purpose</code> subagent on <code>model: haiku</code> does initial category/disposition triage; claim verification and dispositions stay in the main agent.</li>
           <li>Push via <code>/commitcraft push</code> skill (if installed) or plain <code>git push</code>.</li>
           <li>Check command auto-detected from <code>mise</code>, <code>npm</code>, <code>make</code>, <code>cargo</code>, or <code>pytest</code>; skipped with confirmation if none found.</li>
           <li>Shoals file: <code>.claude/shoals/pr-comment-review.pr-comment-review.md</code> — append-only corrections log, committed by default.</li>

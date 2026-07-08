@@ -196,8 +196,9 @@
       <div class="tech-body">
         <ul>
           <li>Fetches the official Claude Code docs index (always fresh, never stale).</li>
-          <li>Inspects your setup: settings, hooks, installed plugins, skills, MCP servers, and project stack.</li>
+          <li>Inspects your setup: settings, hooks, installed plugins, skills, MCP servers, and project stack; from <code>~/.claude.json</code> it extracts only the <code>mcpServers</code> key rather than reading the whole file.</li>
           <li>Checks your Claude Code version against the latest release.</li>
+          <li>The available-features and current-setup steps run independently and can each delegate to a haiku subagent that returns a distilled, source-cited inventory.</li>
           <li>Cross-references what you have against what's available, then prioritizes by relevance and impact.</li>
           <li>Reports three threads: adoption opportunities, configuration gaps, and features shipped in the last ~30 days.</li>
         </ul>

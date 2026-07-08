@@ -199,7 +199,8 @@
       <div class="tech-body">
         <ul>
           <li>Fetches Anthropic's live skill guidance from <code>code.claude.com/docs</code> at runtime, so it won't fail a skill on a rule that's since changed.</li>
-          <li>In sweep mode, discovers user, project, and installed-plugin skills.</li>
+          <li>In sweep mode, discovers user, project, and installed-plugin skills, then fans the mechanical checklist out in batches of ~5 skills to parallel haiku subagents — the parent does only the judgment synthesis (trigger-overlap analysis, description rewrites, duplicate detection).</li>
+          <li>Runs in an isolated <code>fork</code> context.</li>
           <li>Tests description field for triggering reliability by drafting direct/implicit/alternative phrasings.</li>
           <li>Validates frontmatter (required fields, name/description validity).</li>
           <li>Checks body structure, portability across surfaces, and bundled resources.</li>
