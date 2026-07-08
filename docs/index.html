@@ -584,7 +584,10 @@
 
 <script type="module">
   // ── Hero: chambered nautilus (golden logarithmic spiral), anime.js draw + breathe ──
-  import { animate, svg, stagger } from "https://cdn.jsdelivr.net/npm/animejs@4/+esm";
+  // Vendored (docs/vendor/anime.esm.v4.5.0.js) rather than loaded from a CDN — a
+  // GitHub Pages site running floating-version third-party JS is the polyfill.io
+  // supply-chain failure mode. Bump by re-vendoring a pinned version, not a tag.
+  import { animate, svg, stagger } from "./vendor/anime.esm.v4.5.0.js";
   const NS = "http://www.w3.org/2000/svg";
   const root = document.getElementById("hero-shell-svg");
   if (root) {
