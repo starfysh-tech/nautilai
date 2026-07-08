@@ -97,7 +97,7 @@ Sweep mode runs a scored, ranked audit across every installed skill via a multi-
 
    ```bash
    python3 -c "
-   import os, json
+   import os, json, glob
    res=[]
    roots = [('global', os.path.expanduser('~/.claude/skills')), ('project', os.path.join(os.getcwd(), '.claude/skills'))]
    for label, root in roots:
@@ -105,10 +105,19 @@ Sweep mode runs a scored, ranked audit across every installed skill via a multi-
        for dirpath, dirs, files in os.walk(root):
            if 'SKILL.md' in files:
                res.append({'scope': label, 'path': os.path.join(dirpath, 'SKILL.md')})
-   # if plugin scope selected, also walk ~/.claude/plugins/*/skills/*/SKILL.md and project plugin dirs
+   plugin_globs = [os.path.expanduser('~/.claude/plugins/*/skills/*/SKILL.md'),
+                   os.path.join(os.getcwd(), '*/skills/*/SKILL.md')]
+   for pat in plugin_globs:
+       for p in glob.glob(pat):
+           res.append({'scope': 'plugin', 'path': p})
    print(json.dumps(res))
    "
    ```
+
+   Trim the `roots` / `plugin_globs` lists to the chosen scope before running
+   (e.g. drop `plugin_globs` unless the plugin option was picked; the
+   `<cwd>/*/skills/` glob only applies when the project itself is a plugin
+   repo). Dedup paths that appear under more than one root.
 
    If the list is empty for the chosen scope, report that and stop — do not launch the workflow.
 
@@ -125,13 +134,13 @@ Sweep mode runs a scored, ranked audit across every installed skill via a multi-
 
    The script tolerates `args` arriving as a JSON string (it parses defensively), but pass a real object. Never hardcode a path in place of `${CLAUDE_PLUGIN_ROOT}` — the install cache path changes on every plugin update.
 
-5. **Deliver the report.** When the workflow completes, its return value is `{ report, results }`:
+5. **Deliver the report.** (Workflow path; on the fallback below, the parent assembles the same report from the subagent returns instead.) When the workflow completes, its return value is `{ report, results }`:
    - Read the full result from the task output file referenced in the completion notification (the notification summary is truncated). It is a JSON object; the report markdown is at `.result.report`.
    - Write `report` verbatim to `skill-audit-report.md` in the current working directory (ask before overwriting if the file exists and wasn't produced by this skill).
    - Summarize for the user: average scores, frontmatter failure count, the 3-5 weakest skills, and the cross-set patterns.
    - Offer to run this skill's deep single-skill audit workflow (steps 1-9 above) on the bottom 3-5 skills.
 
-6. **Fallback — no Workflow tool.** If the Workflow tool is unavailable in this environment, fall back to the batched Task fan-out: spawn parallel subagents (Task, `general-purpose`, model: haiku) in batches of ~5 skills each. Each subagent reads its batch's SKILL.md files and applies the mechanical checklist from `references/audit-checklist.md`, returning structured findings (per-skill severity-tagged list) — no judgment calls. The parent does only the judgment synthesis: trigger-overlap analysis across skills, description rewrite recommendations, and duplicate-name detection. This path does not produce a scored/ranked `skill-audit-report.md` — use the "Directory sweep" output format below instead.
+6. **Fallback — no Workflow tool.** If the Workflow tool is unavailable in this environment, fall back to a batched Task fan-out that preserves the scored deliverable: spawn parallel subagents (Task, `general-purpose`, model: haiku) in batches of ~5 skills each. Each subagent reads its batch's SKILL.md files, applies the mechanical checklist from `references/audit-checklist.md` (with the `docs_rules` block from step 3 pasted into its prompt), and returns per skill: clarity 1-5, frontmatter pass/fail, trigger quality 1-5, the single top fix, and severity-tagged findings — with disk evidence for every factual claim. The parent then does the judgment synthesis (trigger-overlap analysis, description rewrites, duplicate-name detection), spot-checks each batch's factual claims against disk (this replaces the workflow's Sonnet verify phase — do not skip it), ranks worst-to-best, and writes `skill-audit-report.md` per step 5, marking it: "fallback run — scores are self-reported by cheap scorers without independent verification; treat as an upper bound." Cheap scorers grade leniently (a uniform 4/4 trigger column across a whole set is a calibration smell, not a clean bill).
 
 ### Notes
 
@@ -214,7 +223,7 @@ These are the principles the audit checklist operationalizes; `references/audit-
 ## Gotchas
 
 - **Verify documented-field claims against live docs.** The frontmatter rules in `references/audit-checklist.md` are a snapshot. Before flagging a field as "undocumented" or citing the description character limit, confirm against `https://code.claude.com/docs/en/skills.md` (see "Ground the audit against current docs first"). Don't fail a skill on a rule this skill has outgrown.
-- **Reserved words in the name field.** The `name` must not contain "anthropic" or "claude". Hyphens and lowercase only; check the current max-length limit in the live docs.
+- **Reserved words in the name field.** "anthropic"/"claude" in a `name` is a claude.ai/Agent-Skills packaging rule; Claude Code's own frontmatter table documents no name constraints (`name` is optional and defaults to the directory name). Flag it for cross-surface skills, downgrade to Medium for Claude Code-only ones; check the live docs for current limits.
 - **When installed as a plugin, sweep mode can find this skill twice.** This skill ships inside the `cc-skill-audit` plugin (`~/.claude/plugins/*/skills/cc-skill-audit/`). If the user also keeps a standalone `~/.claude/skills/cc-skill-audit/`, sweep mode will discover both and may report a self-collision. That's expected — note it as a duplicate and don't audit the two copies as if they were unrelated skills.
 - **Cowork and Claude.ai surface gotchas** (ZIP upload flattening, Cowork's rescan behavior, `<available_skills>` being a disk subset, Claude.ai's zip packaging requirement) live in `references/portability-notes.md` — read it before auditing a skill that targets either surface.
 - **A "monolith" skill that tries to do everything won't trigger reliably for any one thing.** If the description spans multiple unrelated domains, recommend splitting.
@@ -245,6 +254,6 @@ narrate it.
 
 ## Version
 
-- v1.2 (2026-07-08): Merged the personal `skill-audit` scorecard tool into sweep mode as a scored, ranked Workflow (Haiku score → Sonnet verify → rank), grounded against live docs, writing `skill-audit-report.md`; batched Task fan-out kept as the fallback when the Workflow tool is unavailable.
+- v1.2 (2026-07-08): Merged the personal `skill-audit` scorecard tool into sweep mode as a scored, ranked Workflow (Haiku score → Sonnet verify → rank), grounded against live docs, writing `skill-audit-report.md`; batched Task fan-out kept as the fallback when the Workflow tool is unavailable. Post-validation fixes from a clean-agent run: plugin-scope discovery is real code (was a comment), the fallback now produces the scored report with a scores-are-an-upper-bound caveat and a mandatory parent fact-check pass, and the frontmatter snapshot re-verified against live docs (name optional, description recommended, 1,536-char listing cap; reserved-word rule scoped to cross-surface packaging).
 - v1.1 (2026-06-18): Packaged as the `cc-skill-audit` plugin (renamed from the personal `audit-skills` skill to avoid a public name collision). Added a runtime docs-anchor step (fetch `llms.txt` instead of trusting frozen snapshots), trigger-testing in the audit workflow, and installed-plugin skill discovery in sweep mode. Generalized security examples (removed private project context).
 - v1.0 (2026-05-12): Initial release. Grounded in Anthropic's Skills overview, Skill authoring best practices, and skill-creator (anthropics/skills repo). Community patterns from external authoring guides incorporated where they don't conflict with official guidance, and flagged where they go beyond official docs.

@@ -24,7 +24,7 @@ const SCORE_SCHEMA = {
     name: { type: 'string', description: 'skill name from frontmatter, or folder name if missing' },
     clarity: { type: 'integer', minimum: 1, maximum: 5 },
     clarity_note: { type: 'string' },
-    frontmatter_pass: { type: 'boolean', description: 'valid YAML frontmatter with BOTH name and description fields' },
+    frontmatter_pass: { type: 'boolean', description: 'valid YAML frontmatter with both name and description fields (a quality bar: live docs make name optional and description recommended, but a missing description degrades triggering)' },
     frontmatter_note: { type: 'string' },
     trigger_quality: { type: 'integer', minimum: 1, maximum: 5 },
     trigger_note: { type: 'string' },
@@ -46,7 +46,7 @@ const VERIFY_SCHEMA = {
 
 const scorePrompt = (s) => `Read the Claude Code skill file at ${s.path} and audit it. Score:
 - clarity (1-5): are the instructions clear and unambiguous? 5 = a fresh agent could execute without guessing.
-- frontmatter (pass/fail): does it start with valid YAML frontmatter containing BOTH a "name" and a "description" field?
+- frontmatter (pass/fail): does it start with valid YAML frontmatter containing both a "name" and a "description" field? (Quality bar, not a documented requirement — the docs make name optional and description recommended, but a missing description degrades triggering; docs_rules below wins on any conflict.)
 - trigger_quality (1-5): does the description clearly say WHEN to use the skill, with concrete trigger phrases a user would actually type? 5 = explicit trigger phrases + clear scope boundaries; 1 = vague or missing.
 Also give the single highest-value fix for this skill (one sentence, concrete).${groundingClause}
 
