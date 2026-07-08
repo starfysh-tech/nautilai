@@ -11,6 +11,11 @@ export const meta = {
 // args: { skills: [{scope: "global"|"project"|"plugin", path: "/abs/path/to/SKILL.md"}, ...], docs_rules: "<string>" }
 // Guard: args sometimes arrives JSON-encoded as a string.
 const ARGS = (typeof args === 'string') ? JSON.parse(args) : args
+// Fail fast and diagnosably rather than crashing on ARGS.skills or silently
+// producing an empty report from a defaulted list.
+if (!ARGS || !Array.isArray(ARGS.skills) || ARGS.skills.length === 0) {
+  throw new Error('workflow requires args.skills (non-empty array of {scope, path}) — see SKILL.md sweep mode step 4')
+}
 const SKILLS = ARGS.skills
 const DOCS_RULES = ARGS.docs_rules || ''
 
