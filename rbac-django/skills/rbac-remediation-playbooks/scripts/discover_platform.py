@@ -263,7 +263,8 @@ def discover_roles(project_root: Path) -> tuple[list[dict], bool]:
         docs_found = True
         content = fp.read_text(encoding="utf-8", errors="ignore")
         for match in role_pattern.finditer(content):
-            bullets = re.findall(r"^-\s+(.+)$", match.group(2).strip(), re.MULTILINE)
+            # CRLF docs: $ matches before \n, so (.+) would keep a trailing \r.
+            bullets = [b.rstrip("\r") for b in re.findall(r"^-\s+(.+)$", match.group(2).strip(), re.MULTILINE)]
             roles.append(
                 {"name": match.group(1).strip(), "access": "; ".join(bullets[:3]), "source": str(fp)}
             )
