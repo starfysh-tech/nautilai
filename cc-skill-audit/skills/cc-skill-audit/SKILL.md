@@ -1,6 +1,6 @@
 ---
 name: cc-skill-audit
-description: Audit existing Claude Code skills against Anthropic's authoring guidance. Use when reviewing a SKILL.md's quality, diagnosing why a skill under- or over-triggers, tightening a description for better trigger reliability, restructuring a bloated SKILL.md, checking a skill for cross-surface portability or security before sharing, or sweeping a skills directory (including installed plugins) for skills that need work.
+description: Audit existing Claude Code skills against Anthropic's authoring guidance. Use when reviewing a SKILL.md's quality, diagnosing why a skill under- or over-triggers, tightening a description for better trigger reliability, restructuring a bloated SKILL.md, checking a skill for cross-surface portability or security before sharing, or sweeping a skills directory (including installed plugins) for skills that need work — including a scored sweep that ranks every installed skill worst-to-best and writes skill-audit-report.md.
 argument-hint: "[skill-name-or-path]"
 context: fork
 allowed-tools: [Read, Write, Edit, Glob, Grep, Task, Bash(python3:*), Bash(grep:*), Bash(ls:*), Bash(git:*), WebFetch]
@@ -52,16 +52,12 @@ Trigger this skill when the user wants to:
 Run the audit in this order. Stop after any step where the user wants to discuss findings before continuing.
 
 1. **Determine the target.**
-   - **No argument passed**: sweep mode. Audit every available skill. Sources:
-     - In Claude Code: read every `SKILL.md` under `~/.claude/skills/`, (if in a project) `.claude/skills/`, and installed plugins at `~/.claude/plugins/*/skills/` plus any project-level plugin skill dirs. When the same skill name appears both as a local dev copy and an installed-plugin copy, note the duplicate (they'll compete for the trigger) rather than auditing each in isolation.
-     - In Cowork or Claude.ai: read every `SKILL.md` listed in the session's `<available_skills>` block. Mount paths are typically `/mnt/skills/public/`, `/mnt/skills/examples/`, and `/mnt/skills/user/`.
-     - Skip Anthropic-shipped skills under `/mnt/skills/public/` by default; they're maintained by Anthropic and unlikely to need user fixes. Include them only if the user explicitly asks ("audit all skills including built-ins").
+   - **No argument passed**: sweep mode. Ask scope first, then run the scored sweep (see "Sweep mode" below).
    - **Argument passed**: single-skill mode. The argument is a skill name (e.g., `cc-skill-audit`) or a path (e.g., `~/.claude/skills/cc-skill-audit/SKILL.md`). Resolve the name to a path by checking the standard locations. If the argument doesn't match a known skill, ask before proceeding.
 
 2. **Read the SKILL.md(s).** Always read the file before commenting on it. Do not audit from memory. For sweeps, gather the full skill list and names first — duplicate-name detection needs only names, no file reads.
 
-3. **Run the checks** in `references/audit-checklist.md`. The checklist is grouped by category (frontmatter, description, body, bundled resources, portability, security). Apply every check that's relevant; skip ones that don't apply (for example, the bundled-resources checks if there are no bundled files).
-   - **Sweep mode fan-out**: once the skill list is gathered, spawn parallel subagents (Task, `general-purpose`, model: haiku) in batches of ~5 skills each. Each subagent reads its batch's SKILL.md files and applies the mechanical checklist from `references/audit-checklist.md`, returning structured findings (per-skill severity-tagged list) — no judgment calls. The parent does only the judgment synthesis: trigger-overlap analysis across skills, description rewrite recommendations, and the duplicate-name check from step 1. Single-skill mode runs inline; the fan-out is sweep-only.
+3. **Run the checks** in `references/audit-checklist.md`. The checklist is grouped by category (frontmatter, description, body, bundled resources, portability, security). Apply every check that's relevant; skip ones that don't apply (for example, the bundled-resources checks if there are no bundled files). Single-skill mode runs this inline.
 
 4. **Test the triggers.** The description is the trigger, so don't just judge it by eye — test it. For each audited skill, draft 4 short prompts and predict whether the skill *should* fire:
    - one **direct** request (uses the skill's own keywords),
@@ -82,6 +78,66 @@ Run the audit in this order. Stop after any step where the user wants to discuss
 8. **Apply fixes.** Edit the SKILL.md in place if the user confirms. For larger restructuring (splitting into references/, splitting a monolith into multiple skills), present a plan before changing files.
 
 9. **Verify after editing.** Re-read the file. Confirm the YAML still parses. Confirm the description still fits within the documented frontmatter character limit.
+
+## Sweep mode
+
+Sweep mode runs a scored, ranked audit across every installed skill via a multi-agent Workflow (Haiku scorers → Sonnet fact-checkers → one ranking agent), then offers a deep single-skill audit (the workflow above) on the weakest results.
+
+1. **Ask scope.** Workflow scripts cannot prompt the user, so ask before launching. Use AskUserQuestion:
+   - Question: "Which skills should the audit cover?"
+   - Options:
+     1. **Both (Recommended)** — global `~/.claude/skills/` + project `.claude/skills/`
+     2. **Global only** — `~/.claude/skills/`
+     3. **Project only** — `<cwd>/.claude/skills/`
+     4. **Including installed plugin skills** — extends whichever of the above is chosen with `~/.claude/plugins/*/skills/` and any project-level plugin skill dirs
+   - Skip the question only if the user already stated the scope in their request.
+   - In Cowork or Claude.ai (no Workflow tool / no local `~/.claude/skills/`): read every `SKILL.md` listed in the session's `<available_skills>` block instead (mount paths typically `/mnt/skills/public/`, `/mnt/skills/examples/`, `/mnt/skills/user/`) and fall back to the batched Task fan-out below — skip Anthropic-shipped skills under `/mnt/skills/public/` by default (include only if the user explicitly asks for built-ins).
+
+2. **Discover SKILL.md files.** Build the file list in-process (adjust roots to the chosen scope; extend with plugin dirs if that option was picked, applying the same skip-Anthropic-built-ins default and duplicate-name note as single-skill sweep discovery):
+
+   ```bash
+   python3 -c "
+   import os, json
+   res=[]
+   roots = [('global', os.path.expanduser('~/.claude/skills')), ('project', os.path.join(os.getcwd(), '.claude/skills'))]
+   for label, root in roots:
+       if not os.path.isdir(root): continue
+       for dirpath, dirs, files in os.walk(root):
+           if 'SKILL.md' in files:
+               res.append({'scope': label, 'path': os.path.join(dirpath, 'SKILL.md')})
+   # if plugin scope selected, also walk ~/.claude/plugins/*/skills/*/SKILL.md and project plugin dirs
+   print(json.dumps(res))
+   "
+   ```
+
+   If the list is empty for the chosen scope, report that and stop — do not launch the workflow.
+
+3. **Ground against current docs first.** Reuse the "Ground the audit against current docs first" fetch above (one fetch here, never per-agent) and distill it into a short `docs_rules` block: the frontmatter/description rules relevant to scoring (required fields, `name` constraints, the description character limit), in plain text. If the fetch is unavailable, pass an empty string and note the snapshot caveat in the report, matching that section's wording.
+
+4. **Launch the workflow.**
+
+   ```
+   Workflow({
+     scriptPath: "${CLAUDE_PLUGIN_ROOT}/skills/cc-skill-audit/scripts/workflow.js",
+     args: { skills: [ {"scope": "global", "path": "..."}, ... ], docs_rules: "..." }
+   })
+   ```
+
+   The script tolerates `args` arriving as a JSON string (it parses defensively), but pass a real object. Never hardcode a path in place of `${CLAUDE_PLUGIN_ROOT}` — the install cache path changes on every plugin update.
+
+5. **Deliver the report.** When the workflow completes, its return value is `{ report, results }`:
+   - Read the full result from the task output file referenced in the completion notification (the notification summary is truncated). It is a JSON object; the report markdown is at `.result.report`.
+   - Write `report` verbatim to `skill-audit-report.md` in the current working directory (ask before overwriting if the file exists and wasn't produced by this skill).
+   - Summarize for the user: average scores, frontmatter failure count, the 3-5 weakest skills, and the cross-set patterns.
+   - Offer to run this skill's deep single-skill audit workflow (steps 1-9 above) on the bottom 3-5 skills.
+
+6. **Fallback — no Workflow tool.** If the Workflow tool is unavailable in this environment, fall back to the batched Task fan-out: spawn parallel subagents (Task, `general-purpose`, model: haiku) in batches of ~5 skills each. Each subagent reads its batch's SKILL.md files and applies the mechanical checklist from `references/audit-checklist.md`, returning structured findings (per-skill severity-tagged list) — no judgment calls. The parent does only the judgment synthesis: trigger-overlap analysis across skills, description rewrite recommendations, and duplicate-name detection. This path does not produce a scored/ranked `skill-audit-report.md` — use the "Directory sweep" output format below instead.
+
+### Notes
+
+- Three phases inside the workflow: Haiku scorers (cheap) → Sonnet fact-checkers (one per skill, verify every factual claim against `ls -laR` of the skill dir) → one ranking agent on the session model. The Sonnet verify phase catches hallucinated missing-file claims from cheap scorers — do not remove it.
+- Typical run: ~30 skills ≈ 61 agents, several minutes wall clock.
+- The journal (`<transcriptDir>/journal.jsonl`) flushes lazily — if the output file looks empty right at completion, wait a few seconds and re-read.
 
 ## Finding dispositions
 
@@ -189,5 +245,6 @@ narrate it.
 
 ## Version
 
+- v1.2 (2026-07-08): Merged the personal `skill-audit` scorecard tool into sweep mode as a scored, ranked Workflow (Haiku score → Sonnet verify → rank), grounded against live docs, writing `skill-audit-report.md`; batched Task fan-out kept as the fallback when the Workflow tool is unavailable.
 - v1.1 (2026-06-18): Packaged as the `cc-skill-audit` plugin (renamed from the personal `audit-skills` skill to avoid a public name collision). Added a runtime docs-anchor step (fetch `llms.txt` instead of trusting frozen snapshots), trigger-testing in the audit workflow, and installed-plugin skill discovery in sweep mode. Generalized security examples (removed private project context).
 - v1.0 (2026-05-12): Initial release. Grounded in Anthropic's Skills overview, Skill authoring best practices, and skill-creator (anthropics/skills repo). Community patterns from external authoring guides incorporated where they don't conflict with official guidance, and flagged where they go beyond official docs.

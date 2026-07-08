@@ -4,9 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>cc-skill-audit — nautilai</title>
-<meta name="description" content="Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues." />
+<meta name="description" content="Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues, with a scored sweep that ranks every skill worst-to-best." />
 <meta property="og:title" content="cc-skill-audit — nautilai" />
-<meta property="og:description" content="Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues." />
+<meta property="og:description" content="Audit existing Claude Code skills against Anthropic's authoring guidance — diagnose under/over-triggering, tighten descriptions, de-bloat bodies, and sweep a skills directory (including installed plugins) for issues, with a scored sweep that ranks every skill worst-to-best." />
 <meta property="og:type" content="website" />
 <meta name="theme-color" content="#0a141d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -169,13 +169,13 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>Reviews SKILL.md files against Anthropic's official skill-authoring guidance, reporting findings by severity. Audits frontmatter validity and trigger reliability (testing descriptions with multiple prompt phrasings to catch under- and over-triggering), body structure and conciseness, bundled resource organization, portability across Claude Code and other surfaces, and security (hardcoded credentials, credentials in logs, undeclared network access).</p>
+    <p>Reviews SKILL.md files against Anthropic's official skill-authoring guidance, reporting findings by severity. Audits frontmatter validity and trigger reliability (testing descriptions with multiple prompt phrasings to catch under- and over-triggering), body structure and conciseness, bundled resource organization, portability across Claude Code and other surfaces, and security (hardcoded credentials, credentials in logs, undeclared network access). Sweep mode also runs a scored, ranked pass — Haiku scores every installed skill, Sonnet fact-checks each score against disk, and a final agent ranks the set worst-to-best into a written scorecard.</p>
   </section>
 
   <section id="commands">
     <h2>Commands / skills</h2>
     <ul class="skill-list">
-      <li><div class="sk-name">/cc-skill-audit</div><p>Sweep every installed skill, including plugins, for quality issues.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/cc-skill-audit</div><p>Sweep every installed skill, including plugins, scoring and ranking each into <code>skill-audit-report.md</code>.</p><div class="sk-triggers">explicit slash form only</div></li>
       <li><div class="sk-name">/cc-skill-audit &lt;skill-name-or-path&gt;</div><p>Audit a single skill.</p><div class="sk-triggers">explicit slash form only</div></li>
     </ul>
   </section>
@@ -199,7 +199,8 @@
       <div class="tech-body">
         <ul>
           <li>Fetches Anthropic's live skill guidance from <code>code.claude.com/docs</code> at runtime, so it won't fail a skill on a rule that's since changed.</li>
-          <li>In sweep mode, discovers user, project, and installed-plugin skills, then fans the mechanical checklist out in batches of ~5 skills to parallel haiku subagents — the parent does only the judgment synthesis (trigger-overlap analysis, description rewrites, duplicate detection).</li>
+          <li>Sweep mode discovers user, project, and installed-plugin skills, then runs a scored Workflow: a Haiku worker scores each SKILL.md on clarity, frontmatter validity, and trigger quality; a Sonnet fact-checker verifies every factual claim against the skill's actual files on disk; a final agent ranks the full set worst-to-best with cross-set patterns into <code>skill-audit-report.md</code>.</li>
+          <li>Falls back to batched Task fan-out (~5 skills per haiku subagent, checklist-only, no scoring) when the Workflow tool is unavailable — the parent still does judgment synthesis: trigger-overlap analysis, description rewrites, duplicate detection.</li>
           <li>Runs in an isolated <code>fork</code> context.</li>
           <li>Tests description field for triggering reliability by drafting direct/implicit/alternative phrasings.</li>
           <li>Validates frontmatter (required fields, name/description validity).</li>

@@ -16,6 +16,20 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-08
 
+- **cc-skill-audit** ([`skills/cc-skill-audit`](../cc-skill-audit/skills/cc-skill-audit/SKILL.md)).
+  Two audit tools had grown to do one user-facing job — a personal scorecard
+  skill scored and ranked every skill quantitatively, while this plugin's
+  sweep mode judged findings by severity — so they're merged into one skill.
+  Sweep mode now runs the scorecard as its engine: a Haiku worker scores every
+  installed skill (clarity, frontmatter, trigger quality), a Sonnet
+  fact-checker verifies each score against the skill's actual files on disk,
+  and a final agent ranks the set worst-to-best into `skill-audit-report.md`,
+  grounded against the same live-docs fetch this skill already used for
+  single-skill audits. The findings-first, severity-tagged deep audit stays
+  available per skill, offered on the sweep's weakest results; the prior
+  batched-Task fan-out remains as the fallback when the Workflow tool isn't
+  available.
+
 - **Lessons adopted from `kunchenguid/no-mistakes` (round two)** ([`autodev`](../autodev#readme),
   [`relay`](../relay#readme), [`commitcraft`](../commitcraft#readme)). A
   four-reviewer mine of the repo that finding-dispositions came from surfaced
