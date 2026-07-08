@@ -16,6 +16,13 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-07-08
 
+- **relay** ([`skills/handoff/SKILL.md`](../relay/skills/handoff/SKILL.md)).
+  Handoff docs now demand a done-criterion for every in-progress item, and the
+  curation guidance names what to keep verbatim (errors/stack traces, function
+  signatures/type definitions, test names + failure reasons) vs drop. Resuming
+  sessions were re-deriving what "done" meant for half-finished work — a target
+  the previous session already knew but never wrote down.
+
 - **commitcraft** ([`templates/.commitlintrc.yml`](../commitcraft/templates/.commitlintrc.yml)).
   Raised the commit `subject-max-length` from 50 to 72 (the Conventional Commits
   default) in the shipped commitlint templates and the commit-generation guidance.

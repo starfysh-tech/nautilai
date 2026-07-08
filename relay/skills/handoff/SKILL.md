@@ -69,7 +69,7 @@ Structure it with these sections (omit any of the twelve only if genuinely empty
 - **Goal** — what the work is trying to achieve.
 - **Current state** — what's done, what's in progress.
 - **Decisions** — choices made and the reasoning, so they aren't re-litigated. Build from the narrative pack, the fact pack, and in-window knowledge together; the narrative pack is transcript-grounded, so where it disagrees with post-compaction memory it wins, same rule as the fact pack.
-- **Open questions / blockers** — anything unresolved or waiting on input.
+- **Open questions / blockers** — anything unresolved or waiting on input. For each in-progress item, state its done-criterion — what "done" actually means for it — so the next session resumes against a target instead of re-deriving one.
 - **Next steps** — the concrete actions the next session should take first.
 - **Key artifacts** — paths/URLs to plans, PRDs, ADRs, issues, commits, diffs. Reference them; do **not** restate their contents.
 - **Suggested skills** — skills the next session is likely to need, if any.
@@ -80,7 +80,10 @@ Structure it with these sections (omit any of the twelve only if genuinely empty
 - **Provenance** — which extractors ran or degraded (including the narrative pack), and transcript size, so the next session can judge how much to trust this doc.
 
 Populate the new sections from the fact pack — curated, not dumped: drop noise,
-keep signal.
+keep signal. Signal to keep verbatim when present: error messages and stack
+traces, function signatures and type definitions, and test names with their
+failure reasons. Noise to drop: raw file contents, exploratory chat, and
+intermediate reasoning that didn't change a decision.
 
 ## 6. Write the consume-once marker
 
