@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.14.3](https://github.com/starfysh-tech/nautilai/compare/v2.14.2...v2.14.3) (2026-07-08)
+
+
+### Bug Fixes
+
+* apply marketplace-wide plugin review fixes ([2b0b6f7](https://github.com/starfysh-tech/nautilai/commit/2b0b6f7992126f0e3a2e3b3f302cfbfd8d3fdf21))
+* apply marketplace-wide plugin review fixes ([8f8cac8](https://github.com/starfysh-tech/nautilai/commit/8f8cac8574906dda11706a6afe937cb28aa3fa6e))
+* **rbac-django:** strip carriage returns from role bullets ([e8d7c19](https://github.com/starfysh-tech/nautilai/commit/e8d7c19096acbec35d2caedc80cde9f7ff4539d4))
+
 ## [2.14.2](https://github.com/starfysh-tech/nautilai/compare/v2.14.1...v2.14.2) (2026-07-06)
 
 
