@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.15.0](https://github.com/starfysh-tech/nautilai/compare/v2.14.4...v2.15.0) (2026-07-08)
+
+
+### Features
+
+* **cc-skill-audit:** merge scored scorecard into sweep mode ([c961735](https://github.com/starfysh-tech/nautilai/commit/c9617357ff99c0319b6cefa257ad66b893cf6f48))
+* **cc-skill-audit:** merge scored scorecard into sweep mode ([f99bc43](https://github.com/starfysh-tech/nautilai/commit/f99bc43f33907e46bb5c53d87b09ee6da58cd2f8))
+
+
+### Bug Fixes
+
+* **cc-skill-audit:** close gaps found by clean-agent validation ([b6948bd](https://github.com/starfysh-tech/nautilai/commit/b6948bddfcf6b607750537ceac4ccd7ac2d954d1))
+* **cc-skill-audit:** fail fast when workflow args are missing ([c93bfa6](https://github.com/starfysh-tech/nautilai/commit/c93bfa69526a0ab46488f41e2bc343024a7662b2))
+
 ## [2.14.4](https://github.com/starfysh-tech/nautilai/compare/v2.14.3...v2.14.4) (2026-07-08)
 
 
