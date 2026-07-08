@@ -54,3 +54,30 @@ jobs:
 
       - name: commitcraft script tests
         run: bash commitcraft/tests/detect-rp.test.sh
+
+      - name: commitcraft pr-template tests
+        run: bash commitcraft/tests/pr-template.test.sh
+
+      # Validate the repo's community-health config against GitHub's own schemas
+      # (vendored by check-jsonschema). Pinned so an upstream release can't red-light
+      # main on an unrelated commit. python3 is already a CI dep (the sync check is a
+      # python heredoc), so pipx adds no new runtime.
+      - name: Validate issue & discussion forms
+        run: |
+          set -euo pipefail
+          pipx run check-jsonschema==0.37.4 --builtin-schema vendor.github-issue-forms \
+            .github/ISSUE_TEMPLATE/bug.yml .github/ISSUE_TEMPLATE/plugin-request.yml
+          pipx run check-jsonschema==0.37.4 --builtin-schema vendor.github-issue-config \
+            .github/ISSUE_TEMPLATE/config.yml
+          pipx run check-jsonschema==0.37.4 --builtin-schema vendor.github-discussion \
+            .github/DISCUSSION_TEMPLATE/q-a.yml .github/DISCUSSION_TEMPLATE/ideas.yml
+          pipx run check-jsonschema==0.37.4 --builtin-schema vendor.dependabot \
+            .github/dependabot.yml
+
+      # Lint the workflows themselves. ubuntu-latest ships shellcheck, so actionlint
+      # also shellchecks every run: block. Pinned to match local verification.
+      - name: Lint workflows (actionlint)
+        run: |
+          set -euo pipefail
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
