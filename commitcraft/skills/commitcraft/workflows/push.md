@@ -1,4 +1,4 @@
-# Push Workflow (Phases 1-8)
+# Push Workflow (Phases 1-9)
 
 ## Phases 1-3: Environment Check, Auto-Stage, and Branch Check
 
@@ -10,12 +10,12 @@ After running `git status --porcelain`:
   - Count commits not yet on any remote: `git rev-list HEAD --not --remotes --count`
     (this is correct even on a brand-new branch with no upstream, where
     `@{upstream}..HEAD` would wrongly resolve to 0).
-  - If count > 0 → skip directly to Phase 6 (Push only, no commit needed). Phase 6
+  - If count > 0 → skip directly to Phase 7 (Push only, no commit needed). Phase 7
     already pushes with `-u` when there's no upstream, so a new branch is handled.
   - If count = 0 → HARD STOP (everything is already pushed / up to date).
 
 - **If working tree has changes** (git status produced output):
-  - Continue to auto-stage and commit (Phases 2-5), then push (Phase 6)
+  - Continue to auto-stage and commit (Phases 2-6), then push (Phase 7)
   - This applies even if there are also unpushed commits — stage, commit, then push all
 
 Then follow commit workflow Phases 2-3 for auto-staging and branch check.
@@ -24,7 +24,7 @@ Then follow commit workflow Phases 2-3 for auto-staging and branch check.
 > format and secrets at commit time regardless of what a scan would report.
 > Run `/commitcraft check` on demand for a full tooling report.
 
-## Phase 3: Issue Context
+## Phase 4: Issue Context
 
 Extract the issue reference only — no validation, no network call. Full validation
 (blocking labels, acceptance criteria) happens at PR time, not on every push.
@@ -40,7 +40,7 @@ Parse output:
 | `REFERENCE` | Capture the `REF:` line for the commit footer |
 | `NO_ISSUE` | No footer ref; auto-continue |
 
-## Phase 4: AI Commit Message Generation
+## Phase 5: AI Commit Message Generation
 
 1. Read staged diff:
 
@@ -56,15 +56,15 @@ git diff --cached
 
 <body>
 
-<REF line from Phase 3>
+<REF line from Phase 4>
 ```
 
-**Rules:** Follow commit workflow Phase 4 for format and type rules — the
+**Rules:** Follow commit workflow Phase 5 for format and type rules — the
 commit-msg hook (commitlint, per `.commitlintrc.yml`) is the enforcer, so generate
 a compliant draft and let the hook reject anything off. Push-specific additions:
-- Footer: use the `REF:` line captured in Phase 3 verbatim (e.g. `Refs #12` for GitHub, `Refs ENG-12` for Linear/Jira). Omit if Phase 3 produced no `REF:` line.
+- Footer: use the `REF:` line captured in Phase 4 verbatim (e.g. `Refs #12` for GitHub, `Refs ENG-12` for Linear/Jira). Omit if Phase 4 produced no `REF:` line.
 
-## Phase 5: Commit
+## Phase 6: Commit
 
 1. Commit with HEREDOC (preserves formatting):
 
@@ -90,9 +90,21 @@ EOF
 
 4. On success, capture commit hash for later use.
 
-## Phase 6: Push to Remote
+## Phase 7: Push to Remote
 
-1. Check sync with remote:
+1. Check for upstream tracking:
+
+```bash
+git rev-parse --abbrev-ref --symbolic-full-name @{upstream}
+```
+
+If no upstream, push with `-u` (there's nothing to be ahead/behind of yet):
+
+```bash
+git push -u origin $(git branch --show-current)
+```
+
+2. If an upstream exists, check sync with remote before pushing:
 
 ```bash
 git rev-list HEAD...@{upstream} --count --left-right
@@ -110,18 +122,6 @@ If behind or diverged:
 Run: git pull --rebase
 ```
 
-2. Check for upstream tracking:
-
-```bash
-git rev-parse --abbrev-ref --symbolic-full-name @{upstream}
-```
-
-If no upstream, push with `-u`:
-
-```bash
-git push -u origin $(git branch --show-current)
-```
-
 Otherwise, push normally:
 
 ```bash
@@ -130,9 +130,9 @@ git push origin $(git branch --show-current)
 
 3. Display push result.
 
-## Phase 7: Issue Comment
+## Phase 8: Issue Comment
 
-Only if Phase 3 returned `STATUS: REFERENCE` with a **numeric** `ISSUE` (GitHub).
+Only if Phase 4 returned `STATUS: REFERENCE` with a **numeric** `ISSUE` (GitHub).
 Skip for Linear/Jira keys (`gh issue comment` doesn't apply) and when there's no ref.
 
 1. Capture commit hash and subject:
@@ -143,16 +143,27 @@ SUBJECT=$(git log -1 --format=%s)
 BRANCH=$(git branch --show-current)
 ```
 
-2. Post comment (best-effort — the ref-only path didn't verify the issue exists, so
-   treat a failure as non-fatal and just note it):
+2. Verify the issue exists and plausibly relates to this branch before commenting
+   (the ref-only path in Phase 4 didn't validate either) — fetch it and compare
+   title against the branch/commit subject:
+
+```bash
+gh issue view <NUM> --json number,title,state 2>/dev/null
+```
+
+   If the issue can't be fetched, or its title doesn't plausibly relate to the
+   branch subject, skip the comment (best-effort) rather than posting on a
+   possibly-unrelated issue.
+
+3. Post comment:
 
 ```bash
 gh issue comment <NUM> --body "Commit $HASH pushed on \`$BRANCH\`: $SUBJECT" || echo "Issue comment skipped (issue #<NUM> not found or gh unavailable)"
 ```
 
-3. Display confirmation.
+4. Display confirmation.
 
-## Phase 8: Final Report
+## Phase 9: Final Report
 
 Display summary:
 

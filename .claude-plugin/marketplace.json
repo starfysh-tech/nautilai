@@ -54,7 +54,7 @@
     {
       "name": "cc-validate-hooks",
       "source": "./cc-validate-hooks",
-      "description": "Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix.",
+      "description": "Validate the local Claude Code hooks configuration in settings.json and settings.local.json (project and user) — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix.",
       "version": "2.14.2",
       "author": {
         "name": "Randall Noval"
@@ -87,7 +87,7 @@
     {
       "name": "review-plan",
       "source": "./review-plan",
-      "description": "Adversarially validate an implementation plan against the actual codebase before building it — surface risks, breaking changes, gaps, and simplifications, then write findings back into the plan. Built-in agents by default; taps review/Codex plugins when installed.",
+      "description": "Adversarially validate an implementation plan against the actual codebase — surface risks, breaking changes, gaps, and simplifications before you build. Uses built-in agents by default and opportunistically taps review/Codex plugins when installed.",
       "version": "2.14.2",
       "author": {
         "name": "Randall Noval"

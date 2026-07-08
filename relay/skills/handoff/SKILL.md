@@ -19,6 +19,9 @@ had to guess by mtime — proceed, but treat the fact pack below as slightly les
 certain. If it exits nonzero, say so and fall back to writing the handoff purely
 from in-context knowledge — never abort the handoff over a missing transcript.
 
+Immediately start step 3's `haiku-narrative.sh` in the background now, before
+step 2 — it takes 20s–2.5min and should overlap the fact-pack read.
+
 ## 2. Extract the fact pack
 
 ```bash
@@ -41,9 +44,9 @@ Prints a narrative pack — `## Decisions` / `## Dead ends` / `## Constraints` �
 recovered from ASSISTANT turns via headless Haiku, which the fact pack
 structurally can't see (it only reads tool_use/tool_result/user-text). This
 call can take ~20s for one chunk and up to ~2.5min for a huge transcript
-(chunked to at most 3 calls) — start it right after resolving the transcript
-in step 1 and let it run in the background while you read the fact pack in
-step 2. On exit 3 (degraded — `claude` missing, the call failed/timed out,
+(chunked to at most 3 calls); it should already be running in the background
+from step 1 by the time you reach this step. On exit 3 (degraded — `claude`
+missing, the call failed/timed out,
 output was empty, or the user set `RELAY_NARRATIVE=off`), proceed without it
 and record the degrade reason from stderr in the doc's Provenance section;
 never block the handoff on this step, and never re-prompt the user about a
@@ -77,7 +80,7 @@ Structure it with these sections (omit any of the twelve only if genuinely empty
 - **Provenance** — which extractors ran or degraded (including the narrative pack), and transcript size, so the next session can judge how much to trust this doc.
 
 Populate the new sections from the fact pack — curated, not dumped: drop noise,
-keep signal. The first seven sections carry the same semantics as before.
+keep signal.
 
 ## 6. Write the consume-once marker
 
@@ -95,31 +98,8 @@ fresh session that picks the handoff up automatically (consumed once, no TTL on
 
 ## Recover mode (`/handoff recover`)
 
-Use this after an auto-compact — the `PreCompact` hook posts a systemMessage
-suggesting it — or whenever the session feels like it lost earlier context,
-even without that prompt.
-
-1. Resolve the transcript: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-session.sh`
-2. Extract the pre-compaction region:
-   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/extract-transcript.sh --before-last-compact <transcript>`
-3. Extract the narrative pack: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/haiku-narrative.sh <transcript>`.
-   It has no `--before-last-compact` equivalent — it always reads the full
-   transcript — so use its Decisions/Dead ends output to fill those sections
-   of the recovery delta below, judging by content which items predate the
-   compaction boundary. Same degrade rule as the main flow: exit 3 means
-   proceed without it, note "narrative: degraded", never block recovery.
-4. Assemble a **recovery delta** directly in your reply — no file, no `/clear`,
-   no marker. Include only the classes compaction actually drops: verbatim
-   user intents, decisions and their reasoning, dead ends / abandoned
-   approaches, and early constraints. Explicitly skip what compaction
-   preserves well — current state, todos, recent files — there's no value in
-   re-deriving those. Cap the delta to what's genuinely load-bearing; cite the
-   fact pack and narrative pack rather than dumping them.
-5. Where the fact pack or narrative pack contradicts your post-compaction
-   memory, the transcript-grounded pack wins.
-6. If a `compacted-<epoch>` marker exists in `~/.claude/handoffs/<slug>/`,
-   rename it to `recovered-<epoch>` (`mv`, not delete) now that recovery is
-   done.
+For `/handoff recover` (after auto-compact), read and follow
+`${CLAUDE_PLUGIN_ROOT}/skills/handoff/workflows/recover.md`.
 
 ## Notes
 

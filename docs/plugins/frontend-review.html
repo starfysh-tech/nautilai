@@ -167,7 +167,7 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>Two read-only audits for a React + Tailwind frontend analyze component architecture and design-token health. The react-component-architecture skill flags oversized components, prop drilling, and duplicated UI patterns that should be extracted to primitives; the tailwind-design-token-validator detects arbitrary values, dynamic class concatenation, invalid <code>@apply</code> use, and hardcoded colors. Both auto-detect the frontend source root and Tailwind config without assuming hardcoded paths, cite every finding with file:line, and run on Glob/Grep/Read with no external dependencies.</p>
+    <p>Two read-only audits for a React + Tailwind frontend analyze component architecture and design-token health. The react-component-architecture skill flags oversized components, prop drilling, and duplicated UI patterns that should be extracted to primitives; the tailwind-design-token-validator detects arbitrary values, dynamic class concatenation, invalid <code>@apply</code> use, and hardcoded colors. Both auto-detect the frontend source root and Tailwind config without assuming hardcoded paths, cite every finding with file:line, and run a bundled Python analysis engine (python3 3.10+); the Tailwind config analyzer uses <code>node</code> when present to resolve the config, falling back to regex parsing.</p>
   </section>
 
   <section id="commands">
@@ -195,8 +195,8 @@
       <summary>Under the hood</summary>
       <div class="tech-body">
         <ul>
-          <li><code>/react-component-architecture</code> — detects oversized components, prop drilling, duplicated UI patterns, folder organization issues; runs on Glob/Grep/Read via model-driven logic for better composability (no hardcoded paths) (disposition: <code>report</code>).</li>
-          <li><code>/tailwind-design-token-validator</code> — detects arbitrary values, dynamic class concatenation, invalid <code>@apply</code> use, inline styles, design-token violations; runs on Glob/Grep/Read with optional <code>Edit</code> for auto-fixed token swaps (dispositions: <code>auto-fix</code> for 1:1 token maps, <code>report</code> for findings, <code>ask-user</code> for approximate changes).</li>
+          <li><code>/react-component-architecture</code> — detects oversized components, prop drilling, duplicated UI patterns, folder organization issues; runs a bundled Python engine, with Glob/Grep/Read confirming findings (no hardcoded paths) (disposition: <code>report</code>).</li>
+          <li><code>/tailwind-design-token-validator</code> — detects arbitrary values, dynamic class concatenation, invalid <code>@apply</code> use, inline styles, design-token violations; runs a bundled Python engine with optional <code>Edit</code> for auto-fixed token swaps (dispositions: <code>auto-fix</code> for 1:1 token maps, <code>report</code> for findings, <code>ask-user</code> for approximate changes).</li>
           <li>Auto-detection: locates React <code>package.json</code> for source root; discovers <code>tailwind.config.*</code> or v4 CSS <code>@theme</code> as source of truth for tokens.</li>
           <li>Invocation: both skills are user-invoked only (not auto-firing) and read-heavy, using per-project shoals to carry forward team corrections across runs.</li>
           <li>Shoals: <code>.claude/shoals/frontend-review.&lt;skill&gt;.md</code> — project corrections (thresholds, token mappings, patterns to ignore).</li>

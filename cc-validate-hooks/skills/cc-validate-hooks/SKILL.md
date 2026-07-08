@@ -1,7 +1,9 @@
 ---
 name: cc-validate-hooks
-description: Validate the local Claude Code hooks configuration (`.claude/settings.json` and `~/.claude/settings.json`) and report JSON/schema errors, invalid or unrecognized event names, malformed matchers/regex, and bad hook fields (type/command/timeout). Use when the user runs /cc-validate-hooks, says 'check my hooks', 'why isn't my hook firing', 'validate settings.json', 'hooks broken', or after editing hook config. Pass --fix to auto-correct repairable issues.
+description: Validate the local Claude Code hooks configuration (`.claude/settings.json`, `.claude/settings.local.json`, and `~/.claude/settings.json`) and report JSON/schema errors, invalid or unrecognized event names, malformed matchers/regex, and bad hook fields (type/command/timeout). Use when the user runs /cc-validate-hooks, says 'check my hooks', 'why isn't my hook firing', 'validate settings.json', 'hooks broken', or after editing hook config. Pass --fix to auto-correct repairable issues.
 context: fork
+model: haiku
+effort: low
 argument-hint: "[--fix]"
 allowed-tools: [Read, "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/validate-hooks.sh:*)"]
 ---
@@ -66,7 +68,7 @@ that do not (e.g. `UserPromptSubmit`, `Stop`, `PostToolBatch`).
 Run the validation script:
 
 ```bash
-${CLAUDE_PLUGIN_ROOT}/scripts/validate-hooks.sh ${ARGUMENTS:-}
+${CLAUDE_PLUGIN_ROOT}/scripts/validate-hooks.sh $ARGUMENTS
 ```
 
 Report results and suggest fixes if errors are found.

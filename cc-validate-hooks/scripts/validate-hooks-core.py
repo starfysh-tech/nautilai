@@ -2,9 +2,12 @@
 """Validate the hooks block of a Claude Code settings.json file.
 
 Unknown event names are reported as WARNINGS (not errors) so the validator
-never false-fails on events added in newer Claude Code versions. Exits with
-the number of errors found; warnings are surfaced via the `__WARNINGS__:<n>`
-stdout sentinel for the shell wrapper to parse.
+never false-fails on events added in newer Claude Code versions. The error and
+warning counts are surfaced via the `__ERRORS__:<n>` / `__WARNINGS__:<n>`
+stdout sentinels for the shell wrapper to parse; this script exits 0 whenever
+it ran to completion (regardless of how many errors it found) and only exits
+nonzero if it crashed, so the shell can distinguish "validator ran, found
+errors" from "validator crashed" without the exit code wrapping mod 256.
 """
 import json
 import re
@@ -54,15 +57,16 @@ with open(file_path, "r") as f:
 
 if not isinstance(config, dict):
     print("❌ ERROR: settings.json root must be a JSON object")
-    sys.exit(1)
-
-hooks: Any = config.get("hooks", {})
-
-if not isinstance(hooks, dict):
+    errors += 1
+    hooks: Any = {}
+elif not isinstance(config.get("hooks", {}), dict):
     print("❌ ERROR: 'hooks' must be a JSON object")
-    sys.exit(1)
+    errors += 1
+    hooks = {}
+else:
+    hooks = config.get("hooks", {})
 
-if not hooks:
+if isinstance(config, dict) and isinstance(config.get("hooks", {}), dict) and not hooks:
     print("ℹ️  INFO: no `hooks` configured in this file")
 
 for event_name, matchers in hooks.items():
@@ -90,17 +94,23 @@ for event_name, matchers in hooks.items():
         # Use .get() so static type checkers don't widen on `'k' in d` + d['k'].
         matcher = block.get("matcher")
         if matcher is not None:
+            matcher_removed = False
             if event_name in EVENTS_WITHOUT_MATCHER and matcher:
                 if fix_mode:
                     block.pop("matcher", None)
                     modified = True
+                    matcher_removed = True
                     print(f"  ✓ Fixed: removed unused matcher from {event_name}[{i}]")
                 else:
                     print(f"⚠️  WARNING: '{event_name}' doesn't use matchers, "
                           f"'matcher: \"{matcher}\"' will be ignored")
                     warnings += 1
 
-            if not isinstance(matcher, str):
+            # A matcher removed above is gone from the block; don't validate a
+            # value the user can no longer see.
+            if matcher_removed:
+                pass
+            elif not isinstance(matcher, str):
                 print(f"❌ ERROR: '{event_name}[{i}].matcher' must be a string")
                 errors += 1
             elif matcher and matcher != "*":
@@ -184,5 +194,6 @@ if fix_mode and modified:
         json.dump(config, f, indent=2)
     print(f"\n✅ Fixed issues in {file_path} (backup written to {backup_path})")
 
+print(f"__ERRORS__:{errors}")
 print(f"__WARNINGS__:{warnings}")
-sys.exit(errors)
+sys.exit(0)

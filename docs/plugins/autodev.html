@@ -226,8 +226,9 @@
           <li>State lives in <code>.autodev/&lt;slug&gt;/</code> — <code>TASK.md</code>, <code>RUNSTATE.md</code>, <code>DONE.md</code>, optional lane <code>VERIFY.sh</code>, all self-gitignored.</li>
           <li><code>init_task_lane.sh</code> / <code>create_worktree.sh</code> — lane files + controller state, then a worktree at <code>.autodev-worktrees/&lt;slug&gt;</code> on an <code>autodev/&lt;slug&gt;</code> branch.</li>
           <li><code>baseline_verify.sh</code> — must pass before autonomous work starts.</li>
-          <li><code>verify.sh</code> — lane <code>VERIFY.sh</code> wins, else auto-detected npm/pytest/go/cargo; receives <code>AUTODEV_PHASE</code> (<code>baseline</code> | <code>attempt</code>).</li>
+          <li><code>verify.sh</code> — lane <code>VERIFY.sh</code> wins, else auto-detected npm/pytest/go/cargo; receives <code>AUTODEV_PHASE</code> (<code>baseline</code> | <code>attempt</code>). Times out after <code>AUTODEV_VERIFY_TIMEOUT</code> seconds (default 1200), killing the process group.</li>
           <li><code>classify_failure.sh</code> / <code>fingerprint_failure.sh</code> — bucket a failure log (implementation / environment / specification / transient) and hash it; only implementation failures count toward the 3-cap. Ambiguous logs default to <code>implementation</code>, since a misclassified failure would be an uncounted retry.</li>
+          <li>The <code>review-gate</code> agent runs on the <code>sonnet</code> model, distinct from the haiku worker attempts.</li>
           <li><code>controller.sh</code> — the state machine over <code>.autodev/state.json</code>; <code>escalate_summary.sh</code> writes the guidance handoff after a hard stop.</li>
           <li>No hooks are installed — verification runs only inside the <code>/autodev</code> loop.</li>
           <li>The worker never creates <code>DONE.md</code> — only the orchestrator, after <code>verify.sh</code> passes.</li>

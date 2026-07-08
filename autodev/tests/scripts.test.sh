@@ -74,10 +74,18 @@ echo "Variable not defined on line 42" > "$TMP/implementation.log"
 result=$(bash "$SCRIPTS_DIR/classify_failure.sh" "$TMP/implementation.log")
 assert "classify: generic error -> implementation" "implementation" "$result"
 
-# Test case insensitivity
-echo "TIMEOUT occurred" > "$TMP/timeout.log"
+# Test case insensitivity. Bare "timeout"/"timed out" no longer classifies as
+# transient (it misclassified test-runner timeouts/deadlocks as network
+# blips) — the pattern now requires network context.
+echo "REQUEST TIMED OUT while connecting" > "$TMP/timeout.log"
 result=$(bash "$SCRIPTS_DIR/classify_failure.sh" "$TMP/timeout.log")
-assert "classify: TIMEOUT (uppercase) -> transient" "transient" "$result"
+assert "classify: REQUEST TIMED OUT (uppercase) -> transient" "transient" "$result"
+
+# Bare timeout with no network context is implementation, not transient —
+# this is the misclassification the narrowed pattern above fixes.
+echo "test suite timed out after 30s" > "$TMP/bare-timeout.log"
+result=$(bash "$SCRIPTS_DIR/classify_failure.sh" "$TMP/bare-timeout.log")
+assert "classify: bare test timeout -> implementation" "implementation" "$result"
 
 # Test rate limit
 echo "You have exceeded your rate limit" > "$TMP/ratelimit.log"

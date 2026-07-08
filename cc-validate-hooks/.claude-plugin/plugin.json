@@ -3,7 +3,7 @@
   "name": "cc-validate-hooks",
   "displayName": "CC Validate Hooks",
   "version": "2.14.2",
-  "description": "Validate the local Claude Code hooks configuration in settings.json — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix.",
+  "description": "Validate the local Claude Code hooks configuration in settings.json and settings.local.json (project and user) — report schema errors, invalid event names, malformed matchers, and bad hook fields, with an optional --fix.",
   "author": {
     "name": "Randall Noval",
     "email": "randall@starfysh.net",

@@ -125,38 +125,9 @@ and group definitions — never placeholder names from this doc.
 
 #### Playbook template
 
-```markdown
-### [CLUSTER-ID]: [Descriptive Title]
-
-**Findings:** RBAC-H1, RBAC-H3
-**Priority:** Now | Next | Later
-**Complexity:** S (isolated) | M (multi-file) | L (cross-cutting)
-
-#### Target State
-[1-3 sentences referencing the role-permission-resource matrix.]
-
-#### Implementation Steps
-1. **Permission class** — file `[discovered permissions path]`; add/modify `[discovered class name]`
-2. **ViewSet wiring** — file `[finding location]`; change `permission_classes`; add/fix `get_queryset()` filtering
-3. **Serializer** — file `[finding location]`; add `[discovered mixin]` (from `[discovered phi file]`); verify discovered fields
-4. **Group permissions** — file `[discovered group-setup path]`; add permission tuple to `[GROUP]_PERMISSIONS`
-5. **Audit logging** — add the project's audit mixin / log auth decisions
-
-#### Test Scaffold
-Use the project's established test patterns (discover them — e.g. pytest +
-factory fixtures + DRF `APIClient`, or Django `TestCase`). Provide outlines:
-- **Negative:** [role] cannot [action] [resource] outside their tenant scope
-- **Positive:** [role] can [action] [resource] within their scope
-- **Staff bypass:** staff can [action] across all tenants
-- **Edge case:** [from the finding's impact]
-
-#### Verification Checklist
-- [ ] Permission class added/modified
-- [ ] ViewSet wiring updated
-- [ ] `get_queryset()` filters by the user's tenant scope
-- [ ] Tests pass (run the project's test command)
-- [ ] Manual test: [specific step]
-```
+Populate from `${CLAUDE_PLUGIN_ROOT}/skills/rbac-remediation-playbooks/templates/playbook.md`
+using *discovered* class names, file paths, and group definitions — never the
+placeholder names in the template.
 
 #### When `--with-diffs` is specified
 
@@ -170,30 +141,8 @@ text steps and test outlines.
 ### Phase 6: Generate GitHub issues
 
 For each cluster, produce a ready-to-paste issue body. Match the project's issue
-template if one exists (auto-detect `.github/ISSUE_TEMPLATE/*`); otherwise use:
-
-```markdown
-**Title:** `Fix [cluster-title] (RBAC remediation)`
-**Labels:** `security`
-
-### Current State
-[What exists today and why it must change — reference finding IDs + evidence]
-
-### Proposed Change
-[Target state + step summary; link to the playbook]
-
-### Acceptance Criteria
-- [ ] [Role] cannot [action] [resource] outside their tenant scope
-- [ ] [Role] can [action] [resource] within their scope
-- [ ] Sensitive-data filtering applied to [serializer] for the relevant roles
-- [ ] Tests added and passing; no regression in existing permission tests
-
-### Risk / Impact
-[What could break; affected areas; deployment considerations]
-
-### Related Files
-- `[file paths from findings + discovery]`
-```
+template if one exists (auto-detect `.github/ISSUE_TEMPLATE/*`); otherwise populate
+from `${CLAUDE_PLUGIN_ROOT}/skills/rbac-remediation-playbooks/templates/github-issue.md`.
 
 ### Phase 7: Summary table
 

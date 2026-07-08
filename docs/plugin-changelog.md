@@ -14,6 +14,65 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-07
+
+- **Cheap-model tiering adopted across the marketplace** ([`autodev`](../autodev#readme),
+  [`dep-review`](../dep-review#readme), [`phi-scan`](../phi-scan#readme),
+  [`cc-skill-audit`](../cc-skill-audit#readme), [`cc-validate-hooks`](../cc-validate-hooks#readme),
+  [`cc-adoption-audit`](../cc-adoption-audit#readme), [`pr-comment-review`](../pr-comment-review#readme),
+  [`review-plan`](../review-plan#readme)). A marketplace-wide review found most
+  delegated work inherited the (often frontier) session model even when the task
+  was mechanical — autodev's review-gate ran after *every* green verify on the
+  parent model, dep-review spawned one parent-model agent per Dependabot PR. Now:
+  judgment-adjacent review work pins `sonnet` (review-gate, dep-review per-PR
+  agents); mechanical classification/extraction fans out to `haiku` (phi-scan
+  triage, cc-skill-audit sweeps, pr-comment-review triage at scale, review-plan
+  Explore fallbacks, cc-adoption-audit inventories); the run-a-script-and-relay
+  skill (cc-validate-hooks) runs entirely on `haiku` in a fork.
+
+- **commitcraft no longer converts an unrecognized subcommand into a commit**
+  ([`commitcraft`](../commitcraft#readme)). `/commitcraft pr for the auth fix`
+  used to miss the workflow-file lookup and silently fall back to the *commit*
+  workflow — a wrong state-changing action. Dispatch now keys on the first token
+  and refuses unknown subcommands. Same sweep: issue extraction only trusts a
+  trailing `-<num>` branch suffix (so `fix/upgrade-node-18` no longer comments on
+  issue #18), and the pr/release flows derive the default branch instead of
+  hardcoding `main` — the plugin now works on `master` repos.
+
+- **Silent-blank-audit gaps closed in the scanners**
+  ([`rbac-django`](../rbac-django#readme), [`phi-scan`](../phi-scan#readme),
+  [`cc-validate-hooks`](../cc-validate-hooks#readme)). Three review skills could
+  report "clean" while structurally unable to see the problem: rbac's
+  permission-class and `@api_view` inventories were *empty* (not "reduced")
+  without ast-grep — they now have stdlib AST fallbacks; phi-scan's
+  restricted-ZIP prioritization was dead code its own SKILL.md told the triage
+  agent to trust — restricted prefixes are now genuinely flagged
+  (`zip_5(restricted)`); cc-validate-hooks never looked at
+  `.claude/settings.local.json`, the most common home for personal hooks — it's
+  now in the validated set.
+
+- **review-plan is now invoke-on-request and leaves plans recoverable**
+  ([`review-plan`](../review-plan#readme)). It auto-fired on *any* shared plan
+  and then edited the plan file in place — an unrequested destructive edit, and a
+  violation of the finding-dispositions recoverability contract for non-VCS
+  plans. The trigger now requires explicit review intent, and in-place edits back
+  up untracked/non-repo plans first.
+
+- **Stale docs purged where they contradicted the shipped behavior**
+  ([`frontend-review`](../frontend-review#readme),
+  [`github-issue-auditor`](../github-issue-auditor#readme)). frontend-review's
+  README still described the pre-restore "no engine, model-only" design and its
+  `references/HOW_TO_USE.md` files documented import APIs that never shipped;
+  github-issue-auditor's HOW_TO_USE predated the Phase-3 approval gate and the
+  taxonomy-detection feature (and analyzer.py still hardcoded `type: *` labels —
+  now parameterized to the detected taxonomy).
+
+- **wireframe component catalogs are now project-local**
+  ([`wireframe`](../wireframe#readme)). `--update-reference` wrote per-project
+  catalogs into the plugin's own install cache — leaking one project's components
+  into every project and getting wiped on every plugin update. Default target is
+  now `.claude/wireframe-catalog.md` in the project.
+
 ## 2026-07-06
 
 - **relay `pending`-marker TTL is now startup-only, never on `/clear`**

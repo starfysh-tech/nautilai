@@ -1,6 +1,6 @@
 # Review Plan
 
-Adversarially validate an implementation plan against the actual codebase **before** you build it — surface risks, breaking changes, missed edge cases, dependency impacts, and simpler alternatives, then write the findings back into the plan with a clear verdict (CRITICAL | CAUTION | REASONABLE).
+Adversarially validate an implementation plan against the actual codebase **before** you build it — surface risks, breaking changes, missed edge cases, dependency impacts, and simpler alternatives, then revise the plan in place to the leanest correct version, reporting a clear verdict (CRITICAL | CAUTION | REASONABLE) in chat.
 
 Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
 
@@ -15,7 +15,7 @@ Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
 
 1. Write a plan (plan mode) or point at a plan file.
 2. Run `/review-plan` (optionally `/review-plan path/to/plan.md`).
-3. Review the validation results appended to the plan, then proceed / revise / abandon.
+3. Review the plan, now revised in place to the leanest correct version, and the verdict reported in chat — then proceed / revise / abandon.
 
 ## What it does
 

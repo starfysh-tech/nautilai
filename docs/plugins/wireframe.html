@@ -167,7 +167,7 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>The skill generates low-fidelity wireframes in three formats. ASCII mode (the default) produces text boxes, forms, and layout annotations for quick iteration with zero dependencies. Wiremd mode uses Markdown-ish syntax that renders to clickable HTML or exports as React components via the separate <code>wiremd</code> CLI. Mermaid mode generates flowcharts, sequence diagrams, and state diagrams that render inline in GitHub, VS Code, and the Mermaid Live Editor. An optional stdlib-only script can extract real component names from a React directory, enabling reference-based wireframing without inventing placeholder names.</p>
+    <p>The skill generates low-fidelity wireframes in three formats. ASCII mode (the default) produces text boxes, forms, and layout annotations for quick iteration with zero dependencies. Wiremd mode uses Markdown-ish syntax that renders to clickable HTML or exports as React components via the separate <code>wiremd</code> CLI. Mermaid mode generates user-flow and screen-state diagrams — flowcharts, state machines, sequence diagrams — that render inline in GitHub, VS Code, and the Mermaid Live Editor. An optional stdlib-only script can extract real component names from a React directory, enabling reference-based wireframing without inventing placeholder names.</p>
   </section>
 
   <section id="commands">
@@ -195,8 +195,9 @@
       <div class="tech-body">
         <ul>
           <li><code>/wireframe</code> — single skill that detects mode (ASCII, wiremd, Mermaid) from request text; defaults to ASCII (no dependencies); pauses for review before expanding a flow or exporting.</li>
-          <li><code>scripts/extract_components.py</code> — optional stdlib-only script to list React/TSX components from a given directory; fails open if directory absent or unreadable.</li>
-          <li>Modes: ASCII (text-based, zero deps), wiremd (Markdown-ish syntax, requires separate <code>wiremd</code> CLI for HTML/React export), Mermaid (flowcharts/sequence/state diagrams, renders inline in GitHub/VS Code).</li>
+          <li><code>scripts/extract_components.py</code> — optional stdlib-only script to list React/TSX components from a given directory; fails open if directory absent or unreadable; requires <code>python3</code> on the PATH.</li>
+          <li><code>--update-reference</code> injects the catalog into a project-local <code>.claude/wireframe-catalog.md</code> (created if absent, never the plugin install dir, since the install cache is wiped on update); a later run reads that file alongside the bundled reference even without re-extracting.</li>
+          <li>Modes: ASCII (text-based, zero deps), wiremd (Markdown-ish syntax, requires separate <code>wiremd</code> CLI for HTML/React export), Mermaid (user-flow/screen-state diagrams — flowcharts, state machines, sequence diagrams — renders inline in GitHub/VS Code).</li>
           <li>Reference: <code>skills/wireframe/references/reference.md</code> documents syntax cheat sheets for each mode.</li>
           <li>Generative skill: no finding dispositions or shoals (not applicable to one-shot wireframing).</li>
         </ul>

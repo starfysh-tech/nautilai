@@ -81,6 +81,17 @@ And where `/goal` provides no quality controls beyond your condition text,
 AutoDev runs an independent review gate after tests pass — something `/goal`
 structurally can't do, since its evaluator cannot execute a reviewer.
 
+## Conventions
+
+`review-gate` is a deliberate exception to the repo-wide
+[finding-dispositions](../docs/conventions/finding-dispositions.md) convention:
+it returns a `pass`/`block` verdict with blocking/advisory findings instead of
+`auto-fix`/`report`/`ask-user`. It's a pipeline-internal gate consumed by the
+orchestrator, not a user-facing review — `block` maps to `ask-user` (the
+orchestrator decides whether to loop or escalate), `advisory` maps to
+`report`, and there is no `auto-fix` because the reviewer is read-only
+(`Read, Bash, Grep, Glob`, no `Edit`/`Write`).
+
 ## Design notes
 
 - No hooks. An earlier iteration ran the verifier as a `Stop` hook in every

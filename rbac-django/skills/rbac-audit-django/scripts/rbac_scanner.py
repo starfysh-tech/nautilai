@@ -259,6 +259,18 @@ def _model_files(scope: str) -> list[Path]:
     ]
 
 
+def _view_files(scope: str) -> list[Path]:
+    """View modules: `views.py`, `api.py`, `viewsets.py`, or any file inside a
+    `views/` package. Mirrors `_model_files` — matching only `views.py` would
+    miss projects that split views into a package or use DRF's common `api.py`/
+    `viewsets.py` naming conventions.
+    """
+    return [
+        fp for fp in _python_files(scope)
+        if fp.name in ("views.py", "api.py", "viewsets.py") or "/views/" in fp.as_posix()
+    ]
+
+
 # ---------------------------------------------------------------------------
 # Self-discovery: derive patterns from the codebase
 # ---------------------------------------------------------------------------
@@ -479,7 +491,7 @@ def _scan_file_viewsets(
     """Walk view files for ViewSets the ast-grep patterns missed."""
     viewsets = []
     unclassified = []
-    for filepath in _python_files(scope, "views.py"):
+    for filepath in _view_files(scope):
         filepath_str = str(filepath)
         tree = parse_file(filepath_str)
         if not tree:
@@ -503,8 +515,60 @@ def _scan_file_viewsets(
     return viewsets, unclassified
 
 
+def _has_api_view_decorator(node: ast.FunctionDef) -> bool:
+    for dec in node.decorator_list:
+        if isinstance(dec, ast.Call):
+            func = dec.func
+            if (isinstance(func, ast.Name) and func.id == "api_view") or (
+                isinstance(func, ast.Attribute) and func.attr == "api_view"
+            ):
+                return True
+    return False
+
+
+def _scan_fbv_viewsets_stdlib(scope: str, seen: set[str]) -> list[dict]:
+    """Stdlib AST fallback for `_scan_fbv_viewsets` when ast-grep is unavailable.
+    Restricted to view files (see `_view_files`), unlike the ast-grep path which
+    searches the whole scope — a reduced-coverage tradeoff noted in main()'s
+    tool_warnings.
+    """
+    viewsets = []
+    for filepath in _view_files(scope):
+        filepath_str = str(filepath)
+        if "/tests/" in filepath_str:
+            continue
+        tree = parse_file(filepath_str)
+        if not tree:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.FunctionDef) or not _has_api_view_decorator(node):
+                continue
+            key = f"{filepath_str}:{node.name}"
+            if key in seen:
+                continue
+            seen.add(key)
+            has_perms = any(
+                isinstance(d, ast.Call) and (
+                    (isinstance(d.func, ast.Name) and d.func.id == "permission_classes")
+                    or (isinstance(d.func, ast.Attribute) and d.func.attr == "permission_classes")
+                )
+                for d in node.decorator_list
+            )
+            viewsets.append({
+                "name": node.name, "file": filepath_str, "line": node.lineno,
+                "bases": ["@api_view"], "model": None,
+                "permission_classes": "EXPLICIT" if has_perms else "DEFAULT",
+                "has_get_queryset": False, "has_perform_create": False,
+                "has_perform_update": False, "has_perform_destroy": False,
+                "is_through_model_viewset": False, "actions": [],
+            })
+    return viewsets
+
+
 def _scan_fbv_viewsets(scope: str, seen: set[str]) -> list[dict]:
     """Find function-based views via @api_view decorator."""
+    if not _AST_GREP:
+        return _scan_fbv_viewsets_stdlib(scope, seen)
     viewsets = []
     for match in run_ast_grep("@api_view($$$)", scope):
         filepath = match["file"]
@@ -549,8 +613,47 @@ def scan_viewsets(scope: str, through_models: set[str]) -> tuple[list[dict], lis
     return viewsets, unclassified
 
 
+def _scan_permission_classes_stdlib(scope: str, discovered_role_names: list[str]) -> list[dict]:
+    """Stdlib AST fallback for `scan_permission_classes` when ast-grep is
+    unavailable — walks every Python file in scope for classes subclassing
+    BasePermission (adapted from rbac-remediation-playbooks/scripts/discover_platform.py
+    `discover_permission_classes`, extended with the has_has_permission /
+    has_has_object_permission / hardcoded_role_names fields this scanner needs).
+    """
+    results = []
+    seen: set[str] = set()
+    for filepath in _python_files(scope):
+        filepath_str = str(filepath)
+        if "/tests/" in filepath_str:
+            continue
+        tree = parse_file(filepath_str)
+        if not tree:
+            continue
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            bases = get_base_classes(node)
+            if not any(b.split(".")[-1] == "BasePermission" for b in bases):
+                continue
+            key = f"{filepath_str}:{node.name}"
+            if key in seen:
+                continue
+            seen.add(key)
+            strings = get_string_literals(node)
+            results.append({
+                "name": node.name, "file": filepath_str, "line": node.lineno,
+                "bases": bases,
+                "has_has_permission": has_method(node, "has_permission"),
+                "has_has_object_permission": has_method(node, "has_object_permission"),
+                "hardcoded_role_names": [s for s in strings if s in discovered_role_names],
+            })
+    return results
+
+
 def scan_permission_classes(scope: str, discovered_role_names: list[str]) -> list[dict]:
     """Find all DRF permission classes."""
+    if not _AST_GREP:
+        return _scan_permission_classes_stdlib(scope, discovered_role_names)
     results = []
     patterns = ["class $NAME(permissions.$BASE)", "class $NAME(BasePermission)"]
     seen: set[str] = set()
@@ -584,7 +687,10 @@ def scan_queryset_managers(scope: str) -> list[dict]:
     """Find custom QuerySet/Manager methods that accept user/tenant parameters."""
     results = []
     seen: set[str] = set()
-    tenant_params = {"user", "clinic", "organization", "tenant", "study"}
+    tenant_params = {
+        "user", "clinic", "organization", "tenant", "study",
+        "team", "workspace", "account", "company",
+    }
 
     for filepath in _model_files(scope):
         filepath_str = str(filepath)
@@ -857,9 +963,11 @@ def main():
     tool_warnings = []
     if not _AST_GREP:
         tool_warnings.append(
-            "ast-grep not found — structural viewset/permission discovery falls "
-            "back to stdlib AST file-walks (views.py / models.py only). Coverage "
-            "of non-standard layouts may be reduced."
+            "ast-grep not found — permission_classes discovery (scan_permission_classes), "
+            "function-based-view discovery (@api_view, _scan_fbv_viewsets), and class-based "
+            "viewset matching fall back to stdlib AST file-walks restricted to views.py/"
+            "api.py/viewsets.py/views/ and models.py/models/. Coverage of non-standard "
+            "layouts may be reduced."
         )
     if not _RG:
         tool_warnings.append(

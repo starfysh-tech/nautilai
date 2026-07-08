@@ -204,7 +204,8 @@
           <li>Built-in agents: <code>Plan</code> (architecture), <code>code-reviewer</code> (quality), <code>Explore</code> (code search).</li>
           <li>Optional specialists: <code>feature-dev:code-explorer</code>, <code>pr-review-toolkit</code> agents (silent-failure-hunter, type-design-analyzer, pr-test-analyzer), Codex (GPT cross-model review).</li>
           <li>Shoals file: <code>.claude/shoals/review-plan.review-plan.md</code> — learns from user corrections on the same project.</li>
-          <li>Output: verdict (LEAN / ACCEPTABLE / OVER-ENGINEERED), what changed, code you can avoid writing.</li>
+          <li>Output: verdict (CRITICAL / CAUTION / REASONABLE), footprint (LEAN / ACCEPTABLE / OVER-ENGINEERED), what changed, code you can avoid writing.</li>
+          <li>Before editing, ensures the change is recoverable: an untracked plan file (or one outside a git repo) gets a <code>.bak</code> copy first; a tracked file relies on git history.</li>
         </ul>
       </div>
     </details>

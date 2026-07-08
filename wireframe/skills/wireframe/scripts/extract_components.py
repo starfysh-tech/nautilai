@@ -60,8 +60,10 @@ ORDERED_CATS = [
     "Overlays", "Notifications", "Feedback", "Communication", "Other",
 ]
 
-# Default reference doc lives next to this script's skill dir: ../references/reference.md.
-DEFAULT_REFERENCE = Path(__file__).resolve().parent.parent / "references" / "reference.md"
+# Default reference doc is project-local (relative to CWD), not the bundled
+# skill doc — the bundled doc lives in the plugin install cache, which is
+# shared across projects and wiped on every plugin update.
+DEFAULT_REFERENCE = Path(".claude") / "wireframe-catalog.md"
 
 CATALOG_START = "<!-- WIREFRAME-CATALOG-START -->"
 CATALOG_END = "<!-- WIREFRAME-CATALOG-END -->"
@@ -151,8 +153,14 @@ def update_reference_md(components: list[dict], reference_path: Path, source_lab
     try:
         content = reference_path.read_text(encoding="utf-8")
     except FileNotFoundError:
-        print(f"Error: {reference_path} not found", file=sys.stderr)
-        return False
+        # The project-local catalog doesn't exist yet on first run — scaffold
+        # it with the markers rather than erroring.
+        content = f"# Wireframe Component Catalog\n\n{CATALOG_START}\n{CATALOG_END}\n"
+        try:
+            reference_path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            print(f"Error creating {reference_path.parent}: {e}", file=sys.stderr)
+            return False
     except OSError as e:
         print(f"Error reading {reference_path}: {e}", file=sys.stderr)
         return False
@@ -228,7 +236,7 @@ def main() -> int:
 
     # --update-reference mode: inject into the reference doc and stop.
     if args.update_reference:
-        reference_path = Path(args.reference).resolve() if args.reference else DEFAULT_REFERENCE
+        reference_path = Path(args.reference).resolve() if args.reference else (Path.cwd() / DEFAULT_REFERENCE)
         ok = update_reference_md(components, reference_path, source_label=args.components_dir)
         if ok:
             print(f"✓ Updated {reference_path} with {len(components)} components")

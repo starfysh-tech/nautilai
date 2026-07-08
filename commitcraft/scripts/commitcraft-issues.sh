@@ -56,10 +56,7 @@ fi
 # GitHub ref-only: pull the issue number from the branch, emit a footer ref,
 # and skip the gh validation entirely (no network).
 if [ "$REF_ONLY" = "true" ]; then
-    ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+$' | head -1 || echo "")
-    if [ -z "$ISSUE_NUM" ]; then
-        ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+' | head -1 || echo "")
-    fi
+    ISSUE_NUM=$(echo "$BRANCH" | grep -oE -- '-[0-9]+$' | tr -d '-' || echo "")
     if [ -n "$ISSUE_NUM" ]; then
         echo "STATUS: REFERENCE"
         echo "ISSUE: $ISSUE_NUM"
@@ -86,12 +83,11 @@ if ! gh auth status &>/dev/null 2>&1; then
     exit 0
 fi
 
-# Extract issue number from branch name.
-# Try to extract from end first (e.g., feature/description-305), then any number
-ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+$' | head -1 || echo "")
-if [ -z "$ISSUE_NUM" ]; then
-    ISSUE_NUM=$(echo "$BRANCH" | grep -oE '[0-9]+' | head -1 || echo "")
-fi
+# Extract issue number from branch name. Only a trailing -<num> suffix
+# counts (the convention commitcraft itself creates, e.g. fix/thing-305) —
+# no fallback to "any number in the branch", which false-positives on
+# branches like fix/upgrade-node-18.
+ISSUE_NUM=$(echo "$BRANCH" | grep -oE -- '-[0-9]+$' | tr -d '-' || echo "")
 
 if [ -z "$ISSUE_NUM" ]; then
     echo "STATUS: NO_ISSUE"

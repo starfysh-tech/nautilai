@@ -239,15 +239,19 @@ def discover_finding_types(script_file: Path | None = None) -> list[str]:
     return types
 
 
-def discover_roles(project_root: Path) -> list[dict]:
+def discover_roles(project_root: Path) -> tuple[list[dict], bool]:
     """Extract role definitions from an RBAC docs file, if one exists.
 
     Searches docs/ for a markdown file whose name suggests RBAC/authorization.
+    Returns (roles, docs_found) — docs_found distinguishes "no candidate files"
+    from "candidate files existed but the role pattern didn't match" so the
+    caller can report an accurate note.
     """
     docs = project_root / "docs"
     if not docs.is_dir():
-        return []
+        return [], False
     roles = []
+    docs_found = False
     role_pattern = re.compile(
         r"###\s+\d+\.\s+(.+?)(?:\n|\r\n).*?\*\*Capabilities:\*\*\s*\n(.*?)(?=\n###|\n##|\Z)",
         re.DOTALL,
@@ -256,13 +260,15 @@ def discover_roles(project_root: Path) -> list[dict]:
         name = fp.name.lower()
         if not any(k in name for k in ("rbac", "role", "permission", "authz", "authorization")):
             continue
+        docs_found = True
         content = fp.read_text(encoding="utf-8", errors="ignore")
         for match in role_pattern.finditer(content):
-            bullets = re.findall(r"^-\s+(.+)$", match.group(2).strip(), re.MULTILINE)
+            # CRLF docs: $ matches before \n, so (.+) would keep a trailing \r.
+            bullets = [b.rstrip("\r") for b in re.findall(r"^-\s+(.+)$", match.group(2).strip(), re.MULTILINE)]
             roles.append(
                 {"name": match.group(1).strip(), "access": "; ".join(bullets[:3]), "source": str(fp)}
             )
-    return roles
+    return roles, docs_found
 
 
 def main() -> None:
@@ -278,6 +284,7 @@ def main() -> None:
 
     project_root = Path(args.project_root).resolve()
     backend_root = detect_backend_root(project_root)
+    roles, rbac_docs_found = discover_roles(project_root)
 
     output = {
         "project_root": str(project_root),
@@ -285,7 +292,7 @@ def main() -> None:
         "permission_classes": discover_permission_classes(backend_root),
         "groups": discover_groups(backend_root),
         "phi": discover_phi(backend_root, args.phi_mixin),
-        "roles": discover_roles(project_root),
+        "roles": roles,
         "finding_types": discover_finding_types(),
         "notes": [],
     }
@@ -301,7 +308,12 @@ def main() -> None:
     if not output["phi"]["mixin_class"]:
         output["notes"].append("No PHI filter mixin detected (may be a non-PHI codebase).")
     if not output["roles"]:
-        output["notes"].append("No RBAC docs found under docs/ — roles inferred from code only.")
+        if rbac_docs_found:
+            output["notes"].append(
+                "No roles parsed from docs/ (format not recognized) — roles inferred from code only."
+            )
+        else:
+            output["notes"].append("No RBAC docs found under docs/ — roles inferred from code only.")
     if not output["finding_types"]:
         output["notes"].append(
             "Could not read finding-type vocabulary from the sibling audit "

@@ -1,6 +1,6 @@
 ---
 name: review-plan
-description: Validate an implementation plan against the actual codebase AND drive it to the smallest correct version. Surface risks and breaking changes, but first find what can be reused, deleted, or left unbuilt — then revise the plan in place to the leanest staff-quality approach and list the assumptions to validate before coding. Use whenever the user writes or shares a plan, or asks to review / validate / pressure-test / sanity-check it before building — even if the plan looks complete or confident.
+description: Validate an implementation plan against the actual codebase AND drive it to the smallest correct version. Surface risks and breaking changes, but first find what can be reused, deleted, or left unbuilt — then revise the plan in place to the leanest staff-quality approach and list the assumptions to validate before coding. Use when the user asks to review / validate / pressure-test / sanity-check a plan before building.
 argument-hint: "[plan-file-path]"
 allowed-tools:
   [
@@ -30,9 +30,7 @@ skeptical and ground every claim in `file:line`. The goal is the smallest diff
 that is still correct at staff-engineer quality — never fewer lines at the cost of
 correctness.
 
-Before starting, load interactive tools:
-1. Call `ToolSearch` with query `select:AskUserQuestion`
-2. Proceed with Phase 1.
+If `AskUserQuestion` is deferred in this environment, load it via `ToolSearch` (`select:AskUserQuestion`) before Phase 4.
 
 **If you're not in plan mode and there's no plan file yet, suggest `/plan` first** — this skill reviews an existing plan, it doesn't write one.
 
@@ -58,7 +56,7 @@ Before starting, load interactive tools:
 
 ## Phase 2: Investigate (parallel, with graceful degradation)
 
-Run the analyses below in parallel. **Each has a preferred specialist subagent and a built-in fallback.** Spawn the specialist via `Task` only if it's installed; if a `Task` call returns "Agent type … not found" (the providing plugin isn't installed), **fall back to the built-in agent or inline Read/Grep — never abort.** `code-reviewer`, `Plan`, and `Explore` are built in and always available.
+Run the analyses below in parallel. **Each has a preferred specialist subagent and a built-in fallback.** Spawn the specialist via `Task` only if it's installed; if a `Task` call returns "Agent type … not found" (the providing plugin isn't installed), **fall back to the built-in agent or inline Read/Grep — never abort.** `Plan` and `Explore` are built in and always available; `code-reviewer` is a commonly-installed local agent, not guaranteed present.
 
 Every subagent prompt must demand **condensed output**: findings only, each with a `file:line` citation, no verbose narration ("Return only findings with file:line refs; if you can't verify from code, say 'unverifiable' — don't guess. Keep it under ~500 tokens."). This keeps synthesis grounded and small.
 
@@ -66,13 +64,13 @@ Every subagent prompt must demand **condensed output**: findings only, each with
 | --- | --- | --- |
 | **Reuse & reduction scan** (run this first) | `feature-dev:code-explorer` — *tasked specifically*: find existing utilities, helpers, endpoints, or patterns in THIS repo that already do what the plan proposes, and what the plan could delete/replace instead of add | `Explore` agent, or inline Grep/Glob for the relevant verbs/types |
 | Dependency & architecture tracing | `feature-dev:code-explorer` | `Explore` agent, or inline Grep/Read |
-| Breaking-change risk | `code-reviewer` (built-in) | — |
+| Breaking-change risk | `code-reviewer` (if installed) | `general-purpose` agent, or `Explore` + inline analysis |
 | Error-handling / silent-failure gaps | `pr-review-toolkit:silent-failure-hunter` | inline analysis (see `references/validation-questions.md`) |
 | Architectural soundness & trade-offs | `Plan` (built-in) | — |
 | Type design (only if the plan adds types) | `pr-review-toolkit:type-design-analyzer` | inline analysis |
 | Test-coverage impact | `pr-review-toolkit:pr-test-analyzer` | inline analysis |
 
-Rules: give each agent ONE focused aspect; require specific `file:line` references; wait for results before synthesis.
+Rules: give each agent ONE focused aspect; require specific `file:line` references; wait for results before synthesis. When falling back to `Explore` (or `general-purpose`) for search/extraction work, pass `model: haiku` — it's cheap, read-only fan-out. Named plugin specialist agents (`code-reviewer`, `code-explorer`, `silent-failure-hunter`, etc.) keep their own model definitions; don't override them.
 
 ### Optional: Codex cross-model review
 
@@ -106,8 +104,9 @@ Two non-negotiable rules from that file:
 
 1. Combine the findings into a severity-ranked picture; keep any Codex findings labeled as a separate cross-model perspective (don't merge into the Claude buckets).
 2. Resolve conflicts or ambiguous decisions with the user via `AskUserQuestion` **before** finalizing.
-3. **Revise the original plan in place with `Edit`** so the plan *becomes* the leanest correct version — apply the reuse/delete/simplify wins and the cheapest-correct mitigations directly. **Do not append a "validation results" or "changes" section to the plan file** — a retrospective log confuses whoever implements it later. The plan file should read as a clean, improved plan.
-4. Into the plan, add exactly one forward-looking section — **`## Assumptions to validate before implementing`** — listing each assumption as an empirically checkable item (what to inspect/run to confirm it before writing code). This is the one addition that belongs in the plan; everything else is reported to the user (below).
+3. **Before editing, ensure the change is recoverable**: if the plan file is inside a git repo and already tracked, the working-tree history covers it. Otherwise (untracked file, or no git repo), write a `<plan>.bak` copy first, or show the full diff in chat — then state what was preserved.
+4. **Revise the original plan in place with `Edit`** so the plan *becomes* the leanest correct version — apply the reuse/delete/simplify wins and the cheapest-correct mitigations directly. **Do not append a "validation results" or "changes" section to the plan file** — a retrospective log confuses whoever implements it later. The plan file should read as a clean, improved plan.
+5. Into the plan, add exactly one forward-looking section — **`## Assumptions to validate before implementing`** — listing each assumption as an empirically checkable item (what to inspect/run to confirm it before writing code). This is the one addition that belongs in the plan; everything else is reported to the user (below).
 
 ## Finding dispositions
 

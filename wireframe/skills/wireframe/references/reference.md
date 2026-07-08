@@ -125,6 +125,8 @@ stateDiagram-v2
 
 **Limitation**: no curly braces `{ }` in labels. Use a flowchart for complex data structures.
 
+**Renders in**: GitHub issues/PRs/markdown, VS Code with the Mermaid extension, and the Mermaid Live Editor (https://mermaid.live).
+
 Full reference: https://mermaid.js.org/syntax/
 
 ---
