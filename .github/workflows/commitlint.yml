@@ -18,7 +18,7 @@ jobs:
 
       - name: Install commitlint
         run: |
-          npm install --save-dev @commitlint/cli@latest @commitlint/config-conventional@latest
+          npm install --save-dev @commitlint/cli@21.2.1 @commitlint/config-conventional@21.2.0
 
       - name: Validate PR commits
         run: |

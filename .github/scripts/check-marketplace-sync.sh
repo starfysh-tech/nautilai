@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Every plugin.json must have exactly one matching entry in marketplace.json —
-# same name, description, and version, and a source pointing at a real dir.
-# A drift here ships a marketplace listing that lies about what's installed.
+# same name, description, and version, and a source pointing at a real dir. A drift
+# here ships a marketplace listing that lies about what's installed.
+#
+# Also asserts every marketplace plugin is fully registered on its downstream
+# surfaces: a docs/plugins/<name>.html page and a .github/ISSUE_TEMPLATE/bug.yml
+# dropdown entry — so a new plugin can't ship half-registered.
 set -euo pipefail
 shopt -s nullglob
 
@@ -68,6 +72,47 @@ for source in by_source:
             errors.append(f"marketplace.json: source {source!r} does not exist on disk")
         else:
             errors.append(f"marketplace.json: source {source!r} is missing a plugin.json manifest")
+
+# Two more surfaces a new plugin must register on, both mechanically checkable so a
+# half-registered plugin can't ride a green build: its themed docs page, and the bug
+# report form's plugin dropdown.
+marketplace_names = {e.get("name") for e in entries if e.get("name")}
+
+for name in sorted(marketplace_names):
+    page = os.path.join("docs", "plugins", f"{name}.html")
+    if not os.path.isfile(page):
+        errors.append(f"marketplace.json: plugin {name!r} has no docs page {page!r}")
+
+# bug.yml's plugin dropdown must list exactly the marketplace plugins. Hand-parse the
+# one dropdown we care about (no PyYAML on the runner): find `id: plugin`, then its
+# `options:` list, collecting items until the block dedents to the next key.
+bug_form = os.path.join(".github", "ISSUE_TEMPLATE", "bug.yml")
+if not os.path.isfile(bug_form):
+    errors.append(f"{bug_form}: bug report form not found")
+else:
+    options, in_plugin, in_options, found_block = [], False, False, False
+    with open(bug_form) as f:
+        for raw in f:
+            stripped = raw.strip()
+            if stripped == "id: plugin":
+                in_plugin = True
+            elif in_plugin and stripped == "options:":
+                in_options = found_block = True
+            elif in_options:
+                if stripped.startswith("- "):
+                    options.append(stripped[2:].strip())
+                elif stripped and not stripped.startswith("#"):
+                    break  # dedented to validations: — options list ended
+    if not found_block:
+        # Never located the dropdown (renamed/commented id) — report the real cause
+        # rather than emitting a spurious "missing" line for every marketplace plugin.
+        errors.append(f"{bug_form}: could not locate the 'plugin' dropdown options block")
+    else:
+        dropdown = set(options)
+        for name in sorted(marketplace_names - dropdown):
+            errors.append(f"{bug_form}: plugin dropdown is missing {name!r}")
+        for name in sorted(dropdown - marketplace_names):
+            errors.append(f"{bug_form}: plugin dropdown lists unknown plugin {name!r}")
 
 if errors:
     for e in errors:

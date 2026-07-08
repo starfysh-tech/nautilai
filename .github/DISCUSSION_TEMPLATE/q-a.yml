@@ -1,0 +1,60 @@
+title: "[Q&A] "
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before posting: search existing discussions and check the plugin's docs page (`docs/plugins/<name>.html`). Most answers are already there.
+  - type: dropdown
+    id: plugin
+    attributes:
+      label: Which plugin?
+      description: Pick the plugin your question is about.
+      options:
+        - commitcraft
+        - relay
+        - cc-adoption-audit
+        - pr-comment-review
+        - cc-validate-hooks
+        - cc-skill-audit
+        - phi-scan
+        - review-plan
+        - pr-review-deep
+        - rbac-django
+        - frontend-review
+        - wireframe
+        - dep-review
+        - github-issue-auditor
+        - autodev
+        - Not sure / general
+    validations:
+      required: true
+  - type: textarea
+    id: question
+    attributes:
+      label: What are you trying to do?
+      description: State the goal, not just the error — what outcome are you after?
+    validations:
+      required: true
+  - type: textarea
+    id: tried
+    attributes:
+      label: What have you tried?
+      description: Exact commands run and what happened (output, error, unexpected behavior).
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Plugin version from `/plugin`, Claude Code version from `claude --version`.
+      placeholder: "plugin X.Y.Z, Claude Code A.B.C"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Logs, config, or anything else that helps. Optional.
+    validations:
+      required: false

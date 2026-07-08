@@ -79,13 +79,25 @@ Create a new plugin in this repo and register it. Plugin name comes from `$ARGUM
    (including the leading `/`) — including a `/plugin install <name>@nautilai` field so users
    never have to substitute a placeholder. Also add the plugin to the footer link list.
 
-8. **Validate**:
+8. **Generate the themed docs page** — create `docs/plugins/<name>.html` from
+   `docs/plugins/_TEMPLATE.html`, filling every slot per `docs/plugins/_slots.md`
+   (source the copy from the plugin's `README.md` and `plugin.json`, not the
+   marketplace one-liner). **CI requires this page** — `check-marketplace-sync.sh`
+   fails if a marketplace entry has no `docs/plugins/<name>.html`.
+
+9. **Register in the bug-report form** — append the new `<name>` to the plugin
+   `dropdown` `options` in `.github/ISSUE_TEMPLATE/bug.yml`. **CI requires this** —
+   `check-marketplace-sync.sh` asserts the dropdown lists exactly the marketplace
+   plugins, so a new plugin isn't reportable until it's here.
+
+10. **Validate**:
 
 ```bash
 claude plugin validate ./<name> --strict
 jq -e . .claude-plugin/marketplace.json
 jq -e . release-please-config.json
 python3 -c "from html.parser import HTMLParser; HTMLParser().feed(open('docs/index.html').read())"  # page parses
+bash .github/scripts/check-marketplace-sync.sh  # docs page + dropdown + version sync
 ```
 
-9. Report the created files and remind: commit with a `feat:` conventional commit (release-please will bump the linked version on release).
+11. Report the created files and remind: commit with a `feat:` conventional commit (release-please will bump the linked version on release).

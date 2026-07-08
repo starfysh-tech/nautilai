@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions & help
+    url: https://github.com/starfysh-tech/nautilai/discussions/new?category=q-a
+    about: Ask how to use a plugin — issues are for defects and proposals.
+  - name: Ideas & half-formed thoughts
+    url: https://github.com/starfysh-tech/nautilai/discussions/new?category=ideas
+    about: Float an idea before it's a scoped proposal.

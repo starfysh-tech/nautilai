@@ -1,0 +1,56 @@
+title: "[Idea] "
+labels: [idea]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Early-stage ideas, half-formed thoughts, and cross-plugin themes live here — before anything is a scoped proposal.
+
+        - **Search existing Ideas first** — someone may already be chewing on this.
+        - **Already a concrete, scoped proposal** (a specific new plugin or skill you could describe in a sentence)? Open a [plugin-request issue](https://github.com/starfysh-tech/nautilai/issues/new?template=plugin-request.yml) instead — this form is for the fuzzier stage.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which plugin or area?
+      description: Leave blank if it spans several or you're not sure.
+      options:
+        - commitcraft
+        - relay
+        - cc-adoption-audit
+        - pr-comment-review
+        - cc-validate-hooks
+        - cc-skill-audit
+        - phi-scan
+        - review-plan
+        - pr-review-deep
+        - rbac-django
+        - frontend-review
+        - wireframe
+        - dep-review
+        - github-issue-auditor
+        - autodev
+        - New plugin
+        - Cross-cutting / not sure
+    validations:
+      required: false
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: The motivation — the friction or gap you keep hitting. Lead with the why, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Rough idea
+      description: How it might work, if you have a shape in mind. Fine to leave blank and bring only the problem.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Existing workarounds or plugins you've tried
+      description: Does an existing plugin nearly do this? What do you reach for today?
+    validations:
+      required: false
