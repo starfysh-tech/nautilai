@@ -17,7 +17,7 @@ Reference any bundled script, binary, or config from a skill/workflow with
 `${CLAUDE_PLUGIN_ROOT}/…`, never a hardcoded path — the install cache path changes
 on every plugin update, so a literal path breaks after the next release.
 
-Adding a plugin means creating its directory **and** registering it in `marketplace.json`. Keep `name` and `description` in sync between `plugin.json` and the marketplace entry; the `version` is kept in sync automatically by release-please `extra-files` (add an entry for the new plugin's `plugin.json` and its `marketplace.json` index — the `.claude/skills/new-plugin` skill scaffolds all of this).
+Adding a plugin means creating its directory **and** registering it in `marketplace.json`. A plugin's identity is one invariant across four surfaces that must stay consistent: `plugin.json`, the `marketplace.json` entry (`name`, `description`, and `version` are CI-enforced by `.github/scripts/check-marketplace-sync.sh`), the skill's `SKILL.md` frontmatter description (semantically consistent, not verbatim — it's the model-facing trigger), and the plugin's docs page `docs/plugins/<name>.html` (regenerated per `docs/plugins/_slots.md`). The `version` field itself is kept in sync automatically by release-please `extra-files` (add an entry for the new plugin's `plugin.json` and its `marketplace.json` index — the `.claude/skills/new-plugin` skill scaffolds all of this).
 
 ## Conventions
 

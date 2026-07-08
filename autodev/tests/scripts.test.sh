@@ -338,6 +338,58 @@ else
     FAIL=$((FAIL + 1)); printf '  FAIL %-50s -> expected exit 0\n' "controller: check continues below cap"
 fi
 
+# Test: record-transient increments transient_retries
+if run_in_isolated_repo "
+    bash '$SCRIPTS_DIR/controller.sh' init-lane lane_trans1
+    bash '$SCRIPTS_DIR/controller.sh' record-transient lane_trans1
+    bash '$SCRIPTS_DIR/controller.sh' show 2>/dev/null | grep -q '\"transient_retries\": 1'
+"; then
+    PASS=$((PASS + 1)); printf '  ok   %-50s -> transient_retries incremented\n' "controller: record-transient increments"
+else
+    FAIL=$((FAIL + 1)); printf '  FAIL %-50s\n' "controller: record-transient increments"
+fi
+
+# Test: a counted (implementation) failure resets transient_retries to 0
+if run_in_isolated_repo "
+    bash '$SCRIPTS_DIR/controller.sh' init-lane lane_trans_reset
+    bash '$SCRIPTS_DIR/controller.sh' record-transient lane_trans_reset
+    bash '$SCRIPTS_DIR/controller.sh' record-failure lane_trans_reset implementation fp1
+    bash '$SCRIPTS_DIR/controller.sh' show 2>/dev/null | grep -q '\"transient_retries\": 0'
+"; then
+    PASS=$((PASS + 1)); printf '  ok   %-50s -> transient_retries reset\n' "controller: counted failure resets transient_retries"
+else
+    FAIL=$((FAIL + 1)); printf '  FAIL %-50s\n' "controller: counted failure resets transient_retries"
+fi
+
+# Test: check halts once transient_retries reaches the cap (2). Mirrors the
+# real orchestrator flow (SKILL.md 4e): every verify fail runs record-failure
+# with its class first, then transient adds record-transient — the cap must
+# survive that interleaving (record-failure must not reset it on transient).
+if run_in_isolated_repo "
+    bash '$SCRIPTS_DIR/controller.sh' init-lane lane_trans_cap
+    bash '$SCRIPTS_DIR/controller.sh' record-failure lane_trans_cap transient fp1
+    bash '$SCRIPTS_DIR/controller.sh' record-transient lane_trans_cap
+    bash '$SCRIPTS_DIR/controller.sh' record-failure lane_trans_cap transient fp2
+    bash '$SCRIPTS_DIR/controller.sh' record-transient lane_trans_cap
+    bash '$SCRIPTS_DIR/controller.sh' check lane_trans_cap
+"; then
+    FAIL=$((FAIL + 1)); printf '  FAIL %-50s -> expected exit 1\n' "controller: check halts at transient_retries cap"
+else
+    PASS=$((PASS + 1)); printf '  ok   %-50s -> exit 1\n' "controller: check halts at transient_retries cap"
+fi
+
+# Test: check continues below the transient_retries cap (same interleaving)
+if run_in_isolated_repo "
+    bash '$SCRIPTS_DIR/controller.sh' init-lane lane_trans_below
+    bash '$SCRIPTS_DIR/controller.sh' record-failure lane_trans_below transient fp1
+    bash '$SCRIPTS_DIR/controller.sh' record-transient lane_trans_below
+    bash '$SCRIPTS_DIR/controller.sh' check lane_trans_below
+"; then
+    PASS=$((PASS + 1)); printf '  ok   %-50s -> exit 0\n' "controller: check continues below transient_retries cap"
+else
+    FAIL=$((FAIL + 1)); printf '  FAIL %-50s -> expected exit 0\n' "controller: check continues below transient_retries cap"
+fi
+
 # =============================================================================
 # Test: verify.sh / baseline_verify.sh phase contract (regressions from live
 # validation run #1 — see tests/SCENARIOS.md)

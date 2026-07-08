@@ -14,6 +14,28 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-08
+
+- **Lessons adopted from `kunchenguid/no-mistakes` (round two)** ([`autodev`](../autodev#readme),
+  [`relay`](../relay#readme), [`commitcraft`](../commitcraft#readme)). A
+  four-reviewer mine of the repo that finding-dispositions came from surfaced
+  gaps it solves that we still had: autodev's "retry transient failures once"
+  rule was prose only — nothing bounded consecutive transient retries, so
+  persistent rate-limiting could loop forever (now a `transient_retries`
+  counter in controller.sh halting at 2); RUNSTATE.md handoff notes flowed
+  into the next worker's prompt with no untrusted-data framing, the same
+  injection surface pr-comment-review already guards (now framed as
+  data-not-instructions in both the skill and the worker contract); relay's
+  narrative extraction died on a single transient 429/503 (now one 2s retry
+  per chunk before degrading); and commitcraft's type guidance never warned
+  that a user-facing change typed `refactor`/`chore` is invisible in
+  release-please's changelog. Also new: CI now enforces the
+  plugin.json ↔ marketplace.json sync rule CLAUDE.md had only documented
+  (`.github/scripts/check-marketplace-sync.sh`) — it caught a real
+  commitcraft description drift on its first run. Considered and rejected as
+  scope mismatches: Astro docs migration, JSON-schema output validation,
+  recorded-fixture agent harness, CI-watch/auto-fix loop, telemetry.
+
 ## 2026-07-07
 
 - **Cheap-model tiering adopted across the marketplace** ([`autodev`](../autodev#readme),

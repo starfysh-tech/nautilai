@@ -17,6 +17,11 @@ jobs:
       - name: Install Claude Code CLI
         run: npm install -g @anthropic-ai/claude-code
 
+      # Catches plugin.json / marketplace.json drift (name, description, version,
+      # source) before it ships a marketplace listing that lies about what's installed.
+      - name: Check marketplace sync
+        run: bash .github/scripts/check-marketplace-sync.sh
+
       # Each top-level dir with a plugin manifest is a plugin. Validate every one so
       # a malformed manifest/skill can't ride a green build into an auto-release.
       - name: Validate every plugin manifest

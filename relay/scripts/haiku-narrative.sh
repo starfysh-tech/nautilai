@@ -261,6 +261,17 @@ run_with_timeout() {
   wait "$pid"
 }
 
+# One retry per chunk: a single transient 429/503 from the API shouldn't kill
+# the whole narrative. Sleep 2s (enough for a momentary blip, not a real
+# backoff scheme) and retry once before treating the chunk as failed; the
+# short-circuit-on-first-failed-chunk behavior below still applies once the
+# retry itself fails.
+run_with_retry() {
+  run_with_timeout "$1" "$2" && return 0
+  sleep 2
+  run_with_timeout "$1" "$2"
+}
+
 # Nested `claude -p` invoked from inside a Claude Code session (this script
 # may itself run as a tool call in one) is validated working; no recursion
 # guard needed beyond what the CLI already enforces.
@@ -268,12 +279,12 @@ run_with_timeout() {
 # Short-circuit on the first failed chunk: the run degrades either way, so
 # later chunks would only burn API calls and up to 2 more timeout windows.
 call_ok=1
-run_with_timeout "$chunk_a" "$out_a" || call_ok=0
+run_with_retry "$chunk_a" "$out_a" || call_ok=0
 if [ "$call_ok" -eq 1 ] && [ "$num_chunks" -ge 2 ]; then
-  run_with_timeout "$chunk_b" "$out_b" || call_ok=0
+  run_with_retry "$chunk_b" "$out_b" || call_ok=0
 fi
 if [ "$call_ok" -eq 1 ] && [ "$num_chunks" -ge 3 ]; then
-  run_with_timeout "$chunk_c" "$out_c" || call_ok=0
+  run_with_retry "$chunk_c" "$out_c" || call_ok=0
 fi
 
 if [ "$call_ok" -eq 0 ]; then
