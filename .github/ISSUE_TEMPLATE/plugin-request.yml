@@ -1,0 +1,46 @@
+name: Plugin or skill proposal
+description: Propose a new plugin, or a new skill/subcommand for an existing one.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For a concrete, scoped proposal. Half-formed ideas belong in [Ideas discussions](https://github.com/starfysh-tech/nautilai/discussions/new?category=ideas) instead.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What are you proposing?
+      options:
+        - New plugin
+        - New skill or subcommand for an existing plugin
+    validations:
+      required: true
+  - type: input
+    id: existing
+    attributes:
+      label: Which existing plugin?
+      description: If extending one. Leave blank for a new plugin.
+      placeholder: commitcraft
+    validations:
+      required: false
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does it solve?
+      description: The motivation. Lead with the why, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: What it does, how it's invoked, what it outputs.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Why not an existing plugin?
+      description: Which existing plugins nearly cover this, and why they fall short.
+    validations:
+      required: false

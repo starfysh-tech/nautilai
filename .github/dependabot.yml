@@ -1,0 +1,11 @@
+# Only surface with pinned dependencies is the actions/* refs in .github/workflows.
+# prefix: chore keeps bump commits past commitlint (type-empty/subject-case) and
+# out of release-please's version-bump path.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore

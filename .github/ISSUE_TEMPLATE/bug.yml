@@ -1,0 +1,63 @@
+name: Bug report
+description: A plugin isn't behaving as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing: search existing issues and check the plugin's docs page (`docs/plugins/<name>.html`).
+  - type: dropdown
+    id: plugin
+    attributes:
+      label: Which plugin?
+      description: The plugin the bug is in.
+      options:
+        - commitcraft
+        - relay
+        - cc-adoption-audit
+        - pr-comment-review
+        - cc-validate-hooks
+        - cc-skill-audit
+        - phi-scan
+        - review-plan
+        - pr-review-deep
+        - rbac-django
+        - frontend-review
+        - wireframe
+        - dep-review
+        - github-issue-auditor
+        - autodev
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Plugin version from `/plugin`, Claude Code version from `claude --version`.
+      placeholder: "plugin X.Y.Z, Claude Code A.B.C"
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Exact commands or actions, in order.
+      placeholder: |
+        1. Run `/commitcraft pr` in a repo with ...
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+      description: What you expected, and what happened instead. Paste output.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Logs, config, repo shape — anything that helps. Optional.
+    validations:
+      required: false
