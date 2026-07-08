@@ -99,7 +99,7 @@ git diff --cached
 **Rules** (the commit-msg hook, commitlint per `.commitlintrc.yml`, is the enforcer —
 generate a compliant draft and let the hook reject anything off):
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `revert`
-- Subject: imperative, ≤50 chars, lowercase, no emoji. Scope optional, single word.
+- Subject: imperative, ≤72 chars, lowercase, no emoji. Scope optional, single word.
 - Body: explain WHY not WHAT, ≤72 chars/line; skip if the change is self-evident.
 - No attribution footers (no Co-Authored-By or similar).
 - A user-facing change must be typed `feat` or `fix` even if the work felt like a refactor or chore — release-please's generated changelog only sections `feat`/`fix`, so anything else is invisible in release notes.
