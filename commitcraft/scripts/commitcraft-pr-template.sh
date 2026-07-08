@@ -29,13 +29,13 @@ shopt -s nocaseglob nullglob nocasematch
 #    of author intent. Check it first, in GitHub's location precedence.
 multi=()
 for dir in .github/PULL_REQUEST_TEMPLATE docs/PULL_REQUEST_TEMPLATE PULL_REQUEST_TEMPLATE; do
-    if [ -d "$dir" ]; then
-        for f in "$dir"/*.md; do
-            multi+=("$f")
-        done
-        # Stop at the first dir that exists — GitHub doesn't merge across locations.
-        [ ${#multi[@]} -gt 0 ] && break
-    fi
+    for f in "$dir"/*.md; do
+        multi+=("$f")
+    done
+    # Stop at the first dir that yielded templates. nullglob makes the glob above
+    # expand to nothing for a missing/empty dir, so no -d guard is needed. GitHub
+    # doesn't merge across locations.
+    [ ${#multi[@]} -gt 0 ] && break
 done
 
 if [ ${#multi[@]} -gt 1 ]; then
