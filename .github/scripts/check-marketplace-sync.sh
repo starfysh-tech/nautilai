@@ -15,6 +15,7 @@ fi
 
 python3 - "${manifests[@]}" <<'PY'
 import json
+import os
 import sys
 
 manifest_paths = sys.argv[1:]
@@ -28,6 +29,9 @@ errors = []
 
 for entry in entries:
     source = entry.get("source")
+    if not source:
+        errors.append(f"marketplace.json: entry {entry.get('name', 'unknown')!r} is missing 'source' field")
+        continue
     by_source.setdefault(source, []).append(entry)
 
 for source, group in by_source.items():
@@ -60,9 +64,10 @@ for path in manifest_paths:
 
 for source in by_source:
     if source not in seen_sources:
-        import os
         if not os.path.isdir(source):
             errors.append(f"marketplace.json: source {source!r} does not exist on disk")
+        else:
+            errors.append(f"marketplace.json: source {source!r} is missing a plugin.json manifest")
 
 if errors:
     for e in errors:

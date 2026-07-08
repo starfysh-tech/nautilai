@@ -56,10 +56,13 @@ elif cmd == 'record-failure':
     lane_state['last_failure_repeated'] = repeated
     if klass == 'implementation':
         lane_state['counted_failures'] = int(lane_state.get('counted_failures', 0)) + 1
-    # A counted failure ends the current transient-retry cycle, so the cap
-    # below only ever limits *consecutive* transient retries within one
-    # attempt, not the lane's lifetime transient count.
-    lane_state['transient_retries'] = 0
+    # A non-transient failure ends the current transient-retry cycle, so the
+    # cap only limits *consecutive* transient retries. A transient failure
+    # must NOT reset it: the orchestrator records every verify fail here
+    # before record-transient increments, so resetting on transient would
+    # make the cap unreachable.
+    if klass != 'transient':
+        lane_state['transient_retries'] = 0
     lane_state['attempt_count'] = int(lane_state.get('attempt_count', 0)) + 1
     lane_state['updated_at'] = now
     if int(lane_state.get('counted_failures', 0)) >= MAX_COUNTED_FAILURES:
