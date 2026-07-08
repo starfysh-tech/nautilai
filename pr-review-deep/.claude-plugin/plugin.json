@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "pr-review-deep",
   "displayName": "Deep PR Review",
-  "version": "2.14.2",
+  "version": "2.14.3",
   "description": "Rigorous, evidence-based code quality review of a branch or PR — abstraction design, type/boundary contracts, and behavior-preserving structural simplification. Proposes high-leverage restructurings with cited evidence; never performs them or expands scope.",
   "author": {
     "name": "Randall Noval",
