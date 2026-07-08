@@ -102,6 +102,7 @@ generate a compliant draft and let the hook reject anything off):
 - Subject: imperative, ≤50 chars, lowercase, no emoji. Scope optional, single word.
 - Body: explain WHY not WHAT, ≤72 chars/line; skip if the change is self-evident.
 - No attribution footers (no Co-Authored-By or similar).
+- A user-facing change must be typed `feat` or `fix` even if the work felt like a refactor or chore — release-please's generated changelog only sections `feat`/`fix`, so anything else is invisible in release notes.
 
 Example: `feat(api): add user authentication endpoint`
 

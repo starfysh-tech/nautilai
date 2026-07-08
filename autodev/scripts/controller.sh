@@ -13,6 +13,7 @@ python3 - "$STATE_FILE" "$@" <<'PY'
 import fcntl, json, os, sys, tempfile, time
 
 MAX_COUNTED_FAILURES = 3
+MAX_TRANSIENT_RETRIES = 2
 
 state_file = sys.argv[1]
 args = sys.argv[2:]
@@ -34,6 +35,7 @@ if cmd == 'init-lane':
         'status': 'pending',
         'attempt_count': 0,
         'counted_failures': 0,
+        'transient_retries': 0,
         'last_failure_class': None,
         'last_failure_fingerprint': None,
         'baseline_status': 'unknown',
@@ -54,14 +56,30 @@ elif cmd == 'record-failure':
     lane_state['last_failure_repeated'] = repeated
     if klass == 'implementation':
         lane_state['counted_failures'] = int(lane_state.get('counted_failures', 0)) + 1
+    # A counted failure ends the current transient-retry cycle, so the cap
+    # below only ever limits *consecutive* transient retries within one
+    # attempt, not the lane's lifetime transient count.
+    lane_state['transient_retries'] = 0
     lane_state['attempt_count'] = int(lane_state.get('attempt_count', 0)) + 1
     lane_state['updated_at'] = now
     if int(lane_state.get('counted_failures', 0)) >= MAX_COUNTED_FAILURES:
+        lane_state['status'] = 'needs_guidance'
+elif cmd == 'record-transient':
+    # A `transient` classification (see classify_failure.sh) retries once
+    # immediately without counting toward MAX_COUNTED_FAILURES — but nothing
+    # short of this counter previously bounded how many times that could
+    # happen in a row, so persistent rate-limiting could retry forever.
+    lane = args[1]
+    lane_state = lanes.setdefault(lane, {})
+    lane_state['transient_retries'] = int(lane_state.get('transient_retries', 0)) + 1
+    lane_state['updated_at'] = now
+    if int(lane_state.get('transient_retries', 0)) >= MAX_TRANSIENT_RETRIES:
         lane_state['status'] = 'needs_guidance'
 elif cmd == 'record-success':
     lane = args[1]
     lane_state = lanes.setdefault(lane, {})
     lane_state['status'] = 'done'
+    lane_state['transient_retries'] = 0
     lane_state['attempt_count'] = int(lane_state.get('attempt_count', 0)) + 1
     lane_state['updated_at'] = now
 elif cmd == 'check':
@@ -73,6 +91,8 @@ elif cmd == 'check':
         reasons.append(f"status={lane_state.get('status')}")
     if int(lane_state.get('counted_failures', 0)) >= MAX_COUNTED_FAILURES:
         reasons.append(f"counted_failures={lane_state.get('counted_failures')} (cap {MAX_COUNTED_FAILURES})")
+    if int(lane_state.get('transient_retries', 0)) >= MAX_TRANSIENT_RETRIES:
+        reasons.append(f"transient_retries={lane_state.get('transient_retries')} (cap {MAX_TRANSIENT_RETRIES})")
     if lane_state.get('last_failure_repeated'):
         reasons.append('repeated identical failure fingerprint')
     if reasons:
@@ -84,7 +104,7 @@ elif cmd == 'show':
     print(json.dumps(state, indent=2))
     sys.exit(0)
 else:
-    print('usage: controller.sh init-lane <lane> | set <lane> <key> <value> | record-failure <lane> <class> <fingerprint> | record-success <lane> | check <lane> | show', file=sys.stderr)
+    print('usage: controller.sh init-lane <lane> | set <lane> <key> <value> | record-failure <lane> <class> <fingerprint> | record-transient <lane> | record-success <lane> | check <lane> | show', file=sys.stderr)
     sys.exit(1)
 # Atomic replace so an unlocked reader can never observe a torn write.
 tmp_fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(state_file), suffix='.tmp')
