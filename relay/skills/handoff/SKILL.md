@@ -67,9 +67,9 @@ doc="$dir/$(date +%Y%m%d-%H%M%S).md"
 Structure it with these sections (omit any of the twelve only if genuinely empty):
 
 - **Goal** — what the work is trying to achieve.
-- **Current state** — what's done, what's in progress.
+- **Current state** — what's done, what's in progress. For each in-progress item, state its done-criterion — what "done" actually means for it — so the next session resumes against a target instead of re-deriving one.
 - **Decisions** — choices made and the reasoning, so they aren't re-litigated. Build from the narrative pack, the fact pack, and in-window knowledge together; the narrative pack is transcript-grounded, so where it disagrees with post-compaction memory it wins, same rule as the fact pack.
-- **Open questions / blockers** — anything unresolved or waiting on input. For each in-progress item, state its done-criterion — what "done" actually means for it — so the next session resumes against a target instead of re-deriving one.
+- **Open questions / blockers** — anything unresolved or waiting on input.
 - **Next steps** — the concrete actions the next session should take first.
 - **Key artifacts** — paths/URLs to plans, PRDs, ADRs, issues, commits, diffs. Reference them; do **not** restate their contents.
 - **Suggested skills** — skills the next session is likely to need, if any.
