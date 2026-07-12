@@ -68,11 +68,22 @@ if [ "$REF_ONLY" = "true" ]; then
     exit 0
 fi
 
-# Default tracker: GitHub Issues (requires gh).
+# Default tracker: GitHub Issues (requires gh and jq).
+# Guarded here, after the linear/jira/none early exits, so the dependency is
+# scoped to the GitHub path only — those trackers need neither.
 if ! command -v gh &>/dev/null; then
     echo "STATUS: ERROR"
     echo "ERROR: gh CLI not installed"
     echo "FIX: brew install gh"
+    exit 0
+fi
+
+# Without this, `set -euo pipefail` aborts on the unguarded jq calls below and
+# the caller gets no STATUS: line at all — a silent failure, not a degradation.
+if ! command -v jq &>/dev/null; then
+    echo "STATUS: ERROR"
+    echo "ERROR: jq not installed"
+    echo "FIX: brew install jq"
     exit 0
 fi
 
