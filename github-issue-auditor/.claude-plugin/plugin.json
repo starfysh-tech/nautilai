@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "github-issue-auditor",
   "displayName": "GitHub Issue Auditor",
-  "version": "2.18.0",
+  "version": "2.18.1",
   "description": "Audit a GitHub repo's issues for cleanup — fuzzy-matched duplicates, orphaned sub-issues, unlabeled or stale items, and inconsistent labels against the repo's own auto-detected taxonomy. Read-only by default; any mutation (close, relabel, comment) is opt-in behind an approval gate.",
   "author": {
     "name": "Randall Noval",
