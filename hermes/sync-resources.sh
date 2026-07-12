@@ -22,19 +22,50 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PAIRS=("commitcraft:commitcraft")
 DIRS=("scripts" "templates")
 
+# Files NOT mirrored to Hermes.
+#
+# Hermes security-scans every installed skill. commitcraft-setup.sh provisions a
+# repo's tooling — `npm install` commitlint/husky, `pip install` pre-commit, and
+# reading ~/.ssh/*.pub to configure commit signing — which scores HIGH
+# `exfiltration` + MEDIUM `supply_chain` and lands the whole bundle on
+# `Verdict: CAUTION → BLOCKED` for a community source. Every one of the 12 findings
+# came from this script and the templates it installs; the other four scripts are clean.
+#
+# This is not a false-positive we can engineer around: provisioning tooling *is*
+# installing packages. So `setup` (and `check`, which shares the script) are
+# Claude-only, and Hermes users configure a repo by following the documented steps
+# in commitcraft/README.md instead.
+EXCLUDE=("scripts/commitcraft-setup.sh" "templates")
+
+is_excluded() { # $1 = path relative to the plugin dir
+  local rel="$1" ex
+  for ex in "${EXCLUDE[@]}"; do
+    [ "$rel" = "$ex" ] && return 0
+    case "$rel" in "$ex"/*) return 0 ;; esac
+  done
+  return 1
+}
+
 sync_into() { # $1 = destination root
-  local dest_root="$1" pair plugin skill d src dest
+  local dest_root="$1" pair plugin skill d src dest f rel
   for pair in "${PAIRS[@]}"; do
     plugin="${pair%%:*}"; skill="${pair##*:}"
     for d in "${DIRS[@]}"; do
       src="$ROOT/$plugin/$d"
       dest="$dest_root/$plugin/skills/$skill/$d"
       [ -d "$src" ] || continue
+      is_excluded "$d" && { rm -rf "$dest"; continue; }
       rm -rf "$dest"
       mkdir -p "$dest"
       # Mode bits are intentionally not preserved: Hermes strips the executable bit
       # on install (verified), so the Hermes adapter invokes scripts via `bash <path>`.
-      cp -R "$src/." "$dest/"
+      for f in "$src"/*; do
+        [ -e "$f" ] || continue
+        rel="$d/$(basename "$f")"
+        is_excluded "$rel" && continue
+        cp -R "$f" "$dest/"
+      done
+      rmdir "$dest" 2>/dev/null || true   # drop the dir entirely if nothing survived
     done
   done
 }

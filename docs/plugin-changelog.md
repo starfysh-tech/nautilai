@@ -14,6 +14,25 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-13
+
+- **commitcraft** — `setup` and `check` are now **Claude Code only**; Hermes ships `commit`,
+  `push`, `pr`, `release`. Hermes security-scans every installed skill, and
+  `commitcraft-setup.sh` — which `npm install`s commitlint/husky, `pip install`s pre-commit, and
+  reads `~/.ssh/*.pub` to configure signing — scored HIGH `exfiltration` + MEDIUM `supply_chain`
+  and blocked the **entire bundle** (`Verdict: CAUTION`). All 12 findings came from that one
+  script and its templates; the other four scripts are clean.
+
+  The verdict is right: provisioning tooling *is* installing packages. So the bundle omits the
+  script rather than asking anyone to `--force` past a security gate, and Hermes users configure
+  a repo once by hand — steps now in
+  [commitcraft's README](../commitcraft/README.md#hermes-repo-setup).
+
+  Worth remembering: our scanner probe *passed*. It was a 30-line analogue of a 1,500-line
+  provisioning script, and it had no equivalent of the `~/.ssh` reads that produced the HIGH
+  findings. A probe proves a mechanism, not a payload — see
+  [dual-runtime.md](conventions/dual-runtime.md) lesson 5.
+
 ## 2026-07-12
 
 - **commitcraft** ([`skills/commitcraft/SKILL.md`](../commitcraft/skills/commitcraft/SKILL.md)) —

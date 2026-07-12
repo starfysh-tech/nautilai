@@ -214,11 +214,31 @@ the marketplace-sync check all pass.
 `STATUS: NO_ISSUE` and exits 0 *before* any `gh` call; `workflows/pr.md` maps `NO_ISSUE` to "no
 issue link". No lookup, no linking, no comment, no `gh` dependency. Already built — no code change.
 
+**Verified — and it failed: the scanner BLOCKS `commitcraft-setup.sh`**
+
+Installing the real thing returned `Verdict: CAUTION → BLOCKED` (community source), with 12
+findings — **all** from `commitcraft-setup.sh` and the templates it installs:
+
+| Severity | Category | Source |
+| --- | --- | --- |
+| HIGH ×2 | `exfiltration` | `~/.ssh/*.pub` reads, for optional commit-signing setup |
+| MEDIUM ×3 | `persistence` | `ssh-keygen` |
+| MEDIUM ×6 | `supply_chain` | `npm install` commitlint/husky, `pip install` pre-commit |
+| LOW ×1 | `privilege_escalation` | `allowed-tools` in SKILL.md frontmatter |
+
+The other four scripts are clean. The verdict is **correct** — provisioning tooling *is*
+installing packages — and it is not engineerable away.
+
+So `hermes/sync-resources.sh` excludes `commitcraft-setup.sh` and `templates/`, and **`setup`
+and `check` are Claude-only** (both call that script). `commit`, `push`, `pr`, `release` ship.
+Hermes users configure a repo once by hand — steps in `commitcraft/README.md#hermes-repo-setup`.
+
+We do **not** tell users to `--force` past the gate.
+
 **Not yet verified**
 
-- [ ] `commitcraft-setup.sh` itself passing the Hermes scanner. `probe-hooks` is a close analogue
-      (git hooks + config + npm + network → SAFE), but it is not the real script. A *dangerous*
-      verdict cannot be bypassed even with `--force`.
+- [ ] The reduced bundle actually installs clean. Expected `SAFE` — the only remaining finding is
+      the LOW `allowed-tools` one, which did not block `probe-core`.
 - [ ] `hermes skills update` round-tripping a content change **without** a `version:` bump. If the
       hash turns out to be version-based rather than content-based, every release must bump
       `version:` in SKILL.md.

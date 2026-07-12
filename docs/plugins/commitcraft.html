@@ -186,7 +186,7 @@
         <span class="cf-label" aria-hidden="true">Copy</span>
       </button>
     </div>
-    <p class="note">No tap and no marketplace needed in Hermes — <code>hermes skills tap add</code> does not index this repo; install by the identifier above.</p>
+    <p class="note">No tap and no marketplace needed in Hermes — <code>hermes skills tap add</code> does not index this repo; install by the identifier above. Hermes ships four of the six workflows: <code>commit</code>, <code>push</code>, <code>pr</code>, <code>release</code>. <strong><code>setup</code> and <code>check</code> are Claude Code only</strong> — see Requirements.</p>
   </section>
 
   <section id="what">
@@ -245,7 +245,8 @@
   <section id="requirements">
     <h2>Requirements</h2>
     <p><code>git</code>, and <code>gh</code> (authenticated) for GitHub-issue validation, PR creation, and branch-protection provisioning — workflows degrade gracefully when <code>gh</code> is absent rather than blocking. The issue tracker is configurable via <code>setup</code> (github, linear, jira, or none); Linear/Jira read reference keys from the branch name and need no <code>gh</code>. Optional per-repo tooling (commitlint, gitleaks, pre-commit, release-please) is configured by the <code>setup</code> workflow.</p>
-    <p>In <strong>Hermes Agent</strong> the workflows, scripts, templates, and commit policy are identical — a runtime adapter in the skill resolves bundled-script paths per runtime, so neither runtime follows the other's. Hermes has no subagent primitive, and it strips the executable bit on install, so bundled scripts run via <code>bash</code> there. Update with <code>hermes skills update</code>. If <code>skills.template_vars: false</code> is set in <code>~/.hermes/config.yaml</code>, Hermes stops substituting skill-directory paths and bundled-script calls break; Claude Code is unaffected.</p>
+    <p>In <strong>Hermes Agent</strong>, <code>commit</code>, <code>push</code>, <code>pr</code>, and <code>release</code> behave identically — a runtime adapter in the skill resolves bundled-script paths per runtime, so neither runtime follows the other's. Hermes strips the executable bit on install, so bundled scripts run via <code>bash</code> there, and it has no subagent primitive. Update with <code>hermes skills update</code>.</p>
+    <p><strong><code>setup</code> and <code>check</code> are Claude Code only.</strong> The setup script provisions repo tooling — <code>npm install</code> commitlint/husky, <code>pip install</code> pre-commit, reading <code>~/.ssh/*.pub</code> to configure signing — which Hermes' security scanner blocks as HIGH <code>exfiltration</code> and MEDIUM <code>supply_chain</code>. That verdict is correct, so the Hermes bundle omits the script rather than asking anyone to <code>--force</code> past a security gate. Hermes users configure a repo once by hand (steps in the <a href="https://github.com/starfysh-tech/nautilai/tree/main/commitcraft#hermes-repo-setup">README</a>), or run <code>/commitcraft setup</code> from Claude Code on the same repo — both runtimes read the resulting config.</p>
   </section>
 
   <footer>

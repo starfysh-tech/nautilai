@@ -67,14 +67,34 @@ the Claude path. The adapter section carries the rule that rescues them under He
 
 This is safe because it is **the same mechanism Claude already relies on** — see lesson 3.
 
-### 6. A plugin that needs subagents is Claude-only
+### 6. A script that provisions tooling cannot ship to Hermes
+
+Hermes **security-scans every installed skill**, and for a community source *any* CAUTION
+verdict is `BLOCKED`. A script that runs `npm install` / `pip install`, or reads `~/.ssh/`,
+scores MEDIUM `supply_chain` and HIGH `exfiltration` — and blocks the **whole bundle**, not
+just itself.
+
+commitcraft hit exactly this: 12 findings, all from `commitcraft-setup.sh` and the templates
+it installs. So `sync-resources.sh` carries an `EXCLUDE` list, and `setup` + `check` are
+**Claude-only**. Hermes users configure a repo by following documented steps instead.
+
+- *Rule:* keep provisioning logic in **one** script, so it can be excluded cleanly without
+  taking working functionality with it. A `setup` script that also holds read-only `check`
+  logic drags `check` down with it — as ours does.
+- *Rule:* **never tell users to `--force` past the scanner.** The findings are usually correct.
+  Ship a bundle that passes; document the rest.
+- *Rule:* when a workflow is excluded, the `SKILL.md` adapter must say so explicitly and tell
+  the agent **not to improvise an equivalent** — an agent asked to "set up commitlint" with no
+  script will happily start running `npm install` itself.
+
+### 7. A plugin that needs subagents is Claude-only
 
 Hermes has no subagent primitive. `autodev` is not ported: its value *is* subagent fan-out plus
 git-worktree isolation, so a port would be a hollow shell. Skills that fan out for review
 (`review-plan`, `dep-review`, `pr-comment-review`) already document an inline fallback — that
 documented path *is* their Hermes behavior. Say so in the README rather than inventing new prose.
 
-### 7. Document the five headings, and the limits
+### 8. Document the five headings, and the limits
 
 Every dual-runtime plugin's README states: shared behavior · Claude Code invocation · Hermes
 invocation · runtime-specific limitations · update behavior. Add the plugin to
@@ -133,7 +153,23 @@ that read exactly like real negatives — nearly costing us a correct architectu
 **Authenticate first; confirm the limit reads 5000.** Prefer `UNCLEAR` to a confident wrong
 answer, and re-run anything that failed while the environment was degraded.
 
-### 5. Publishing a public repo is publishing
+### 5. A probe that is *smaller* than the real thing will pass when the real thing fails
+
+The security-scanner probe (`probe-hooks`) wrote git hooks, mutated git config, ran an
+`npm install`, and made a network call. It returned **SAFE**. On that basis the scanner was
+recorded as a cleared risk.
+
+The real `commitcraft-setup.sh` returned **CAUTION → BLOCKED**: 12 findings, including two HIGH
+`exfiltration` hits the probe had no analogue for (`~/.ssh/*.pub` reads for commit signing).
+A ~30-line probe and a ~1,500-line provisioning script are not the same test subject, and
+"close analogue" was doing far too much work.
+
+**A probe proves a mechanism, not a payload.** Where the payload itself is what gets judged —
+a scanner, a linter, a size limit — probe with the *real artifact* or accept that the risk is
+still open. Saying "verified" here would have shipped docs that told users to run a command
+that fails.
+
+### 6. Publishing a public repo is publishing
 
 skills.sh **auto-indexes any public GitHub repo containing a `SKILL.md`** — no tap, no opt-in,
 no way to hide. Every skill in this marketplace is Hermes-resolvable, not just the five
