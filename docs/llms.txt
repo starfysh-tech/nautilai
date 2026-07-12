@@ -1,0 +1,63 @@
+# nautilai
+
+> A Claude Code plugin marketplace. Five of its skills also install into Hermes Agent
+> from the same source — one upstream, no fork. Each plugin is one top-level directory
+> in the repo; there is no build step.
+
+Repo: https://github.com/starfysh-tech/nautilai
+
+Install in Claude Code — add the marketplace once, then install any plugin:
+
+```
+/plugin marketplace add starfysh-tech/nautilai
+/plugin install <name>@nautilai
+```
+
+Install in Hermes Agent — no tap, no marketplace, install by identifier:
+
+```
+hermes skills install skills-sh/starfysh-tech/nautilai/<skill>
+```
+
+## Plugins — both runtimes
+
+These install in Claude Code and Hermes Agent. Hermes identifiers are listed explicitly;
+they resolve through skills.sh, which indexes this public repo automatically.
+
+- [commitcraft](https://starfysh-tech.github.io/nautilai/plugins/commitcraft.html): Conventional commits, PR creation, and release guidance in one skill with six workflows (`commit`, `push`, `pr`, `release`, `setup`, `check`). Never uses `git add -A`, never `--no-verify`, treats hook failures as hard stops. Issue tracking is configurable and can be disabled (`ticket_tool: none`). Hermes: `skills-sh/starfysh-tech/nautilai/commitcraft`
+- [review-plan](https://starfysh-tech.github.io/nautilai/plugins/review-plan.html): Validates an implementation plan against the actual codebase and shrinks it to the smallest correct version. Hermes: `skills-sh/starfysh-tech/nautilai/review-plan`
+- [pr-review-deep](https://starfysh-tech.github.io/nautilai/plugins/pr-review-deep.html): Evidence-based code-quality review of a branch or PR. Proposes restructurings with cited evidence; never performs them. Hermes: `skills-sh/starfysh-tech/nautilai/pr-review-deep`
+- [pr-comment-review](https://starfysh-tech.github.io/nautilai/plugins/pr-comment-review.html): Fetches PR review threads, categorizes them, implements agreed fixes behind approval gates, pushes, replies inline. Hermes: `skills-sh/starfysh-tech/nautilai/pr-comment-review`
+- [dep-review](https://starfysh-tech.github.io/nautilai/plugins/dep-review.html): Triages Dependabot PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts grounded in the diff and real codebase usage. Hermes: `skills-sh/starfysh-tech/nautilai/dep-review`
+
+## Plugins — Claude Code only
+
+- [autodev](https://starfysh-tech.github.io/nautilai/plugins/autodev.html): Bounded autonomous development loop — worktree lanes, worker subagents, script-based verification, hard 3-failure escalation. **Not portable to Hermes**: its value is subagent fan-out and git-worktree isolation, and Hermes has no subagent primitive.
+- [relay](https://starfysh-tech.github.io/nautilai/plugins/relay.html): Transcript-grounded handoff documents a fresh session picks up automatically.
+- [github-issue-auditor](https://starfysh-tech.github.io/nautilai/plugins/github-issue-auditor.html): Audits a repo's issues for duplicates, orphaned sub-issues, stale items, inconsistent labels. Read-only by default.
+- [rbac-django](https://starfysh-tech.github.io/nautilai/plugins/rbac-django.html): Audits a Django/DRF + React codebase for RBAC gaps, threat-models them into attacker abuse cases, generates remediation playbooks.
+- [phi-scan](https://starfysh-tech.github.io/nautilai/plugins/phi-scan.html): Scans a repo for PHI under HIPAA Safe Harbor, then AI-triages findings to filter false positives.
+- [frontend-review](https://starfysh-tech.github.io/nautilai/plugins/frontend-review.html): Audits a React + Tailwind frontend for component architecture and design-token violations.
+- [wireframe](https://starfysh-tech.github.io/nautilai/plugins/wireframe.html): Low-fidelity wireframes — ASCII layouts, wiremd prototypes, Mermaid diagrams.
+- [cc-adoption-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-adoption-audit.html): Audits a Claude Code setup against available features and surfaces what isn't being used.
+- [cc-skill-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-skill-audit.html): Audits skills against Anthropic's authoring guidance — diagnoses under/over-triggering, de-bloats bodies.
+- [cc-validate-hooks](https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html): Validates Claude Code hook configuration in `settings.json`, with an optional `--fix`.
+
+## Notes for agents
+
+Non-obvious facts, verified against a live Hermes v0.18.2. Believing the published Hermes
+docs over these will waste your time — several of their claims did not hold.
+
+- **Do not run `hermes skills tap add starfysh-tech/nautilai`.** It registers the tap and indexes nothing: the `github` source is permanently skipped as slow, and no skill ever surfaces. Install by the `skills-sh/...` identifier above instead. No tap and no configuration are required.
+- **`hermes skills search` / `browse` will not find these skills** for the same reason. Discovery and resolution are separate paths — `inspect` and `install` work on an identifier directly, even when search returns nothing.
+- **Every skill in this repo is resolvable in Hermes, not just the five above.** skills.sh indexes any public repo containing a `SKILL.md`, and there is no opt-out. The other skills are untested in Hermes and unsupported there — prefer the Claude Code runtime for them.
+- **Hermes strips the executable bit on install.** Bundled scripts must be invoked as `bash <path>`, never called directly. A direct call returns `Permission denied`.
+- **`${CLAUDE_PLUGIN_ROOT}` is not a shell variable.** It is not exported to Bash and is not substituted inside workflow files — running it verbatim yields `/scripts/foo.sh` and exit 127. Claude resolves it from context. `${HERMES_SKILL_DIR}` *is* substituted by Hermes, including inside fenced code blocks.
+- **A skill serves both runtimes via a "Resource paths" adapter section.** Each runtime substitutes only its own token and leaves the other as literal text, so the resolved line is the one to follow. Never substitute a token yourself and never fall back to a relative path.
+- **If `skills.template_vars: false` is set in `~/.hermes/config.yaml`**, Hermes stops substituting `${HERMES_SKILL_DIR}` and bundled-script paths arrive literal, breaking any skill that calls one. Claude Code is unaffected.
+
+## Optional
+
+- [Plugin changelog](https://github.com/starfysh-tech/nautilai/blob/main/docs/plugin-changelog.md): Hand-curated log of user-visible plugin changes, newest first.
+- [Dual-runtime design](https://github.com/starfysh-tech/nautilai/blob/main/docs/plans/hermes-dual-runtime.md): Why Claude Code and Hermes cannot share one skill directory, and what was verified against each runtime.
+- [Authoring conventions](https://github.com/starfysh-tech/nautilai/blob/main/docs/conventions/README.md): House rules for plugins in this repo, including the finding-disposition standard every review skill follows.

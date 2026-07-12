@@ -17,7 +17,7 @@ Reference any bundled script, binary, or config from a skill/workflow with
 `${CLAUDE_PLUGIN_ROOT}/…`, never a hardcoded path — the install cache path changes
 on every plugin update, so a literal path breaks after the next release.
 
-Adding a plugin means creating its directory **and** registering it in `marketplace.json`. A plugin's identity is one invariant across four surfaces that must stay consistent: `plugin.json`, the `marketplace.json` entry (`name`, `description`, and `version` are CI-enforced by `.github/scripts/check-marketplace-sync.sh`), the skill's `SKILL.md` frontmatter description (semantically consistent, not verbatim — it's the model-facing trigger), and the plugin's docs page `docs/plugins/<name>.html` (regenerated per `docs/plugins/_slots.md`). The `version` field itself is kept in sync automatically by release-please `extra-files` (add an entry for the new plugin's `plugin.json` and its `marketplace.json` index — the `.claude/skills/new-plugin` skill scaffolds all of this).
+Adding a plugin means creating its directory **and** registering it in `marketplace.json`. A plugin's identity is one invariant across five surfaces that must stay consistent: `plugin.json`, the `marketplace.json` entry (`name`, `description`, and `version` are CI-enforced by `.github/scripts/check-marketplace-sync.sh`), the skill's `SKILL.md` frontmatter description (semantically consistent, not verbatim — it's the model-facing trigger), the plugin's docs page `docs/plugins/<name>.html` (regenerated per `docs/plugins/_slots.md`), and its entry in `docs/llms.txt` (the agent-facing index — say which runtimes it supports). The `version` field itself is kept in sync automatically by release-please `extra-files` (add an entry for the new plugin's `plugin.json` and its `marketplace.json` index — the `.claude/skills/new-plugin` skill scaffolds all of this).
 
 ## Conventions
 
@@ -27,6 +27,23 @@ aren't covered by Anthropic's skill guidance or this file — live in
 skill follows the [finding-dispositions](docs/conventions/finding-dispositions.md)
 standard (`auto-fix` / `report` / `ask-user`). Check a new plugin against these,
 or note a deliberate exception in its README.
+
+## Agent-facing docs
+
+`docs/llms.txt` ([llmstxt.org](https://llmstxt.org/)) is the **agent-facing** index of the
+marketplace, served at `starfysh-tech.github.io/nautilai/llms.txt`. It is deliberately
+*separate* from the human docs pages — never bury agent guidance inside
+`docs/plugins/*.html`.
+
+A new plugin must be added there too (see the surface list above). Its "Notes for agents"
+section carries the non-obvious runtime facts an agent would otherwise have to rediscover
+(e.g. `hermes skills tap add` indexes nothing; Hermes strips the executable bit) — keep it
+short and keep it true.
+
+> We do **not** publish `/.well-known/agent-skills/index.json`. Two incompatible specs are
+> live (Hermes reads the older `/.well-known/skills/` path, single-file skills only; the
+> agentskills.io RFC renamed it and is still at 0.2.0), and skills.sh already distributes
+> these skills *with* their bundled scripts. Revisit when the RFC settles.
 
 ## Hermes Agent (dual-runtime)
 
