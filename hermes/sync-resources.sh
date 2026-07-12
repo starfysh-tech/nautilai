@@ -40,8 +40,11 @@ sync_into() { # $1 = destination root
 }
 
 if [ "${1:-}" = "--check" ]; then
-  tmp="$(mktemp -d)"
+  # Trap first: registering it after mktemp leaves a window where an interrupt
+  # leaks the temp dir. `rm -rf ""` is a no-op, so the empty initial value is safe.
+  tmp=""
   trap 'rm -rf "$tmp"' EXIT
+  tmp="$(mktemp -d)"
   for pair in "${PAIRS[@]}"; do
     plugin="${pair%%:*}"
     mkdir -p "$tmp/$plugin"
