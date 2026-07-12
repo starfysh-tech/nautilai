@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.18.0](https://github.com/starfysh-tech/nautilai/compare/v2.17.0...v2.18.0) (2026-07-12)
+
+
+### Features
+
+* **commitcraft:** run in hermes agent alongside claude code ([3a7abe0](https://github.com/starfysh-tech/nautilai/commit/3a7abe0458f8e388ba6b87106bdbd9464199f90e))
+
+
+### Bug Fixes
+
+* **commitcraft:** guard the jq dependency on the github issue path ([b25669f](https://github.com/starfysh-tech/nautilai/commit/b25669f7bf61b5b66abb197d88d2d2fdae449ebf))
+
 ## [2.17.0](https://github.com/starfysh-tech/nautilai/compare/v2.16.2...v2.17.0) (2026-07-09)
 
 
