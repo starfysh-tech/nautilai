@@ -1,0 +1,144 @@
+# Dual-runtime plugins (Claude Code + Hermes Agent)
+
+Five nautilai skills run in **both** Claude Code and Hermes Agent from this one repo.
+This is the rule set for keeping that true, and the lessons that produced it.
+
+**Claude Code is the primary runtime. Hermes support is additive and must stay that way.**
+A Claude regression is never an acceptable price for Hermes support — and it is never
+necessary, because every constraint below has a Hermes-only solution.
+
+> The design record and per-assumption validation live in
+> [`docs/plans/hermes-dual-runtime.md`](../plans/hermes-dual-runtime.md). This file is the
+> rule set. The agent-facing summary is [`docs/llms.txt`](../llms.txt).
+
+---
+
+## The rules
+
+### 1. Never change a Claude-facing file to support Hermes
+
+Prove it, don't assert it. The PR diff must show **no changes** under `<plugin>/scripts/**`,
+`<plugin>/templates/**`, `<plugin>/tests/**`, or any `.claude-plugin/**`. The only permitted
+edit to a Claude-loaded file is an **additive** "Resource paths" section in `SKILL.md`.
+
+### 2. Bundled resources are mirrored into the skill dir, not moved
+
+Hermes installs the **skill directory and nothing else**. A plugin's root-level `scripts/`
+and `templates/` never reach it.
+
+`hermes/sync-resources.sh` copies them into `<plugin>/skills/<skill>/`. The plugin-root copies
+stay the source of truth and are what Claude uses; the mirror is **generated**, inert to Claude,
+and gated by `hermes/sync-resources.sh --check` in CI. Never hand-edit the mirror.
+
+Duplication is the deliberate price of rule 1. Relocating the originals would have rewritten
+19 path references across six workflow files plus two test suites — real regression surface on
+the runtime that already has users.
+
+### 3. One SKILL.md, one adapter section
+
+```markdown
+## Resource paths
+
+- **Claude Code:** `${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh`
+- **Hermes:** `bash ${HERMES_SKILL_DIR}/scripts/<name>.sh`
+```
+
+Each runtime substitutes **only its own** token and leaves the other as literal text, so the
+line that resolved to an absolute path is the one to follow. This is self-disambiguating —
+there is nothing for the model to guess.
+
+Instruct the agent to **never substitute a token itself and never fall back to a relative
+path**. A model that "helpfully" repairs a path converts a real failure into a silent wrong
+answer.
+
+### 4. Invoke bundled scripts via `bash` on the Hermes line
+
+**Hermes strips the executable bit on install** — a file committed `100755` lands `644`, and a
+direct call returns `Permission denied`. Keep Claude's direct invocation; add `bash` only on
+the Hermes line.
+
+### 5. Workflow files stay Claude-native; the adapter states the translation
+
+Workflow files under `skills/<skill>/workflows/` are never edited (rule 1), so they name only
+the Claude path. The adapter section carries the rule that rescues them under Hermes:
+
+> everywhere a workflow says `${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh`,
+> run `bash ${HERMES_SKILL_DIR}/scripts/<name>.sh`
+
+This is safe because it is **the same mechanism Claude already relies on** — see lesson 3.
+
+### 6. A plugin that needs subagents is Claude-only
+
+Hermes has no subagent primitive. `autodev` is not ported: its value *is* subagent fan-out plus
+git-worktree isolation, so a port would be a hollow shell. Skills that fan out for review
+(`review-plan`, `dep-review`, `pr-comment-review`) already document an inline fallback — that
+documented path *is* their Hermes behavior. Say so in the README rather than inventing new prose.
+
+### 7. Document the five headings, and the limits
+
+Every dual-runtime plugin's README states: shared behavior · Claude Code invocation · Hermes
+invocation · runtime-specific limitations · update behavior. Add the plugin to
+[`docs/llms.txt`](../llms.txt) with the runtimes it supports.
+
+---
+
+## Lessons
+
+### 1. The published Hermes docs are not reliable. Verify against the binary.
+
+Multiple documented claims did not hold on Hermes v0.18.2:
+
+| Doc claim | Reality |
+| --- | --- |
+| `hermes skills tap add <repo>` indexes a GitHub repo | Registers a row and indexes **nothing**; the `github` source is permanently skipped as "slow" |
+| Taps persist in `~/.hermes/.hub/taps.json` | That file does not exist |
+| `version`, `author`, `license` are **required** frontmatter | Not enforced — a skill without them installs fine |
+| Skills are discovered flatly under a `skills/` root | **skills.sh indexes by skill name at any depth** — no `skills/` dir needed, no tap needed |
+
+The last one mattered most: it deleted an entire planned architecture (a generated repo-root
+bundle, a CI drift gate, and a release-please fan-out) that existed only to satisfy a
+requirement that was never real.
+
+**Treat vendor docs as a hypothesis, not a specification.**
+
+### 2. Probe with a throwaway repo, never with the real one
+
+Every surprise above surfaced in a scratch repo shaped like commitcraft, not in nautilai. Two
+properties made the probes trustworthy, and both are worth copying:
+
+- **Controls.** A non-executable file sitting beside the executable one is what turned "the exec
+  bit was stripped" from a shrug into a finding. Without the control it reads as coincidence.
+- **Observable identity.** The probe script printed *which copy of itself ran*. A script that
+  "worked" from the wrong copy would otherwise look exactly like a pass.
+
+Design probes so **PASS and FAIL produce different observable output**, and so a *false* pass is
+impossible. If an agent can rescue a broken path by being resourceful, the probe measures the
+agent's resourcefulness, not the thing under test.
+
+### 3. `${CLAUDE_PLUGIN_ROOT}` was never a shell variable
+
+It is **not** exported to Bash, and it is **not** substituted inside workflow files — the Read
+tool returns the literal token. Running it verbatim yields `/scripts/foo.sh` and exit 127.
+
+Claude resolves it **from context**, using the plugin root it learns in the SKILL.md header.
+CommitCraft has always depended on this. That is why rule 5 is safe: the Hermes adapter leans on
+an existing mechanism rather than introducing a new class of fragility.
+
+### 4. A rate-limited or truncated result is not a finding
+
+An unauthenticated GitHub API limit (60/hr) blew out mid-run and produced "not found" errors
+that read exactly like real negatives — nearly costing us a correct architecture. Separately, a
+`browse` command paginated across 2,559 pages was read as "not listed" after page one.
+
+**Authenticate first; confirm the limit reads 5000.** Prefer `UNCLEAR` to a confident wrong
+answer, and re-run anything that failed while the environment was degraded.
+
+### 5. Publishing a public repo is publishing
+
+skills.sh **auto-indexes any public GitHub repo containing a `SKILL.md`** — no tap, no opt-in,
+no way to hide. Every skill in this marketplace is Hermes-resolvable, not just the five
+supported ones, and `docs/llms.txt` says so plainly. The throwaway probe repo was also, briefly,
+a publicly installable Hermes skill.
+
+There is no opt-out mechanism. The only levers are: support it, document it as unsupported, or
+remove it from the repo.

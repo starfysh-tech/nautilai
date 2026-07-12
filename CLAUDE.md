@@ -63,6 +63,10 @@ changes. A skill serves both runtimes via a "Resource paths" adapter section nam
 `${CLAUDE_PLUGIN_ROOT}` and `${HERMES_SKILL_DIR}`; each runtime resolves only its own token
 and ignores the other. `autodev` is Claude-only (no Hermes subagent primitive).
 
+The rules, and the lessons behind them (including which published Hermes docs proved wrong),
+are in [`docs/conventions/dual-runtime.md`](docs/conventions/dual-runtime.md). Read it before
+porting another plugin.
+
 ## Validation
 
 Every PR runs `claude plugin validate --strict` over **all** plugins via the

@@ -60,4 +60,5 @@ docs over these will waste your time — several of their claims did not hold.
 
 - [Plugin changelog](https://github.com/starfysh-tech/nautilai/blob/main/docs/plugin-changelog.md): Hand-curated log of user-visible plugin changes, newest first.
 - [Dual-runtime design](https://github.com/starfysh-tech/nautilai/blob/main/docs/plans/hermes-dual-runtime.md): Why Claude Code and Hermes cannot share one skill directory, and what was verified against each runtime.
+- [Dual-runtime conventions](https://github.com/starfysh-tech/nautilai/blob/main/docs/conventions/dual-runtime.md): The rules for keeping a plugin working in both runtimes, and the lessons behind each — including which published Hermes docs turned out to be wrong.
 - [Authoring conventions](https://github.com/starfysh-tech/nautilai/blob/main/docs/conventions/README.md): House rules for plugins in this repo, including the finding-disposition standard every review skill follows.
