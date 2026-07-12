@@ -85,7 +85,12 @@ it installs. So `sync-resources.sh` carries an `EXCLUDE` list, and `setup` + `ch
   Ship a bundle that passes; document the rest.
 - *Rule:* when a workflow is excluded, the `SKILL.md` adapter must say so explicitly and tell
   the agent **not to improvise an equivalent** — an agent asked to "set up commitlint" with no
-  script will happily start running `npm install` itself.
+  script will happily start installing packages itself.
+- *Rule:* **`SKILL.md` carries instructions, not rationale.** It is shipped *and scanned*, so
+  prose explaining why a script was excluded can re-trigger the very findings that excluded it —
+  a static scanner matches patterns, not intent. State what the agent should do; put the why in
+  the README and here. (We shipped exactly this bug: the sentence describing the blocked script
+  quoted the package-install commands and key path verbatim.)
 
 ### 7. A plugin that needs subagents is Claude-only
 
