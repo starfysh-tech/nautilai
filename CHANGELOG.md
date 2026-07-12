@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.17.0](https://github.com/starfysh-tech/nautilai/compare/v2.16.2...v2.17.0) (2026-07-09)
+
+
+### Features
+
+* **relay:** add done-criterion and curation hints to handoff ([8202dca](https://github.com/starfysh-tech/nautilai/commit/8202dca770f642b80387fbca1e8450c94023fa74))
+
 ## [2.16.2](https://github.com/starfysh-tech/nautilai/compare/v2.16.1...v2.16.2) (2026-07-08)
 
 
