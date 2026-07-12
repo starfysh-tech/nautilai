@@ -30,6 +30,25 @@ remaining words are context to pass into the workflow, not part of the dispatch.
 
 Run all commands from the repo root.
 
+## Resource paths (runtime adapter)
+
+Exactly one of these two lines is resolved to an absolute path by your runtime; the
+other stays literal `${...}` text. **Use the line that resolved. Ignore the literal one.**
+
+- **Claude Code** — workflows: `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/<token>.md`,
+  scripts: `${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh`
+- **Hermes** — workflows: `${HERMES_SKILL_DIR}/workflows/<token>.md`,
+  scripts: `bash ${HERMES_SKILL_DIR}/scripts/<name>.sh`
+
+**If you are in Hermes**, the workflow files you are about to read are written with
+Claude Code paths. Translate as you go — everywhere a workflow says
+`${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh`, run `bash ${HERMES_SKILL_DIR}/scripts/<name>.sh`
+instead. The scripts are identical; only the location and the `bash` prefix differ
+(Hermes strips the executable bit on install, so scripts must be run via `bash`).
+
+Never substitute a token yourself and never fall back to a relative path. If neither
+line resolved, stop and tell the user.
+
 ## Shoals (project corrections)
 
 At the start of a run, read `.claude/shoals/commitcraft.commitcraft.md` from the

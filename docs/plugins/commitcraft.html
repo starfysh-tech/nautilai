@@ -219,6 +219,7 @@
   <section id="requirements">
     <h2>Requirements</h2>
     <p><code>git</code>, and <code>gh</code> (authenticated) for GitHub-issue validation, PR creation, and branch-protection provisioning — workflows degrade gracefully when <code>gh</code> is absent rather than blocking. The issue tracker is configurable via <code>setup</code> (github, linear, jira, or none); Linear/Jira read reference keys from the branch name and need no <code>gh</code>. Optional per-repo tooling (commitlint, gitleaks, pre-commit, release-please) is configured by the <code>setup</code> workflow.</p>
+    <p>CommitCraft also runs in <strong>Hermes Agent</strong>, from this same source: <code>hermes skills install skills-sh/starfysh-tech/nautilai/commitcraft</code>. The workflows, scripts, templates, and commit policy are identical; a runtime adapter in the skill resolves bundled-script paths per runtime, so neither runtime follows the other's. Hermes has no subagent primitive, and it strips the executable bit on install, so scripts run via <code>bash</code> there. Update with <code>hermes skills update</code>.</p>
   </section>
 
   <footer>
