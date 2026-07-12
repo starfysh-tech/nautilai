@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.18.1](https://github.com/starfysh-tech/nautilai/compare/v2.18.0...v2.18.1) (2026-07-12)
+
+
+### Bug Fixes
+
+* **commitcraft:** drop setup from the hermes bundle, blocked by scanner ([2593d82](https://github.com/starfysh-tech/nautilai/commit/2593d82ca92e993f20b744aacd8f18f450018564))
+
 ## [2.18.0](https://github.com/starfysh-tech/nautilai/compare/v2.17.0...v2.18.0) (2026-07-12)
 
 
