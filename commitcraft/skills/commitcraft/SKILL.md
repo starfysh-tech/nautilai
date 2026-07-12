@@ -49,19 +49,15 @@ instead. The scripts are identical; only the location and the `bash` prefix diff
 Never substitute a token yourself and never fall back to a relative path. If neither
 line resolved, stop and tell the user.
 
-### `setup` and `check` are Claude Code only
+### In Hermes: `setup` and `check` are unavailable
 
-`commitcraft-setup.sh` is **not shipped to Hermes** and `${HERMES_SKILL_DIR}/scripts/`
-does not contain it. It provisions repo tooling — `npm install` commitlint/husky,
-`pip install` pre-commit, reading `~/.ssh/*.pub` to configure signing — which Hermes'
-security scanner blocks (`Verdict: CAUTION`), and rightly so.
+`commit`, `push`, `pr`, and `release` work normally. `setup` and `check` are Claude Code
+only — their script is not shipped to Hermes, so `${HERMES_SKILL_DIR}/scripts/` does not
+contain it.
 
-In Hermes, if the user asks for `setup` or `check`: **do not attempt the script, do not
-improvise an equivalent, and do not install anything.** Say that both are Claude Code
-only, and point them at the manual setup steps in the plugin's README
-(`https://github.com/starfysh-tech/nautilai/tree/main/commitcraft#hermes-repo-setup`).
-
-`commit`, `push`, `pr`, and `release` work normally in Hermes.
+If the user asks for either in Hermes: **do not attempt the script, do not improvise an
+equivalent, and do not install anything.** Say both are Claude Code only and point them at
+`https://github.com/starfysh-tech/nautilai/tree/main/commitcraft#hermes-repo-setup`.
 
 ## Shoals (project corrections)
 
