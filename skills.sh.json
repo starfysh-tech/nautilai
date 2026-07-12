@@ -1,0 +1,10 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "groupings": [
+    { "title": "Git workflow", "skills": ["commitcraft"] },
+    {
+      "title": "Planning & code review",
+      "skills": ["review-plan", "pr-review-deep", "pr-comment-review", "dep-review"]
+    }
+  ]
+}

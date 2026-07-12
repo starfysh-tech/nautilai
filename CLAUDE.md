@@ -28,6 +28,24 @@ skill follows the [finding-dispositions](docs/conventions/finding-dispositions.m
 standard (`auto-fix` / `report` / `ask-user`). Check a new plugin against these,
 or note a deliberate exception in its README.
 
+## Hermes Agent (dual-runtime)
+
+CommitCraft and the review skills also install into **Hermes Agent** via skills.sh
+(`hermes skills install skills-sh/starfysh-tech/nautilai/<skill>`). Hermes ships the
+**skill directory only**, so a plugin's root-level `scripts/` and `templates/` would not
+reach it.
+
+`hermes/sync-resources.sh` mirrors them into the skill dir. **The plugin-root copies stay
+the source of truth and are what Claude Code uses** — the mirror under
+`commitcraft/skills/commitcraft/{scripts,templates}/` is **generated**, inert to Claude, and
+CI-gated (`hermes/sync-resources.sh --check`). Never hand-edit it; edit the plugin-root copy
+and re-run the script.
+
+Hermes support must stay **additive** — no Claude Code path, manifest, script, or test
+changes. A skill serves both runtimes via a "Resource paths" adapter section naming
+`${CLAUDE_PLUGIN_ROOT}` and `${HERMES_SKILL_DIR}`; each runtime resolves only its own token
+and ignores the other. `autodev` is Claude-only (no Hermes subagent primitive).
+
 ## Validation
 
 Every PR runs `claude plugin validate --strict` over **all** plugins via the

@@ -40,6 +40,13 @@ jobs:
             echo "::endgroup::"
           done
 
+      # Hermes ships the skill dir and nothing else, so commitcraft's plugin-root
+      # scripts/ + templates/ are mirrored into it. The plugin-root copies stay the
+      # source of truth (and are what Claude Code uses); this gate proves the
+      # generated mirror hasn't rotted away from them.
+      - name: Check Hermes resource mirror
+        run: bash hermes/sync-resources.sh --check
+
       # Bundled-script suites are offline and self-contained (commitcraft stubs
       # gh, relay stubs claude via a PATH shim) — no network, no real CLI calls.
       # Running them in this job keeps them behind the same required status

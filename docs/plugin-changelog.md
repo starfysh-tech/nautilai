@@ -14,6 +14,28 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-12
+
+- **commitcraft** ([`skills/commitcraft/SKILL.md`](../commitcraft/skills/commitcraft/SKILL.md)) —
+  now runs in **Hermes Agent** as well as Claude Code, from this same repo. The constraint that
+  shaped the design: Claude's validator refuses a `skills` path containing `..`, and Hermes ships
+  the *skill directory only* — so the two layouts cannot share one directory, and something has to
+  be generated. We chose to generate the **Hermes** side
+  ([`hermes/sync-resources.sh`](../hermes/sync-resources.sh)) rather than relocate Claude's scripts,
+  because a Claude regression was the one unacceptable outcome. Claude's diff is a single additive
+  "Resource paths" section; its scripts, templates, tests, and manifests are byte-identical.
+
+  Each runtime substitutes only its own path token and ignores the other's, which is what lets one
+  SKILL.md serve both. Validated end-to-end in both runtimes before merge (throwaway probe repo,
+  since the published Hermes docs proved wrong on several points — `tap add` indexes nothing, and
+  the "required" frontmatter fields are not enforced). Two findings worth remembering: Hermes
+  **strips the executable bit** on install (hence `bash <script>` on the Hermes path), and
+  `${CLAUDE_PLUGIN_ROOT}` inside workflow files has *always* been model-resolved rather than a shell
+  variable — so the Hermes adapter leans on the same mechanism CommitCraft already relied on.
+
+  `autodev` stays **Claude-only**: its value is subagent fan-out and git-worktree isolation, and
+  Hermes has no subagent primitive — a port would be a hollow shell.
+
 ## 2026-07-08
 
 - **relay** ([`skills/handoff/SKILL.md`](../relay/skills/handoff/SKILL.md)).
