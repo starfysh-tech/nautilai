@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.18.2](https://github.com/starfysh-tech/nautilai/compare/v2.18.1...v2.18.2) (2026-07-12)
+
+
+### Bug Fixes
+
+* **commitcraft:** cut the scanner rationale out of skill.md ([a022178](https://github.com/starfysh-tech/nautilai/commit/a02217854b86ff3125bf0a42038474f68fa69fa6))
+
 ## [2.18.1](https://github.com/starfysh-tech/nautilai/compare/v2.18.0...v2.18.1) (2026-07-12)
 
 
