@@ -57,7 +57,7 @@ change.
 
 ### Claude Code
 
-```
+```text
 /plugin install pr-comment-review@nautilai
 /pr-comment-review
 ```

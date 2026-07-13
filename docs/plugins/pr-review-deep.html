@@ -113,11 +113,13 @@
   /* Dual-runtime install: one copyfield per runtime, each labelled so the wrong
      command can't be copied by accident. */
   .runtime-label {
-    margin: 18px 0 7px; font-family: var(--font-mono); font-size: 0.75rem;
+    margin: 0 0 7px; font-family: var(--font-mono); font-size: 0.75rem;
     font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
     color: var(--tide);
   }
-  .runtime-label:first-of-type { margin-top: 0; }
+  /* Target the actual relationship (a label that follows a copyfield) rather than
+     relying on <p> ordering, which :first-of-type would silently break. */
+  .copyfield + .runtime-label { margin-top: 18px; }
   #install .note {
     max-width: var(--col); margin: 10px 0 0; font-size: 0.85rem;
     color: var(--foam-soft);

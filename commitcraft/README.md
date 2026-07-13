@@ -113,7 +113,7 @@ hard stops on hook failure, same derived default branch.
 
 Unchanged from what it has always been. **All six workflows**, including `setup` and `check`:
 
-```
+```text
 /plugin marketplace add starfysh-tech/nautilai
 /plugin install commitcraft@nautilai
 /commitcraft commit

@@ -53,7 +53,7 @@ risk — every finding cited to `file:line`, and the plan revised in place.
 
 ### Claude Code
 
-```
+```text
 /plugin install review-plan@nautilai
 /review-plan [plan-file]
 ```
