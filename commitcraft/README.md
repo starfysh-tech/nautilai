@@ -142,7 +142,7 @@ on install.
 
 ### Runtime-specific limitations
 
-| | Claude Code | Hermes |
+| Capability | Claude Code | Hermes |
 | --- | --- | --- |
 | `commit` · `push` · `pr` · `release` | yes | yes |
 | **`setup` · `check`** | yes | **no** — see below |

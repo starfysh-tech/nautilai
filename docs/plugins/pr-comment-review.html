@@ -110,6 +110,20 @@
   details.tech .tech-body li:last-child { margin-bottom: 0; }
   details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
 
+  /* Dual-runtime install: one copyfield per runtime, each labelled so the wrong
+     command can't be copied by accident. */
+  .runtime-label {
+    margin: 18px 0 7px; font-family: var(--font-mono); font-size: 0.75rem;
+    font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--tide);
+  }
+  .runtime-label:first-of-type { margin-top: 0; }
+  #install .note {
+    max-width: var(--col); margin: 10px 0 0; font-size: 0.85rem;
+    color: var(--foam-soft);
+  }
+  #install .note code { font-family: var(--font-mono); font-size: 0.8rem; }
+
   .copyfield {
     display: flex; align-items: center; gap: 12px; max-width: var(--col);
     padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
@@ -152,6 +166,7 @@
 
   <section id="install">
     <h2>Install</h2>
+    <p class="runtime-label">Claude Code</p>
     <div class="copyfield">
       <code class="cf-code"><span class="prompt">/</span>plugin install pr-comment-review@nautilai</code>
       <button class="copy-btn" type="button" data-copy="/plugin install pr-comment-review@nautilai" aria-label="Copy install command">
@@ -161,6 +176,17 @@
         <span class="cf-label" aria-hidden="true">Copy</span>
       </button>
     </div>
+    <p class="runtime-label">Hermes Agent</p>
+    <div class="copyfield">
+      <code class="cf-code"><span class="prompt">$&nbsp;</span>hermes skills install skills-sh/starfysh-tech/nautilai/pr-comment-review</code>
+      <button class="copy-btn" type="button" data-copy="hermes skills install skills-sh/starfysh-tech/nautilai/pr-comment-review" aria-label="Copy Hermes Agent install command">
+        <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="cf-label" aria-hidden="true">Copy</span>
+      </button>
+    </div>
+    <p class="note">No tap needed in Hermes — <code>hermes skills tap add</code> does not index this repo. Hermes has no MCP tools, so <code>gh</code> is required and must be authenticated.</p>
   </section>
 
   <section id="what">

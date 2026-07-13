@@ -47,6 +47,47 @@ your project and reads it back on the next run, so it won't repeat a mistake you
 already flagged. The file is append-only and committed by default (teammates
 inherit it) — `.gitignore` it if you'd rather keep it per-developer.
 
+## Runtimes: Claude Code and Hermes Agent
+
+### Shared behavior
+
+Identical in both: fetch the threads, verify each claim against the code before accepting it,
+gate the fixes, push, reply inline. A refuted false positive is answered with evidence, not a
+change.
+
+### Claude Code
+
+```
+/plugin install pr-comment-review@nautilai
+/pr-comment-review
+```
+
+### Hermes Agent
+
+```bash
+hermes skills install skills-sh/starfysh-tech/nautilai/pr-comment-review
+```
+
+No tap and no configuration — `hermes skills tap add` does not index this repo; install by the
+identifier above.
+
+### Runtime-specific limitations
+
+| Capability | Claude Code | Hermes |
+| --- | --- | --- |
+| GitHub reads/replies | `mcp__github__*`, else `gh` | **`gh` only** — no MCP tools |
+| Triage subagent at scale (>10 threads) | yes | **no** — triage runs inline |
+
+**`gh` is required** in Hermes and must be authenticated — the skill already treats it as the
+baseline and stops cleanly if it is absent. Hermes' tool sandbox uses a truncated `PATH` with no
+Homebrew, so a Homebrew-installed `gh` may not be found there.
+
+### Update behavior
+
+- **Claude Code** — `/plugin update pr-comment-review@nautilai`
+- **Hermes** — `hermes skills check` then `hermes skills update`. Drift is content-detected; no
+  version bump needed.
+
 ## License
 
 MIT

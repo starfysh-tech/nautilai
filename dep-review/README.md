@@ -83,6 +83,48 @@ next run. The file is append-only and committed by default (teammates inherit it
 `.gitignore` it if you'd rather keep it per-developer. The skill never writes outside
 `.claude/shoals/`.
 
+## Runtimes: Claude Code and Hermes Agent
+
+### Shared behavior
+
+Identical verdicts and identical safety rails in both: AUTO-MERGE only for low-risk patch and
+minor-dev-dep bumps that pass CI; every other merge or close is gated behind approval; verdicts
+are grounded in the diff and real codebase usage, not package reputation.
+
+### Claude Code
+
+```
+/plugin install dep-review@nautilai
+/dep-review
+```
+
+### Hermes Agent
+
+```bash
+hermes skills install skills-sh/starfysh-tech/nautilai/dep-review
+```
+
+No tap and no configuration — `hermes skills tap add` does not index this repo; install by the
+identifier above.
+
+### Runtime-specific limitations
+
+| Capability | Claude Code | Hermes |
+| --- | --- | --- |
+| GitHub reads/merges | `mcp__github__*`, else `gh` | **`gh` only** — no MCP tools |
+| Parallel per-PR evaluation | subagents, concurrent | **sequential** — no subagent primitive |
+
+**`gh` is required** in Hermes and must be authenticated; the skill already falls back to it as
+the baseline. Hermes' tool sandbox uses a truncated `PATH` with no Homebrew, so a
+Homebrew-installed `gh` may not be found there. A large batch of Dependabot PRs is noticeably
+slower without parallel evaluation.
+
+### Update behavior
+
+- **Claude Code** — `/plugin update dep-review@nautilai`
+- **Hermes** — `hermes skills check` then `hermes skills update`. Drift is content-detected; no
+  version bump needed.
+
 ## License
 
 MIT

@@ -44,6 +44,46 @@ the next run, so it won't repeat a mistake you already flagged. The file is
 append-only and committed by default (teammates inherit it) — `.gitignore` it if
 you'd rather keep it per-developer.
 
+## Runtimes: Claude Code and Hermes Agent
+
+### Shared behavior
+
+The validation method is identical: reuse/reduction scan first, then simplification, then
+risk — every finding cited to `file:line`, and the plan revised in place.
+
+### Claude Code
+
+```
+/plugin install review-plan@nautilai
+/review-plan [plan-file]
+```
+
+### Hermes Agent
+
+```bash
+hermes skills install skills-sh/starfysh-tech/nautilai/review-plan
+```
+
+Then ask the agent to review a plan. No tap and no configuration —
+`hermes skills tap add` does not index this repo (it registers the tap and indexes nothing on
+v0.18.2); install by the identifier above.
+
+### Runtime-specific limitations
+
+| Capability | Claude Code | Hermes |
+| --- | --- | --- |
+| Parallel specialist subagents | yes | **no** — Hermes has no subagent primitive |
+| Analysis | fans out to `code-explorer`, `code-reviewer`, etc. | runs the **documented inline fallback** (Read/Grep) sequentially |
+
+The skill already specifies that fallback for Claude (specialists are opportunistic, never
+required), so Hermes gets the same analysis — serially, and slower. No finding is skipped.
+
+### Update behavior
+
+- **Claude Code** — `/plugin update review-plan@nautilai`
+- **Hermes** — `hermes skills check` then `hermes skills update`. Drift is detected by **content**,
+  so upstream fixes arrive with no version bump needed.
+
 ## License
 
 MIT
