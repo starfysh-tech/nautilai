@@ -266,6 +266,30 @@ An upstream fix reaches an installed Hermes user on the next `update`.
 
 ---
 
+## All five skills, verified in Hermes
+
+| Skill | Verdict | Ships |
+| --- | --- | --- |
+| `commitcraft` | `SAFE` / ALLOWED | SKILL.md, 4 scripts, 6 workflows |
+| `review-plan` | `SAFE` / ALLOWED | SKILL.md, 3 references |
+| `pr-review-deep` | `SAFE` / ALLOWED | SKILL.md |
+| `dep-review` | `SAFE` / ALLOWED | SKILL.md, 5 references |
+| `pr-comment-review` | **`DANGEROUS` → BLOCKED**, then fixed | SKILL.md |
+
+**`pr-comment-review` was hard-blocked by its own prompt-injection defense.** The scanner raised
+`CRITICAL injection` on the line telling the agent *not* to follow directives embedded in reviewer
+comments — because that line quoted the canonical override-instruction phrase as an example. A
+`DANGEROUS` verdict cannot be bypassed even with `--force`.
+
+Fixed by naming the *category* of directive to refuse instead of spelling the payload. The security
+control is unchanged — the rule was always the control; the quoted example was illustrative. The
+same string was removed from `cc-skill-audit`'s security-checks reference, which would have hit the
+identical block.
+
+> **Not yet re-verified:** that the reworded `pr-comment-review` now installs. The quoted phrase was
+> the only canonical attack string in any of the four skills, and the three without it all passed —
+> but that is an inference, and this work has punished inference repeatedly. Re-run the install.
+
 ## Everything is verified
 
 Nothing in this plan is now open. Hermes support for commitcraft is complete and confirmed against

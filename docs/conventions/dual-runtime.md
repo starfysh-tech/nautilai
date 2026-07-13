@@ -91,6 +91,12 @@ it installs. So `sync-resources.sh` carries an `EXCLUDE` list, and `setup` + `ch
   a static scanner matches patterns, not intent. State what the agent should do; put the why in
   the README and here. (We shipped exactly this bug: the sentence describing the blocked script
   quoted the package-install commands and key path verbatim.)
+- *Rule:* **Never quote an attack string in a shipped file — describe it.** A static scanner cannot
+  tell a defense from an exploit. `pr-comment-review` was hard-blocked (`Verdict: DANGEROUS`,
+  `CRITICAL injection`) because its **prompt-injection defense** quoted the canonical
+  override-instruction phrase as an example. A `DANGEROUS` verdict **cannot be bypassed even with
+  `--force`**, so this is fatal, not cosmetic. Name the *category* of directive to refuse; never
+  spell the payload. The same applies to security-audit checklists that enumerate what to look for.
 
 ### 7. A plugin that needs subagents is Claude-only
 
