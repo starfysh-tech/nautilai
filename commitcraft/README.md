@@ -210,8 +210,11 @@ This is a user-side setting a skill cannot detect or override. Claude Code is un
 ### Update behavior
 
 - **Claude Code** — `/plugin update commitcraft@nautilai`
-- **Hermes** — `hermes skills check` then `hermes skills update`. Drift is detected by content
-  hash against the upstream bundle, so upstream fixes land without manual re-porting.
+- **Hermes** — `hermes skills check` then `hermes skills update`.
+
+Hermes detects drift by **content**, not by version — verified: the skill carries no `version:`
+field and `inspect` reports no hash, yet a changed upstream bundle is picked up and re-scanned on
+update. Upstream fixes therefore reach installed users with no version bump and no re-porting.
 
 ## Troubleshooting
 

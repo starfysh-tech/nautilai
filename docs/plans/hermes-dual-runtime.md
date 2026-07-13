@@ -254,13 +254,36 @@ unfindable on a Homebrew Mac even when installed. Left alone, `pr`/`push` issue 
 release analysis would degrade **permanently** for those users. The three `gh`-using scripts now
 append the well-known locations to `PATH` when `command -v gh` comes up empty. No-op under Claude.
 
-**Not yet verified**
+**Verified — `update` is content-based; upstream fixes reach users automatically**
 
-- [ ] `hermes skills update` round-tripping a content change **without** a `version:` bump. Hermes
-      stores no local digest we could find (`.usage.json` holds only timestamps), so this can only
-      be settled by landing a content-only change upstream and re-running `check`. If the
-      comparison turns out to be version-based, every release must bump `version:` in SKILL.md or
-      upstream fixes silently never reach Hermes users.
+`check` reported `update_available`, `update` re-fetched and re-scanned (`SAFE`), and the new
+content landed on disk. Proof it was the *content* that arrived, not just a re-install: the
+bundled script had reported `gh CLI not installed` before, and afterwards found `gh` and returned
+`STATUS: NO_ISSUE`.
+
+This is **not** version-based. commitcraft's `SKILL.md` carries **no `version:` field**, `inspect`
+prints no version/hash/digest, and `plugin.json` — where the version lives — is never shipped to
+Hermes. There was nothing version-like to compare, and drift was still detected.
+
+So **no `version:` field is needed in `SKILL.md`, and release-please needs no extra wiring.**
+An upstream fix reaches an installed Hermes user on the next `update`.
+
+---
+
+## Everything is verified
+
+Nothing in this plan is now open. Hermes support for commitcraft is complete and confirmed against
+a live Hermes v0.18.2 and a live Claude Code:
+
+| | Result |
+| --- | --- |
+| Installs | `SAFE` / `ALLOWED` |
+| Bundled scripts execute | yes, via `bash` (exec bit is stripped) |
+| Bundled resources arrive | `scripts/`, `workflows/` |
+| `setup`/`check` excluded | yes — and the agent refuses to improvise them |
+| `gh` found in the sandbox | yes (after the `PATH` fix) |
+| Updates reach users | yes — content-hashed, no version bump needed |
+| Claude Code | unregressed throughout |
 
 **Worth remembering:** `${CLAUDE_PLUGIN_ROOT}` inside `workflows/*.md` is **not** a shell variable
 and is **not** substituted by the harness — running it verbatim yields `/scripts/foo.sh` and exit
