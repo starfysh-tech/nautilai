@@ -274,7 +274,7 @@ An upstream fix reaches an installed Hermes user on the next `update`.
 | `review-plan` | `SAFE` / ALLOWED | SKILL.md, 3 references |
 | `pr-review-deep` | `SAFE` / ALLOWED | SKILL.md |
 | `dep-review` | `SAFE` / ALLOWED | SKILL.md, 5 references |
-| `pr-comment-review` | **`DANGEROUS` → BLOCKED**, then fixed | SKILL.md |
+| `pr-comment-review` | `SAFE` / ALLOWED *(was `DANGEROUS` — see below)* | SKILL.md |
 
 **`pr-comment-review` was hard-blocked by its own prompt-injection defense.** The scanner raised
 `CRITICAL injection` on the line telling the agent *not* to follow directives embedded in reviewer
@@ -286,9 +286,10 @@ control is unchanged — the rule was always the control; the quoted example was
 same string was removed from `cc-skill-audit`'s security-checks reference, which would have hit the
 identical block.
 
-> **Not yet re-verified:** that the reworded `pr-comment-review` now installs. The quoted phrase was
-> the only canonical attack string in any of the four skills, and the three without it all passed —
-> but that is an inference, and this work has punished inference repeatedly. Re-run the install.
+**Re-verified after the fix:** `pr-comment-review` installs `SAFE` / `ALLOWED`. The quoted phrase
+was the only trigger; the defense itself is intact.
+
+**All five skills are confirmed installable in Hermes.** Nothing in this plan is open.
 
 ## Everything is verified
 
