@@ -52,7 +52,7 @@ restructurings; it never performs them.
 
 ### Claude Code
 
-```
+```text
 /plugin install pr-review-deep@nautilai
 /pr-review-deep
 ```

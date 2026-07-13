@@ -93,7 +93,7 @@ are grounded in the diff and real codebase usage, not package reputation.
 
 ### Claude Code
 
-```
+```text
 /plugin install dep-review@nautilai
 /dep-review
 ```
