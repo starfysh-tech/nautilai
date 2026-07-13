@@ -4,6 +4,16 @@
 # Analyzes repository for release readiness and version bumping
 
 set -euo pipefail
+# Some agent runtimes (notably Hermes) run tools in a sandbox whose PATH omits
+# Homebrew, so a bare `gh` is unfindable even when it is installed. Add the
+# well-known locations rather than threading an absolute path through every call
+# site. No-op when `gh` is already on PATH, which is the normal case.
+if ! command -v gh >/dev/null 2>&1; then
+    for _d in /opt/homebrew/bin /usr/local/bin; do
+        [ -x "$_d/gh" ] && PATH="$PATH:$_d"
+    done
+    unset _d
+fi
 
 echo "RELEASE_ANALYZE_START"
 echo "=== CommitCraft Release Analysis ==="
