@@ -235,13 +235,32 @@ Hermes users configure a repo once by hand — steps in `commitcraft/README.md#h
 
 We do **not** tell users to `--force` past the gate.
 
+**Verified — the reduced bundle installs and runs**
+
+- `Verdict: SAFE` / `Decision: ALLOWED`. The only finding left is the LOW `allowed-tools` one,
+  which does not block. `commitcraft-setup.sh` and `templates/` are absent from the install.
+- A bundled script **executes**: `bash ~/.hermes/…/scripts/commitcraft-issues.sh` runs and returns
+  a `STATUS:` line. No `Permission denied` — the `bash` prefix does its job against the stripped
+  exec bit.
+- The `setup` guardrail **holds**: asked for `setup` in Hermes, the agent refused, ran nothing,
+  installed nothing, and pointed at the README. A prompt-level instruction, but it worked.
+- With `gh` absent the script degrades gracefully (`STATUS: ERROR` + a `FIX:` hint, exit 0)
+  rather than crashing.
+
+**Verified — Hermes' sandbox `PATH` omits Homebrew**
+
+`PATH=/usr/local/bin:/bin:/sbin:/usr/bin:/usr/sbin` — no `/opt/homebrew/bin`, so a bare `gh` is
+unfindable on a Homebrew Mac even when installed. Left alone, `pr`/`push` issue validation and
+release analysis would degrade **permanently** for those users. The three `gh`-using scripts now
+append the well-known locations to `PATH` when `command -v gh` comes up empty. No-op under Claude.
+
 **Not yet verified**
 
-- [ ] The reduced bundle actually installs clean. Expected `SAFE` — the only remaining finding is
-      the LOW `allowed-tools` one, which did not block `probe-core`.
-- [ ] `hermes skills update` round-tripping a content change **without** a `version:` bump. If the
-      hash turns out to be version-based rather than content-based, every release must bump
-      `version:` in SKILL.md.
+- [ ] `hermes skills update` round-tripping a content change **without** a `version:` bump. Hermes
+      stores no local digest we could find (`.usage.json` holds only timestamps), so this can only
+      be settled by landing a content-only change upstream and re-running `check`. If the
+      comparison turns out to be version-based, every release must bump `version:` in SKILL.md or
+      upstream fixes silently never reach Hermes users.
 
 **Worth remembering:** `${CLAUDE_PLUGIN_ROOT}` inside `workflows/*.md` is **not** a shell variable
 and is **not** substituted by the harness — running it verbatim yields `/scripts/foo.sh` and exit
