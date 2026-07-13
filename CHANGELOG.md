@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.18.4](https://github.com/starfysh-tech/nautilai/compare/v2.18.3...v2.18.4) (2026-07-13)
+
+
+### Bug Fixes
+
+* **pr-comment-review:** stop the injection defense tripping the scanner ([e7cf160](https://github.com/starfysh-tech/nautilai/commit/e7cf160f0f95fc48645acfaf3dd66c0a001debdb))
+
 ## [2.18.3](https://github.com/starfysh-tech/nautilai/compare/v2.18.2...v2.18.3) (2026-07-13)
 
 
