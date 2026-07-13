@@ -73,8 +73,11 @@ it. Rather than relocating Claude's copies, we **generate a mirror**:
 
 ```
 commitcraft/scripts/    →  commitcraft/skills/commitcraft/scripts/     (generated)
-commitcraft/templates/  →  commitcraft/skills/commitcraft/templates/   (generated)
 ```
+
+> **Superseded in part:** `templates/` and `commitcraft-setup.sh` are **excluded** from the mirror —
+> the security scanner blocks them (see *Validation*). `sync-resources.sh` carries an `EXCLUDE` list,
+> and `setup`/`check` are Claude-only.
 
 - `commitcraft/scripts/` and `commitcraft/templates/` remain the **source of truth**, untouched, and
   are what Claude Code continues to use.
@@ -113,15 +116,8 @@ require **no changes at all** — they already work in Hermes today.
 > `skills.template_vars: false` in `~/.hermes/config.yaml`, which disables `${HERMES_SKILL_DIR}`
 > substitution globally. With that set, bundled-script paths arrive literal and commitcraft's Hermes
 > invocations break. It is a user-side setting a skill cannot detect or override — so it is a
-> **documented limitation**, not a code fix. Note it in commitcraft's README. It has no effect on
+> **documented limitation**, not a code fix. Noted in commitcraft's README. It has no effect on
 > Claude Code.
-
-> **Documented limitation — token substitution can be switched off.** Hermes honors
-> `skills.template_vars: false` in `~/.hermes/config.yaml`, which disables `${HERMES_SKILL_DIR}`
-> substitution globally. With that set, every bundled-script path arrives literal and commitcraft's
-> script invocations break. This is a user-side setting we cannot detect or override from a skill —
-> so it is a **documented limitation**, not a code fix. State it in the Hermes section of
-> commitcraft's README.
 
 ### Step 3b — `skills.sh.json` at the repo root
 
@@ -199,7 +195,7 @@ reasoning from documentation — which proved unreliable (see "What we learned")
 
 **Verified — the adapter, in both runtimes, directly and through a workflow file**
 
-| | direct | via workflow file |
+| Runtime | direct | via workflow file |
 | --- | --- | --- |
 | Claude Code | runs the **plugin-root** copy | runs the **plugin-root** copy |
 | Hermes | runs the **mirrored** copy | runs the **mirrored** copy |
@@ -275,7 +271,7 @@ An upstream fix reaches an installed Hermes user on the next `update`.
 Nothing in this plan is now open. Hermes support for commitcraft is complete and confirmed against
 a live Hermes v0.18.2 and a live Claude Code:
 
-| | Result |
+| Check | Result |
 | --- | --- |
 | Installs | `SAFE` / `ALLOWED` |
 | Bundled scripts execute | yes, via `bash` (exec bit is stripped) |
