@@ -10,7 +10,9 @@ set -euo pipefail
 # site. No-op when `gh` is already on PATH, which is the normal case.
 if ! command -v gh >/dev/null 2>&1; then
     for _d in /opt/homebrew/bin /usr/local/bin; do
-        [ -x "$_d/gh" ] && PATH="$PATH:$_d"
+        if [ -x "$_d/gh" ]; then
+            PATH="$PATH:$_d"
+        fi
     done
     unset _d
 fi
