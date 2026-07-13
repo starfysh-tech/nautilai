@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.18.3](https://github.com/starfysh-tech/nautilai/compare/v2.18.2...v2.18.3) (2026-07-13)
+
+
+### Bug Fixes
+
+* **commitcraft:** find gh when the sandbox path omits homebrew ([26c9d4c](https://github.com/starfysh-tech/nautilai/commit/26c9d4cc9fa7c0b54ded895bea9ad1b15c09f170))
+
 ## [2.18.2](https://github.com/starfysh-tech/nautilai/compare/v2.18.1...v2.18.2) (2026-07-12)
 
 
