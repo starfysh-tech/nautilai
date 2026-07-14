@@ -163,10 +163,7 @@ def is_test_data(line: str, value: str, file_path: str = "") -> bool:
 
 def should_skip_file(file_path: str) -> bool:
     """Check if file should be skipped."""
-    for pattern in SKIP_PATTERNS:
-        if re.search(pattern, file_path):
-            return True
-    return False
+    return any(re.search(pattern, file_path) for pattern in SKIP_PATTERNS)
 
 
 def should_scan_file(file_path: str) -> bool:
