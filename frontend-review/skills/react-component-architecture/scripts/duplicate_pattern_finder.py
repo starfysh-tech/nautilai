@@ -385,6 +385,6 @@ class DuplicatePatternFinder:
         return {
             'total_patterns': len(self.patterns),
             'total_duplications': sum(p.occurrences for p in self.patterns),
-            'pattern_types': list(set(p.pattern_type for p in self.patterns)),
+            'pattern_types': list({p.pattern_type for p in self.patterns}),
             'most_duplicated': max(self.patterns, key=lambda p: p.occurrences).pattern_name if self.patterns else None
         }
