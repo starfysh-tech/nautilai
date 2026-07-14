@@ -114,7 +114,8 @@ class IssueAnalyzer:
 
         return issues
 
-    def _analyze_orphaned(self, issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _analyze_orphaned(issues: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Analyze orphaned sub-issues."""
         for issue in issues:
             parent_number = issue.get('parent_issue')
@@ -123,7 +124,8 @@ class IssueAnalyzer:
 
         return issues
 
-    def _get_all_open_issues(self, findings: Dict[str, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _get_all_open_issues(findings: Dict[str, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
         """Extract all unique open issues from findings."""
         all_issues = []
         seen_numbers = set()
@@ -213,7 +215,8 @@ class IssueAnalyzer:
 
         return None
 
-    def calculate_age_days(self, created_at: str) -> int:
+    @staticmethod
+    def calculate_age_days(created_at: str) -> int:
         """
         Calculate issue age in days.
 

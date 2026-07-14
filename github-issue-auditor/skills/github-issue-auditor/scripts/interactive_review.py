@@ -13,7 +13,8 @@ class InteractiveReviewer:
         """Initialize interactive reviewer."""
         self.approved_actions = []
 
-    def present_summary(self, findings: Dict[str, List[Dict[str, Any]]]) -> None:
+    @staticmethod
+    def present_summary(findings: Dict[str, List[Dict[str, Any]]]) -> None:
         """
         Present summary table of findings.
 
@@ -137,7 +138,8 @@ class InteractiveReviewer:
 
         return approved
 
-    def _review_issue(self, issue: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    @staticmethod
+    def _review_issue(issue: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Review a single issue and get user approval.
 
@@ -186,7 +188,8 @@ class InteractiveReviewer:
             print("✗ Not approved")
             return None
 
-    def _review_potential_duplicate(self, duplicate_pair: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    @staticmethod
+    def _review_potential_duplicate(duplicate_pair: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """
         Review a potential duplicate pair.
 
