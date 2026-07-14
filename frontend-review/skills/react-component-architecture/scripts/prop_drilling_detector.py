@@ -212,7 +212,7 @@ class PropDrillingDetector:
             'max_depth': max(depths),
             'average_depth': sum(depths) / len(depths),
             'most_drilled_props': [{'prop': prop, 'count': count} for prop, count in most_drilled],
-            'files_affected': len(set(v.file_path for v in self.violations))
+            'files_affected': len({v.file_path for v in self.violations})
         }
 
     def generate_report(self) -> str:
