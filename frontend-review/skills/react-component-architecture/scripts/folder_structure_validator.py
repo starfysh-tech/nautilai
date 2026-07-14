@@ -286,7 +286,7 @@ class FolderStructureValidator:
 
     def get_summary(self) -> Dict[str, Any]:
         """Get summary statistics."""
-        by_category = {}
+        by_category: Dict[str, int] = {}
         for v in self.violations:
             cat = v.category.value
             by_category[cat] = by_category.get(cat, 0) + 1
