@@ -55,6 +55,12 @@ modified = False
 try:
     with open(file_path, "r") as f:
         config: Any = json.load(f)
+except OSError as e:
+    # Missing or unreadable file: report cleanly instead of crashing.
+    print(f"❌ ERROR: could not read file: {e}")
+    print("__ERRORS__:1")
+    print("__WARNINGS__:0")
+    sys.exit(0)
 except json.JSONDecodeError as e:
     # Report malformed JSON as a clean error rather than crashing with a
     # traceback. The shell wrapper syntax-checks first, but the core must not
