@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.18.6](https://github.com/starfysh-tech/nautilai/compare/v2.18.5...v2.18.6) (2026-07-15)
+
+
+### Bug Fixes
+
+* **commitcraft:** drop bash 4 associative arrays for macos support ([2c3d3cf](https://github.com/starfysh-tech/nautilai/commit/2c3d3cf9473c6b6f3f81f155d84fc4515dad9071))
+
 ## [2.18.5](https://github.com/starfysh-tech/nautilai/compare/v2.18.4...v2.18.5) (2026-07-15)
 
 
