@@ -247,11 +247,16 @@ echo "=== controller.sh tests ==="
 run_in_isolated_repo() {
     local script="$1"
     shift
-    local repo_tmp="$(mktemp -d)"
+    local repo_tmp
+    repo_tmp="$(mktemp -d)"
     (
-        cd "$repo_tmp"
+        cd "$repo_tmp" || exit 1
         git init -q
-        eval "$script" "$@"
+        # $script is a fully-expanded shell snippet (paths already substituted
+        # by the caller); run it in a child shell instead of eval. Preserve the
+        # parent's `set -uo pipefail` so piped exit codes stay identical. No
+        # caller passes extra args, but forward "$@" as positional params.
+        bash -c "set -uo pipefail; $script" bash "$@"
     )
     local exit_code=$?
     rm -rf "$repo_tmp"
@@ -402,7 +407,7 @@ echo "=== verify.sh phase-contract tests ==="
 # and requires a deliverable that does not exist at baseline time.
 PHASE_TMP="$(mktemp -d)"
 (
-    cd "$PHASE_TMP"
+    cd "$PHASE_TMP" || exit 1
     git init -q -b main
     git commit -q --allow-empty -m init
     mkdir -p .autodev/lane1 wt
@@ -514,7 +519,7 @@ echo "=== controller.sh concurrency tests ==="
 
 CONC_TMP="$(mktemp -d)"
 (
-    cd "$CONC_TMP"
+    cd "$CONC_TMP" || exit 1
     git init -q -b main
     for lane in laneA laneB laneC; do
         bash "$SCRIPTS_DIR/controller.sh" init-lane "$lane"
@@ -540,7 +545,7 @@ assert "controller: concurrent writes leave valid JSON" "0" "$conc_parse"
 
 # ...and no update may be lost: every lane recorded all 4 failures
 conc_counts=$(
-    cd "$CONC_TMP"
+    cd "$CONC_TMP" || exit 1
     python3 -c "
 import json
 lanes = json.load(open('.autodev/state.json'))['lanes']
@@ -595,7 +600,7 @@ FAKE
 chmod +x "$NOJQ_TMP/bin/npm"
 printf '{ "name": "x", "scripts": { "test": "true" } }\n' > "$NOJQ_TMP/package.json"
 nojq_out=$(
-    cd "$NOJQ_TMP"
+    cd "$NOJQ_TMP" || exit 1
     # PATH without jq but with git/bash basics and the fake npm
     PATH="$NOJQ_TMP/bin:/usr/bin:/bin" bash "$SCRIPTS_DIR/verify.sh" . 2>&1
 )

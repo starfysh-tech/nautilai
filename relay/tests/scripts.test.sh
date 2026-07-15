@@ -48,6 +48,14 @@ assert_not_contains() {
     esac
 }
 
+# rc_of <cmd...> — run cmd, echo its 0/1 result. Used to feed assert_true a
+# test outcome without `$([ ... ]; echo $?)`, whose $? shellcheck (SC2319)
+# flags as referring to the `[` condition. `test`/`[` share exact semantics,
+# so the 0/1 value is identical.
+rc_of() {
+    if "$@"; then echo 0; else echo 1; fi
+}
+
 START_TIME=$(date +%s)
 
 # =============================================================================
@@ -310,7 +318,7 @@ assert_contains "precompact: auto trigger output has systemMessage key" "$pc_out
 assert "precompact: auto trigger never exits 2 (would block compaction)" "0" "$pc_exit1"
 pc_slug1=$(printf '%s' "/proj/precompact1" | tr '/.' '-')
 pc_marker1=$(find "$PC_HOME1/.claude/handoffs/$pc_slug1" -name 'compacted-*' 2>/dev/null)
-assert_true "precompact: auto trigger writes a compacted-* marker" "$([ -n "$pc_marker1" ]; echo $?)"
+assert_true "precompact: auto trigger writes a compacted-* marker" "$(rc_of test -n "$pc_marker1")"
 pc_marker1_content=$(cat "$pc_marker1" 2>/dev/null)
 assert "precompact: marker content is the exact transcript_path" "$PC_TRANSCRIPT" "$pc_marker1_content"
 rm -rf "$PC_HOME1"
@@ -323,7 +331,7 @@ assert "precompact: manual trigger yields {}" "{}" "$pc_out2"
 assert "precompact: manual trigger exits 0" "0" "$pc_exit2"
 pc_slug2=$(printf '%s' "/proj/precompact1" | tr '/.' '-')
 pc_marker2=$(find "$PC_HOME2/.claude/handoffs/$pc_slug2" -name 'compacted-*' 2>/dev/null)
-assert_true "precompact: manual trigger writes no marker" "$([ -z "$pc_marker2" ]; echo $?)"
+assert_true "precompact: manual trigger writes no marker" "$(rc_of test -z "$pc_marker2")"
 rm -rf "$PC_HOME2"
 
 # 3. malformed stdin -> {} exit 0 (fail-open via EXIT trap after jq errors
@@ -466,7 +474,7 @@ out1="$(run_pickup "$SP_HOME1" "{\"source\":\"resume\",\"cwd\":\"$CWD1\"}")"
 assert "pickup: source=resume is a no-op" "{}" "$out1"
 assert_true "pickup: source=resume valid JSON" "$(printf '%s' "$out1" | jq empty >/dev/null 2>&1; echo $?)"
 # marker must be untouched by a resume no-op
-assert_true "pickup: source=resume leaves pending marker in place" "$([ -f "$SP_HOME1/.claude/handoffs/$slug1/pending" ]; echo $?)"
+assert_true "pickup: source=resume leaves pending marker in place" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
 
 # 2. source=startup + fresh marker -> additionalContext contains doc content,
 #    marker renamed consumed-*
@@ -484,7 +492,7 @@ ctx2=$(printf '%s' "$out2" | jq -r '.hookSpecificOutput.additionalContext // emp
 assert_contains "pickup: additionalContext embeds doc text" "$ctx2" "Fresh handoff doc for case 2"
 consumed2=$(find "$SP_HOME2/.claude/handoffs/$slug2" -name 'consumed-*' | wc -l | tr -d ' ')
 assert "pickup: fresh marker renamed to consumed-*" "1" "$consumed2"
-assert_true "pickup: original 'pending' marker no longer exists" "$([ ! -f "$SP_HOME2/.claude/handoffs/$slug2/pending" ]; echo $?)"
+assert_true "pickup: original 'pending' marker no longer exists" "$(rc_of test ! -f "$SP_HOME2/.claude/handoffs/$slug2/pending")"
 
 # 2b. same source=startup (clear also triggers pickup) with a doc containing
 # embedded newlines/markdown — additionalContext must still be valid JSON
@@ -594,7 +602,7 @@ echo "$SP_TMP/doc8.md" > "$SP_HOME8/.claude/handoffs/$slug8/pending"
 echo "doc8" > "$SP_TMP/doc8.md"
 out8="$(run_pickup "$SP_HOME8" "{\"source\":\"compact\",\"cwd\":\"$CWD8\"}")"
 assert "pickup: unrecognized source (e.g. compact) yields {}" "{}" "$out8"
-assert_true "pickup: unrecognized source leaves marker untouched" "$([ -f "$SP_HOME8/.claude/handoffs/$slug8/pending" ]; echo $?)"
+assert_true "pickup: unrecognized source leaves marker untouched" "$(rc_of test -f "$SP_HOME8/.claude/handoffs/$slug8/pending")"
 
 # 9. missing cwd key in stdin -> {}
 SP_HOME9="$SP_TMP/home9"
@@ -622,7 +630,7 @@ old_consumed10="$SP_HOME10/.claude/handoffs/$slug10/consumed-1111"
 : > "$old_consumed10"
 backdate_days 20 "$old_consumed10"
 run_pickup "$SP_HOME10" "{\"source\":\"startup\",\"cwd\":\"$CWD10\"}" >/dev/null
-assert_true "sweep: old consumed-* marker (20d) removed" "$([ ! -f "$old_consumed10" ]; echo $?)"
+assert_true "sweep: old consumed-* marker (20d) removed" "$(rc_of test ! -f "$old_consumed10")"
 
 # 11. old timestamped doc (*.md, 20 days) is swept
 SP_HOME11="$SP_TMP/home11"
@@ -634,7 +642,7 @@ old_doc11="$SP_HOME11/.claude/handoffs/$slug11/20250101-000000.md"
 echo "old handoff doc" > "$old_doc11"
 backdate_days 20 "$old_doc11"
 run_pickup "$SP_HOME11" "{\"source\":\"startup\",\"cwd\":\"$CWD11\"}" >/dev/null
-assert_true "sweep: old timestamped doc (20d) removed" "$([ ! -f "$old_doc11" ]; echo $?)"
+assert_true "sweep: old timestamped doc (20d) removed" "$(rc_of test ! -f "$old_doc11")"
 
 # 12. fresh marker + fresh doc (untouched mtime, well under 14 days) are kept
 SP_HOME12="$SP_TMP/home12"
@@ -647,8 +655,8 @@ fresh_doc12="$SP_HOME12/.claude/handoffs/$slug12/20260101-000000.md"
 : > "$fresh_consumed12"
 echo "fresh handoff doc" > "$fresh_doc12"
 run_pickup "$SP_HOME12" "{\"source\":\"startup\",\"cwd\":\"$CWD12\"}" >/dev/null
-assert_true "sweep: fresh consumed-* marker kept" "$([ -f "$fresh_consumed12" ]; echo $?)"
-assert_true "sweep: fresh doc kept" "$([ -f "$fresh_doc12" ]; echo $?)"
+assert_true "sweep: fresh consumed-* marker kept" "$(rc_of test -f "$fresh_consumed12")"
+assert_true "sweep: fresh doc kept" "$(rc_of test -f "$fresh_doc12")"
 
 # 13. `pending` is never swept, even when old — and the sweep runs in the same
 # pass that TTL logic already handles it. Note: a raw old `pending` file can't
@@ -676,11 +684,11 @@ old_consumed13="$dir13/consumed-3333"
 backdate_days 20 "$old_consumed13"
 out13="$(run_pickup "$SP_HOME13" "{\"source\":\"startup\",\"cwd\":\"$CWD13\"}")"
 assert "sweep: old pending (20d) is stale -> {} (TTL path, not sweep)" "{}" "$out13"
-assert_true "sweep: no file literally named 'pending' remains" "$([ ! -f "$dir13/pending" ]; echo $?)"
+assert_true "sweep: no file literally named 'pending' remains" "$(rc_of test ! -f "$dir13/pending")"
 expired13=$(find "$dir13" -name 'expired-*' | wc -l | tr -d ' ')
 assert "sweep: old pending renamed to expired-* (TTL logic, not deleted)" "1" "$expired13"
-assert_true "sweep: brand-new expired-* marker not swept in same pass" "$([ -n "$(find "$dir13" -name 'expired-*')" ]; echo $?)"
-assert_true "sweep: unrelated old consumed-* still swept in same pass" "$([ ! -f "$old_consumed13" ]; echo $?)"
+assert_true "sweep: brand-new expired-* marker not swept in same pass" "$(rc_of test -n "$(find "$dir13" -name 'expired-*')")"
+assert_true "sweep: unrelated old consumed-* still swept in same pass" "$(rc_of test ! -f "$old_consumed13")"
 
 # 14. RELAY_RETENTION_DAYS=0 disables the sweep entirely — old files of both
 # kinds survive.
@@ -696,8 +704,8 @@ echo "old doc" > "$old_doc14"
 backdate_days 20 "$old_consumed14"
 backdate_days 20 "$old_doc14"
 HOME="$SP_HOME14" RELAY_RETENTION_DAYS=0 bash "$PICKUP" <<< "{\"source\":\"startup\",\"cwd\":\"$CWD14\"}" >/dev/null
-assert_true "sweep: RELAY_RETENTION_DAYS=0 keeps old consumed-* marker" "$([ -f "$old_consumed14" ]; echo $?)"
-assert_true "sweep: RELAY_RETENTION_DAYS=0 keeps old doc" "$([ -f "$old_doc14" ]; echo $?)"
+assert_true "sweep: RELAY_RETENTION_DAYS=0 keeps old consumed-* marker" "$(rc_of test -f "$old_consumed14")"
+assert_true "sweep: RELAY_RETENTION_DAYS=0 keeps old doc" "$(rc_of test -f "$old_doc14")"
 
 # 15. sweep failure (read-only handoff dir, so rm can't unlink) never changes
 # pickup's own output or exit code — the fail-open contract covers the sweep

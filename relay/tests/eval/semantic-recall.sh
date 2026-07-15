@@ -90,7 +90,7 @@ echo "## Per-fact scoring"
 echo
 printf '%-5s %-20s %-8s %-8s\n' "id" "class" "baseline" "narrative"
 
-while IFS=$'\t' read -r id class kw1 kw2 summary; do
+while IFS=$'\t' read -r id class kw1 kw2 _; do
   [ -z "$id" ] && continue
 
   base_hit=0
