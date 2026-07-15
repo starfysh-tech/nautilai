@@ -1,0 +1,20 @@
+{
+  "hooks": {
+    "OnEveryFullMoon": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "echo howl" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "[bad",
+        "hooks": [
+          { "type": "command" }
+        ]
+      }
+    ]
+  }
+}

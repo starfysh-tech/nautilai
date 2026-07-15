@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "http", "url": "https://example.test/hook" }
+        ]
+      }
+    ]
+  }
+}

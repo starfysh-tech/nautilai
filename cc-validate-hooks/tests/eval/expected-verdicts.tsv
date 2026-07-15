@@ -1,0 +1,48 @@
+# Gold manifest for the cc-validate-hooks core validator eval.
+# Columns (TAB-separated): fixture  expected_errors  expected_warnings  signature  description
+#   expected_errors = "CRASH" means the core exits nonzero (json.load raises); expected_warnings is then "-".
+#   signature = a distinctive fixed substring that MUST appear in the core's stdout ("-" = no signature check, e.g. clean configs).
+# All labels below were DERIVED by running scripts/validate-hooks-core.py <fixture> False and recording actual output
+# (see LEDGER.md for the raw derivation run). Do not hand-edit to a value the core does not actually produce.
+#
+# --- valid / clean configs (errors=0 warnings=0) ---
+valid-clean.json	0	0	-	valid PreToolUse matcher + command hook
+valid-wildcard-matcher.json	0	0	-	matcher "*" skips regex compile, still valid
+valid-matcherless-event.json	0	0	-	UserPromptSubmit with no matcher is valid (matcher-less event)
+valid-http-hook.json	0	0	-	http hook with required url field is valid
+valid-timeout.json	0	0	-	positive integer timeout is accepted
+valid-empty-hooks.json	0	0	INFO: no	empty hooks object -> INFO, no error
+valid-no-hooks-key.json	0	0	INFO: no	settings with no hooks key -> INFO, no error
+# --- root / hooks container type errors ---
+root-not-object.json	1	0	root must be a JSON object	JSON array at root is rejected
+hooks-not-object.json	1	0	'hooks' must be a JSON object	hooks value is an array, not an object
+# --- invalid JSON: core does NOT guard this; json.load raises -> nonzero exit (shell wrapper catches syntax upstream) ---
+invalid-json.json	1	0	invalid JSON syntax	malformed JSON reported as a clean error (core now guards json.load)
+# --- unrecognized event name -> WARNING, block skipped ---
+unknown-event.json	0	1	unrecognized hook event 'OnEveryFullMoon'	unknown event warned, not errored
+# --- matcher-block / matcher field problems ---
+matchers-not-array.json	1	0	hooks must be an array	event value is an object, not an array of blocks
+matcher-block-not-object.json	1	0	'PreToolUse[0]' must be an object	a matcher block that is a string
+matcher-bad-regex.json	1	0	invalid regex in 'PreToolUse[0].matcher'	unterminated character set in matcher
+matcher-not-string.json	1	0	.matcher' must be a string	matcher is a number, not a string
+matcher-on-matcherless.json	0	1	doesn't use matchers	matcher supplied on a matcher-less event -> WARNING
+matcher-missing.json	0	1	missing 'matcher' field	matcher-based event with no matcher -> WARNING
+# --- block hooks-array problems ---
+block-missing-hooks.json	1	0	missing 'hooks' array	block has matcher but no hooks array
+block-hooks-not-array.json	1	0	.hooks' must be an array	block hooks is an object, not an array
+hook-not-object.json	1	0	hooks[0]' must be an object	a hook entry that is a string
+# --- hook type / required-field problems ---
+hook-missing-type.json	1	0	missing 'type' field	hook object with no type
+hook-type-not-string.json	1	0	.type' must be a non-empty string	type is a number
+hook-type-empty.json	1	0	.type' must be a non-empty string	type is an empty string
+hook-unknown-type.json	0	1	is 'webhook', not one of	unrecognized hook type -> WARNING, field checks skipped
+hook-missing-command.json	1	0	(type 'command') missing 'command' field	command hook missing its command field
+hook-command-not-string.json	1	0	.command' must be a non-empty string	command field is a number
+hook-command-empty.json	1	0	.command' must be a non-empty string	command field is an empty string
+hook-mcp-missing-fields.json	2	0	(type 'mcp_tool') missing 'server' field	mcp_tool needs both server and tool -> two errors
+# --- timeout validation ---
+hook-timeout-negative.json	1	0	.timeout' must be a positive number	negative timeout rejected
+hook-timeout-bool.json	1	0	.timeout' must be a positive number	boolean timeout rejected (bool is not a number here)
+hook-timeout-string.json	1	0	.timeout' must be a positive number	string timeout rejected
+# --- multiple issues in one file: verifies counting across events/blocks ---
+combined-errors.json	2	1	invalid regex in 'PreToolUse[0].matcher'	unknown event (warn) + bad regex (err) + missing command (err)
