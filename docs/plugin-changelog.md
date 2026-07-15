@@ -14,6 +14,20 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-14
+
+- **phi-scan, cc-validate-hooks** — both now ship an offline **eval** that pins the
+  deterministic core to a measured signal. This came out of reviewing
+  microsoft/SkillOpt for adoption: the conclusion was that the scarce asset is the
+  *benchmark*, not an optimizer — a hand-authored skill has no regression net, so a
+  refactor can quietly break it. `phi-scan` grades its scanner's recall/precision;
+  `cc-validate-hooks` grades one fixture per validator branch. Authoring the second
+  one earned its keep immediately — it surfaced that the validator core crashes on
+  invalid JSON, guarded only by its shell wrapper. The pattern is now convention
+  [#13](conventions/README.md#13-skill-evals--gradeable-regression-nets)
+  ([full spec](conventions/skill-evals.md)); the rest of the fleet is triaged in
+  [`skill-eval-backlog.md`](skill-eval-backlog.md).
+
 ## 2026-07-13
 
 - **commitcraft** — `setup` and `check` are now **Claude Code only**; Hermes ships `commit`,
