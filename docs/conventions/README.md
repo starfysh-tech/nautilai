@@ -146,6 +146,27 @@ never necessary, since every constraint has a Hermes-only solution.
 
 → Full spec: [`shoals.md`](./shoals.md)
 
+## 13. Skill evals — gradeable regression nets
+
+A skill's behavior is pinned to a **measured** signal so a later edit can't
+silently break it: fixtures + a gold manifest *derived by running the real code*
++ a bash grader that exits nonzero on divergence + a `LEDGER.md`. A deterministic
+core gets an **offline** eval that runs in CI; model-driven prose needs a **live**
+eval (real calls, gated on a threshold across runs).
+
+- *Exemplified by:* `relay` (`tests/eval/` — offline semantic-recall + a live
+  eval), `phi-scan` (recall/precision over `phi_check.py`), `cc-validate-hooks`
+  (verdict-match over the validator core).
+- *Rule:* graders emit `(hard, soft)` — an all-must-pass gate and a pass fraction;
+  gold comes from observed behavior, never guesses (document a real defect as a
+  known-limitation rather than encoding it as correct); prove the grader can fail;
+  fixtures use synthetic data only; wire the grader into `validate.yml` or it
+  protects nothing. An offline eval is a regression detector, not a completeness
+  proof.
+
+→ Full spec: [`skill-evals.md`](./skill-evals.md); standing coverage list:
+[`../skill-eval-backlog.md`](../skill-eval-backlog.md)
+
 ---
 
 ## Auditing against these
