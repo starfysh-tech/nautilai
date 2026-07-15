@@ -1,0 +1,9 @@
+# SYNTHETIC TEST DATA — PHI-adjacent noise to characterize the scanner's false positives.
+# Nothing here is PHI; the scanner is expected to mis-fire on some of it (see LEDGER.md).
+App version deployed: 1.2.3.4
+Minimum supported build: 10.0.19041
+Invoice number: INV-84213
+Order quantity: 50000 units shipped
+Config flag threshold set to 12345
+Semantic version tag v2.18.4
+Rate limit target: handle 50000 requests per second

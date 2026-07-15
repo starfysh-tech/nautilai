@@ -1,0 +1,8 @@
+# SYNTHETIC TEST DATA — names and MRNs the DETERMINISTIC layer is EXPECTED TO MISS.
+# SKILL.md is explicit: free-text names and org-specific MRNs are not regex-detectable;
+# AI triage catches them. These rows must NOT count against deterministic recall.
+Patient: Jane Q. Doe
+Attending physician: Dr. John Smith
+Medical record number: MRN-0098472
+Alternate MRN format: A12B34C56
+Rare condition noted in chart: synthetic-placeholder-syndrome

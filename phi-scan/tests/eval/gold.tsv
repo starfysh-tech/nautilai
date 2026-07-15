@@ -1,0 +1,27 @@
+# Gold manifest for the phi-scan deterministic-scanner eval.
+# Columns (tab-separated): fixture  role  class  expected_count  note
+#
+# Derived by RUNNING phi-scan/scripts/phi_check.py over each fixture from a
+# neutral temp dir with --include-test-data (see recall-precision.sh and
+# LEDGER.md for why). Counts are OBSERVED behavior, not guesses.
+#
+# role:  positive      = planted detectable PHI; counts toward the RECALL hard gate.
+#        negative      = PHI-adjacent noise; any finding is a FALSE POSITIVE (informational only).
+#        expected-miss = names/MRNs the deterministic layer cannot detect (SKILL.md); NOT gated.
+# class: exact identifier label the scanner prints. "zip_5(restricted)" is the
+#        HIPAA restricted-prefix variant and is tracked separately from "zip_5".
+# class "_none_" with count 0 declares a fixture that must produce zero findings.
+#
+pos_direct_identifiers.txt	positive	ssn	2	planted synthetic SSNs (non-issued area groups)
+pos_direct_identifiers.txt	positive	email	2	@example.com/.org; scanner marks [TEST] but still DETECTS (recall unaffected)
+pos_direct_identifiers.txt	positive	phone	3	555-01xx fictional block, three formats
+pos_direct_identifiers.txt	positive	ip_v4	3	RFC-5737 documentation IP ranges
+pos_dates_zips.txt	positive	date_us	2	MM/DD/YYYY and MM-DD-YYYY
+pos_dates_zips.txt	positive	date_iso	2	YYYY-MM-DD
+pos_dates_zips.txt	positive	zip_5	1	ordinary ZIP (90210)
+pos_dates_zips.txt	positive	zip_5(restricted)	2	HIPAA-restricted prefixes 036, 203
+pos_phone_formats.txt	positive	phone	5	varied formats incl parenthesized, +1, dotted, bare 10-digit
+neg_clean_prose.txt	negative	_none_	0	clean prose; zero findings expected
+neg_phi_adjacent.txt	negative	ip_v4	1	FALSE POSITIVE: version string 1.2.3.4 parsed as IPv4
+neg_phi_adjacent.txt	negative	zip_5	5	FALSE POSITIVE: bare 5-digit numbers (build/invoice/qty/threshold x2) parsed as ZIP
+expected_miss_names_mrn.txt	expected-miss	_none_	0	names & MRNs not regex-detectable; deterministic layer correctly yields nothing (triage-only)
