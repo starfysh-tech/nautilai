@@ -65,6 +65,12 @@ jobs:
       - name: commitcraft pr-template tests
         run: bash commitcraft/tests/pr-template.test.sh
 
+      - name: phi-scan eval
+        run: bash phi-scan/tests/eval/recall-precision.sh
+
+      - name: cc-validate-hooks eval
+        run: bash cc-validate-hooks/tests/eval/verdict-match.sh
+
       # Validate the repo's community-health config against GitHub's own schemas
       # (vendored by check-jsonschema). Pinned so an upstream release can't red-light
       # main on an unrelated commit. python3 is already a CI dep (the sync check is a
