@@ -94,3 +94,9 @@ jobs:
           set -euo pipefail
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
           ./actionlint -color
+
+      # Shellcheck every bundled/test shell script (warning+). ubuntu-latest
+      # ships shellcheck. These scripts otherwise had no lint gate, so this
+      # catches the class before it reaches external review.
+      - name: Shellcheck shell scripts
+        run: git ls-files '*.sh' | xargs -r shellcheck -x -S warning
