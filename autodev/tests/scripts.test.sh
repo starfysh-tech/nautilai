@@ -253,10 +253,12 @@ run_in_isolated_repo() {
         cd "$repo_tmp" || exit 1
         git init -q
         # $script is a fully-expanded shell snippet (paths already substituted
-        # by the caller); run it in a child shell instead of eval. Preserve the
-        # parent's `set -uo pipefail` so piped exit codes stay identical. No
-        # caller passes extra args, but forward "$@" as positional params.
-        bash -c "set -uo pipefail; $script" bash "$@"
+        # by the caller). Pass it as a positional arg to the child shell rather
+        # than interpolating it into the -c string, so literal quotes/backslashes
+        # in the snippet can't perturb parent-shell parsing. Preserve the
+        # parent's `set -uo pipefail` so piped exit codes stay identical, and
+        # forward "$@" as the snippet's positional params.
+        bash -c 'set -uo pipefail; script="$1"; shift; eval "$script"' bash "$script" "$@"
     )
     local exit_code=$?
     rm -rf "$repo_tmp"
