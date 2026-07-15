@@ -38,8 +38,8 @@ echo "## cc-validate-hooks core verdict match"
 echo
 
 # Read the TSV, skipping comment (#) and blank lines.
-while IFS=$'\t' read -r fixture exp_err exp_warn signature description || [[ -n "$fixture" ]]; do
-  [[ -z "$fixture" || "$fixture" == \#* ]] && continue
+while IFS=$'\t' read -r fixture exp_err exp_warn signature _ || [[ -n "$fixture" ]]; do
+  [[ -z "$fixture" || "$fixture" = \#* ]] && continue
 
   path="${fixtures_dir}/${fixture}"
   total=$((total + 1))
@@ -52,7 +52,7 @@ while IFS=$'\t' read -r fixture exp_err exp_warn signature description || [[ -n 
   out="$("$PYTHON" "$core" "$path" False 2>/dev/null)"
   ec=$?
 
-  if [[ "$exp_err" == "CRASH" ]]; then
+  if [[ "$exp_err" = "CRASH" ]]; then
     if [[ "$ec" -ne 0 ]]; then
       printf 'PASS  %-32s -- crashed as expected (exit %s)\n' "$fixture" "$ec"
       passed=$((passed + 1))
@@ -71,8 +71,8 @@ while IFS=$'\t' read -r fixture exp_err exp_warn signature description || [[ -n 
   act_warn="$(printf '%s\n' "$out" | grep '^__WARNINGS__:' | cut -d: -f2)"
 
   reason=""
-  [[ "$act_err"  == "$exp_err"  ]] || reason+="errors ${act_err}!=${exp_err}; "
-  [[ "$act_warn" == "$exp_warn" ]] || reason+="warnings ${act_warn}!=${exp_warn}; "
+  [[ "$act_err"  = "$exp_err"  ]] || reason+="errors ${act_err}!=${exp_err}; "
+  [[ "$act_warn" = "$exp_warn" ]] || reason+="warnings ${act_warn}!=${exp_warn}; "
   if [[ "$signature" != "-" ]] && ! printf '%s' "$out" | grep -qF -- "$signature"; then
     reason+="signature not found: '${signature}'; "
   fi

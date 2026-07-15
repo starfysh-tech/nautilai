@@ -68,7 +68,7 @@ declare -A role_of
 declare -A exp
 fixtures_order=()
 
-while IFS=$'\t' read -r fixture role class count note; do
+while IFS=$'\t' read -r fixture role class count _; do
   [ -z "${fixture:-}" ] && continue
   case "$fixture" in \#*) continue;; esac
   if [ -z "${role_of[$fixture]:-}" ]; then
@@ -127,7 +127,7 @@ for fixture in "${fixtures_order[@]}"; do
   for key in "${!exp[@]}"; do
     case "$key" in
       "${fixture}|"*)
-        c="${key#${fixture}|}"
+        c="${key#"${fixture}"|}"
         if [ -z "${seen[$c]:-}" ]; then seen[$c]=1; classes+=("$c"); fi
         ;;
     esac
