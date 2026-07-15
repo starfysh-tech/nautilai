@@ -58,7 +58,7 @@ type/field, 3 timeout, 1 combined-count.
 
 Derivation run (`python3 scripts/validate-hooks-core.py <fixture> False`):
 
-```
+```text
 block-hooks-not-array.json       => errors=1 warnings=0
 block-missing-hooks.json         => errors=1 warnings=0
 combined-errors.json             => errors=2 warnings=1
