@@ -52,8 +52,17 @@ errors = 0
 warnings = 0
 modified = False
 
-with open(file_path, "r") as f:
-    config: Any = json.load(f)
+try:
+    with open(file_path, "r") as f:
+        config: Any = json.load(f)
+except json.JSONDecodeError as e:
+    # Report malformed JSON as a clean error rather than crashing with a
+    # traceback. The shell wrapper syntax-checks first, but the core must not
+    # depend on that — a direct caller (e.g. the eval) invokes it standalone.
+    print(f"❌ ERROR: invalid JSON syntax: {e}")
+    print("__ERRORS__:1")
+    print("__WARNINGS__:0")
+    sys.exit(0)
 
 if not isinstance(config, dict):
     print("❌ ERROR: settings.json root must be a JSON object")
