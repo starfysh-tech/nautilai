@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.18.5](https://github.com/starfysh-tech/nautilai/compare/v2.18.4...v2.18.5) (2026-07-15)
+
+
+### Bug Fixes
+
+* **cc-validate-hooks:** report invalid json as an error, not a crash ([5237b75](https://github.com/starfysh-tech/nautilai/commit/5237b758842b0c6abece32c6bd0361c3b870e505))
+* **cc-validate-hooks:** report unreadable files as an error, not a crash ([19452e3](https://github.com/starfysh-tech/nautilai/commit/19452e3de4ae3d1d0039fb283c3cc606b7f22e5f))
+
 ## [2.18.4](https://github.com/starfysh-tech/nautilai/compare/v2.18.3...v2.18.4) (2026-07-13)
 
 
