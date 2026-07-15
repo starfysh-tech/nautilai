@@ -1,0 +1,13 @@
+# SYNTHETIC TEST DATA — planted, non-real PHI for the phi-scan eval. No real patient data.
+# SSNs use non-issued/placeholder groups; emails use RFC-2606 reserved domains;
+# phones use the 555-01xx fictional block; IPs use RFC-5737 documentation ranges.
+Member SSN on file: 457-55-1234
+Guarantor SSN: 321-54-9876
+Contact email: patient.record@example.com
+Billing email: jdoe.billing@example.org
+Primary phone: (212) 555-0142
+Alt phone: +1-202-555-0188
+Fax line: 202.555.0175
+Access logged from host: 192.0.2.44
+Backup host: 198.51.100.7
+Edge cache: 203.0.113.9

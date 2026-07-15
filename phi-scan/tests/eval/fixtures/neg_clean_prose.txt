@@ -1,0 +1,6 @@
+# SYNTHETIC TEST DATA — clean fixture. Contains NO PHI patterns; expected to produce zero findings.
+The clinical team reviewed the onboarding checklist this morning.
+All patient handoffs now go through the secure portal rather than email attachments.
+Compliance training is scheduled for next quarter.
+No identifiers are stored in application logs per policy.
+The word example appears here but is not an address.

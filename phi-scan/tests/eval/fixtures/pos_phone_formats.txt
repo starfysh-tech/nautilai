@@ -1,0 +1,7 @@
+# SYNTHETIC TEST DATA — planted US phone numbers in varied formats for the phi-scan eval.
+# All use the 555-01xx fictional line block; none are real numbers.
+Parenthesized: (415) 555-0177
+Dashed: 415-555-0133
+Dotted: 415.555.0121
+Plus-one prefixed: +1 415 555-0109
+Bare ten digits: 4155550164

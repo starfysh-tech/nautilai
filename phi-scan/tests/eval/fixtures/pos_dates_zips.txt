@@ -1,0 +1,9 @@
+# SYNTHETIC TEST DATA — planted dates and ZIP codes for the phi-scan eval. No real patient data.
+# ZIPs 036xx and 203xx use HIPAA-restricted prefixes (small-population areas); the office ZIP is ordinary.
+Date of birth: 01/02/2003
+Admission date: 11-30-1999
+Discharge (ISO): 2023-07-14
+Follow-up (ISO): 2020-12-01
+Home ZIP: 03601
+Mailing ZIP: 20301
+Office ZIP: 90210
