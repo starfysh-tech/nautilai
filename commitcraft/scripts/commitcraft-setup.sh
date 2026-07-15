@@ -18,21 +18,11 @@ BLUE='\033[0;34m'
 DIM='\033[2m'
 NC='\033[0m' # No Color
 
-# Global state
-STATE_commitlint=""
-STATE_gitleaks=""
-STATE_precommit_hooks=""
-STATE_signed_commits=""
-STATE_release_please=""
-STATE_commitlint_ci=""
-STATE_branch_protection=""
-DETAIL_commitlint=""
-DETAIL_gitleaks=""
-DETAIL_precommit_hooks=""
-DETAIL_signed_commits=""
-DETAIL_release_please=""
-DETAIL_commitlint_ci=""
-DETAIL_branch_protection=""
+# Global state — keyed by short component name (commitlint, gitleaks,
+# precommit_hooks, signed_commits, release_please, commitlint_ci,
+# branch_protection). Associative arrays keep dynamic-key access clean.
+declare -A STATE=()
+declare -A DETAIL=()
 declare -a ECOSYSTEMS
 CHECK_MODE=false
 SECTION_NAME=""
@@ -289,7 +279,7 @@ check_commitlint() {
 
     # Build detail string
     if [[ "$has_config" == "true" ]] && [[ "$has_tool" == "true" ]]; then
-        STATE_commitlint="CONFIGURED"
+        STATE[commitlint]="CONFIGURED"
         detail_parts+=("config: $config_file")
         if [[ "$extends_conventional" == "true" ]]; then
             detail_parts+=("(extends config-conventional)")
@@ -297,9 +287,9 @@ check_commitlint() {
         if [[ -n "$cli_version" ]]; then
             detail_parts+=("@commitlint/cli $cli_version")
         fi
-        DETAIL_commitlint="${detail_parts[*]}"
+        DETAIL[commitlint]="${detail_parts[*]}"
     elif [[ "$has_config" == "true" ]] || [[ "$has_tool" == "true" ]]; then
-        STATE_commitlint="PARTIAL"
+        STATE[commitlint]="PARTIAL"
         if [[ "$has_config" == "true" ]]; then
             detail_parts+=("config: $config_file found")
         fi
@@ -310,13 +300,13 @@ check_commitlint() {
                 detail_parts+=("commitlint CLI not found locally (CI enforcement still works)")
             fi
         fi
-        DETAIL_commitlint="${detail_parts[*]}"
+        DETAIL[commitlint]="${detail_parts[*]}"
     else
-        STATE_commitlint="MISSING"
+        STATE[commitlint]="MISSING"
         if [[ " ${ECOSYSTEMS[*]} " =~ " node " ]]; then
-            DETAIL_commitlint="no config file found, @commitlint/cli not in package.json"
+            DETAIL[commitlint]="no config file found, @commitlint/cli not in package.json"
         else
-            DETAIL_commitlint="no config file found, commitlint CLI not installed"
+            DETAIL[commitlint]="no config file found, commitlint CLI not installed"
         fi
     fi
 }
@@ -354,7 +344,7 @@ check_gitleaks() {
 
     # Build detail string
     if [[ "$has_binary" == "true" ]] && [[ "$has_config" == "true" ]]; then
-        STATE_gitleaks="CONFIGURED"
+        STATE[gitleaks]="CONFIGURED"
         if [[ -n "$gitleaks_version" ]]; then
             detail_parts+=("gitleaks $gitleaks_version")
         fi
@@ -367,19 +357,19 @@ check_gitleaks() {
         else
             detail_parts+=("no CI workflow")
         fi
-        DETAIL_gitleaks="${detail_parts[*]}"
+        DETAIL[gitleaks]="${detail_parts[*]}"
     elif [[ "$has_binary" == "true" ]] || [[ "$has_config" == "true" ]]; then
-        STATE_gitleaks="PARTIAL"
+        STATE[gitleaks]="PARTIAL"
         if [[ "$has_binary" == "true" ]]; then
             detail_parts+=("gitleaks binary found")
         fi
         if [[ "$has_config" == "false" ]]; then
             detail_parts+=("but no .gitleaks.toml config")
         fi
-        DETAIL_gitleaks="${detail_parts[*]}"
+        DETAIL[gitleaks]="${detail_parts[*]}"
     else
-        STATE_gitleaks="MISSING"
-        DETAIL_gitleaks="gitleaks binary not found, no .gitleaks.toml config"
+        STATE[gitleaks]="MISSING"
+        DETAIL[gitleaks]="gitleaks binary not found, no .gitleaks.toml config"
     fi
 }
 
@@ -431,17 +421,17 @@ check_precommit_hooks() {
         detail_parts+=("pre-commit framework")
     fi
 
-    STATE_precommit_hooks="$status"
+    STATE[precommit_hooks]="$status"
 
     # Build detail string
     if [[ "$status" == "CONFIGURED" ]]; then
-        DETAIL_precommit_hooks="${detail_parts[*]}"
+        DETAIL[precommit_hooks]="${detail_parts[*]}"
         if [[ ${#warnings[@]} -gt 0 ]]; then
-            DETAIL_precommit_hooks="$DETAIL_precommit_hooks
+            DETAIL[precommit_hooks]="${DETAIL[precommit_hooks]}
     WARNING: ${warnings[*]}"
         fi
     else
-        DETAIL_precommit_hooks="no pre-commit hooks detected"
+        DETAIL[precommit_hooks]="no pre-commit hooks detected"
     fi
 }
 
@@ -449,9 +439,10 @@ check_signed_commits() {
     local status="MISSING"
     local detail_parts=()
 
-    local gpgsign=$(git config --get commit.gpgsign 2>/dev/null || echo "")
-    local gpg_format=$(git config --get gpg.format 2>/dev/null || echo "")
-    local signing_key=$(git config --get user.signingkey 2>/dev/null || echo "")
+    local gpgsign gpg_format signing_key
+    gpgsign=$(git config --get commit.gpgsign 2>/dev/null || echo "")
+    gpg_format=$(git config --get gpg.format 2>/dev/null || echo "")
+    signing_key=$(git config --get user.signingkey 2>/dev/null || echo "")
 
     if [[ "$gpgsign" == "true" ]]; then
         # Check if signing key is configured
@@ -462,17 +453,17 @@ check_signed_commits() {
                 detail_parts+=("format=$gpg_format")
             fi
             detail_parts+=("key configured")
-            DETAIL_signed_commits="${detail_parts[*]}"
+            DETAIL[signed_commits]="${detail_parts[*]}"
         else
             status="PARTIAL"
-            DETAIL_signed_commits="gpgsign=true but no signing key configured"
+            DETAIL[signed_commits]="gpgsign=true but no signing key configured"
         fi
     else
         status="MISSING"
-        DETAIL_signed_commits="gpgsign not enabled"
+        DETAIL[signed_commits]="gpgsign not enabled"
     fi
 
-    STATE_signed_commits="$status"
+    STATE[signed_commits]="$status"
 }
 
 check_release_please() {
@@ -510,15 +501,15 @@ check_release_please() {
     # Determine status
     if [[ "$has_workflow" == "true" ]] && [[ "$has_config" == "true" ]] && [[ "$has_manifest" == "true" ]]; then
         status="CONFIGURED"
-        DETAIL_release_please="type: ${release_type:-unknown}, version: ${version:-unknown}, workflow + config + manifest"
+        DETAIL[release_please]="type: ${release_type:-unknown}, version: ${version:-unknown}, workflow + config + manifest"
     elif [[ "$has_workflow" == "true" ]] || [[ "$has_config" == "true" ]] || [[ "$has_manifest" == "true" ]]; then
         status="PARTIAL"
-        DETAIL_release_please="missing: ${missing_files[*]}"
+        DETAIL[release_please]="missing: ${missing_files[*]}"
     else
-        DETAIL_release_please=""
+        DETAIL[release_please]=""
     fi
 
-    STATE_release_please="$status"
+    STATE[release_please]="$status"
 }
 
 check_commitlint_ci() {
@@ -535,27 +526,28 @@ check_commitlint_ci() {
         else
             approach="unknown"
         fi
-        DETAIL_commitlint_ci="workflow: commitlint.yml ($approach)"
+        DETAIL[commitlint_ci]="workflow: commitlint.yml ($approach)"
     else
-        DETAIL_commitlint_ci=""
+        DETAIL[commitlint_ci]=""
     fi
 
-    STATE_commitlint_ci="$status"
+    STATE[commitlint_ci]="$status"
 }
 
 check_branch_protection() {
     local status="UNKNOWN"
 
     if ! command -v gh &>/dev/null; then
-        STATE_branch_protection="UNKNOWN"
-        DETAIL_branch_protection="gh CLI not available"
+        STATE[branch_protection]="UNKNOWN"
+        DETAIL[branch_protection]="gh CLI not available"
         return
     fi
 
-    local remote_url=$(git config --get remote.origin.url 2>/dev/null || echo "")
+    local remote_url
+    remote_url=$(git config --get remote.origin.url 2>/dev/null || echo "")
     if [[ -z "$remote_url" ]]; then
-        STATE_branch_protection="UNKNOWN"
-        DETAIL_branch_protection="no GitHub remote found"
+        STATE[branch_protection]="UNKNOWN"
+        DETAIL[branch_protection]="no GitHub remote found"
         return
     fi
 
@@ -614,16 +606,16 @@ check_branch_protection() {
         fi
 
         if [[ ${#detail_parts[@]} -gt 0 ]]; then
-            DETAIL_branch_protection="${detail_parts[*]}"
+            DETAIL[branch_protection]="${detail_parts[*]}"
         else
-            DETAIL_branch_protection="configured (details unavailable)"
+            DETAIL[branch_protection]="configured (details unavailable)"
         fi
     else
         status="MISSING"
-        DETAIL_branch_protection="not configured -> https://github.com/$REPO_PATH/settings/branches"
+        DETAIL[branch_protection]="not configured -> https://github.com/$REPO_PATH/settings/branches"
     fi
 
-    STATE_branch_protection="$status"
+    STATE[branch_protection]="$status"
 }
 
 check_existing_setup() {
@@ -668,10 +660,8 @@ print_report() {
     local i
 
     for ((i=0; i<total; i++)); do
-        local var="STATE_${keys[$i]}"
-        local detail_var="DETAIL_${keys[$i]}"
-        local status="${!var}"
-        local detail="${!detail_var}"
+        local status="${STATE[${keys[$i]}]}"
+        local detail="${DETAIL[${keys[$i]}]}"
         local icon color hint_text=""
 
         case "$status" in
@@ -710,13 +700,11 @@ print_report() {
     # Machine-parseable block (consumed by SKILL.md)
     echo "COMMITCRAFT_CHECK_START"
     for ((i=0; i<total; i++)); do
-        local var="STATE_${keys[$i]}"
-        local detail_var="DETAIL_${keys[$i]}"
-        local detail="${!detail_var}"
+        local detail="${DETAIL[${keys[$i]}]}"
         if [[ -n "$detail" ]]; then
-            echo "${keys[$i]}: ${!var} | $detail"
+            echo "${keys[$i]}: ${STATE[${keys[$i]}]} | $detail"
         else
-            echo "${keys[$i]}: ${!var}"
+            echo "${keys[$i]}: ${STATE[${keys[$i]}]}"
         fi
     done
     echo "COMMITCRAFT_CHECK_END"
@@ -724,8 +712,7 @@ print_report() {
     # Exit code: 0 if all configured, 1 if any missing/partial
     local exit_code=0
     for component in commitlint gitleaks precommit_hooks signed_commits release_please commitlint_ci; do
-        local var="STATE_${component}"
-        if [[ "${!var}" != "CONFIGURED" ]]; then
+        if [[ "${STATE[$component]}" != "CONFIGURED" ]]; then
             exit_code=1
         fi
     done
@@ -751,8 +738,7 @@ show_current_state() {
     printf "%-25s %s\n" "-------------------------" "-------------"
 
     for component in commitlint gitleaks precommit_hooks signed_commits release_please commitlint_ci branch_protection; do
-        local var="STATE_${component}"
-        local status="${!var}"
+        local status="${STATE[$component]}"
         local color="$NC"
 
         case "$status" in
@@ -779,7 +765,7 @@ setup_commitlint() {
     echo "=========================================="
     echo ""
 
-    if [[ "${STATE_commitlint}" == "CONFIGURED" ]]; then
+    if [[ "${STATE[commitlint]}" == "CONFIGURED" ]]; then
         log_success "commitlint already configured"
         return
     fi
@@ -835,7 +821,7 @@ setup_commitlint() {
         log_info "CI enforcement works automatically — the workflow installs commitlint via npm"
     fi
 
-    STATE_commitlint="CONFIGURED"
+    STATE[commitlint]="CONFIGURED"
 }
 
 # ============================================================================
@@ -870,7 +856,7 @@ setup_gitleaks() {
     echo "=========================================="
     echo ""
 
-    if [[ "${STATE_gitleaks}" == "CONFIGURED" ]]; then
+    if [[ "${STATE[gitleaks]}" == "CONFIGURED" ]]; then
         # Local scanning configured — check if CI workflow is also present
         if [[ -f ".github/workflows/gitleaks.yml" ]]; then
             log_success "gitleaks already configured"
@@ -940,7 +926,7 @@ setup_gitleaks() {
 
     log_info "Recommendation: Enable GitHub push protection in repo settings"
 
-    STATE_gitleaks="CONFIGURED"
+    STATE[gitleaks]="CONFIGURED"
 }
 
 # ============================================================================
@@ -954,7 +940,7 @@ setup_precommit_hooks() {
     echo "=========================================="
     echo ""
 
-    if [[ "${STATE_precommit_hooks}" == "CONFIGURED" ]]; then
+    if [[ "${STATE[precommit_hooks]}" == "CONFIGURED" ]]; then
         log_success "Pre-commit hooks already configured (manager: $HOOK_MANAGER)"
         return
     fi
@@ -1013,7 +999,7 @@ setup_precommit_hooks() {
         log_success "Installed pre-commit hooks"
     fi
 
-    STATE_precommit_hooks="CONFIGURED"
+    STATE[precommit_hooks]="CONFIGURED"
 }
 
 # ============================================================================
@@ -1027,7 +1013,7 @@ setup_signed_commits() {
     echo "=========================================="
     echo ""
 
-    if [[ "${STATE_signed_commits}" == "CONFIGURED" ]]; then
+    if [[ "${STATE[signed_commits]}" == "CONFIGURED" ]]; then
         log_success "Signed commits already configured"
         return
     fi
@@ -1099,7 +1085,7 @@ setup_signed_commits() {
         log_info "Add your GPG key to GitHub: https://github.com/settings/keys"
     fi
 
-    STATE_signed_commits="CONFIGURED"
+    STATE[signed_commits]="CONFIGURED"
 }
 
 # ============================================================================
@@ -1113,7 +1099,7 @@ setup_release_please() {
     echo "=========================================="
     echo ""
 
-    if [[ "${STATE_release_please}" == "CONFIGURED" ]]; then
+    if [[ "${STATE[release_please]}" == "CONFIGURED" ]]; then
         log_success "release-please already configured"
         return
     fi
@@ -1181,7 +1167,7 @@ setup_release_please() {
     echo "}" >> .release-please-manifest.json
     log_success "Created .release-please-manifest.json"
 
-    STATE_release_please="CONFIGURED"
+    STATE[release_please]="CONFIGURED"
 }
 
 # ============================================================================
@@ -1195,7 +1181,7 @@ setup_ci_workflows() {
     echo "=========================================="
     echo ""
 
-    if [[ "${STATE_commitlint_ci}" == "CONFIGURED" ]]; then
+    if [[ "${STATE[commitlint_ci]}" == "CONFIGURED" ]]; then
         log_success "commitlint CI already configured"
         return
     fi
@@ -1210,7 +1196,7 @@ setup_ci_workflows() {
     cp "$TEMPLATES_DIR/commitlint-ci.yml" "$REPO_ROOT/.github/workflows/commitlint.yml"
     log_success "Created .github/workflows/commitlint.yml"
 
-    STATE_commitlint_ci="CONFIGURED"
+    STATE[commitlint_ci]="CONFIGURED"
 }
 
 # ============================================================================
@@ -1328,7 +1314,7 @@ JSON
     local api_err
     if api_err=$(echo "$payload" | gh api -X PUT "repos/$REPO_PATH/branches/$branch/protection" --input - 2>&1 >/dev/null); then
         log_success "Branch protection applied to '$branch' (required checks: ${contexts[*]:-none}, PR reviews: $BP_REVIEWS, enforce_admins: $BP_ENFORCE_ADMINS)"
-        STATE_branch_protection="CONFIGURED"
+        STATE[branch_protection]="CONFIGURED"
     else
         log_error "Could not apply branch protection: ${api_err:-unknown error}"
         log_error "Needs admin rights and an authenticated gh, or configure manually via the URL above."
@@ -1342,7 +1328,7 @@ recommend_branch_protection() {
     echo "=========================================="
     echo ""
 
-    if [[ "${STATE_branch_protection}" == "UNKNOWN" ]]; then
+    if [[ "${STATE[branch_protection]}" == "UNKNOWN" ]]; then
         log_warn "Cannot check branch protection (gh CLI not available or no remote)"
         return
     fi
@@ -1350,13 +1336,14 @@ recommend_branch_protection() {
     # An explicit --apply-branch-protection must proceed even if a protection
     # object already exists — it may be hollow (no required checks), which is
     # exactly the case the apply is meant to fix.
-    if [[ "${STATE_branch_protection}" == "CONFIGURED" ]] && [[ "$APPLY_BP" != "true" ]]; then
+    if [[ "${STATE[branch_protection]}" == "CONFIGURED" ]] && [[ "$APPLY_BP" != "true" ]]; then
         log_success "Branch protection already configured"
         return
     fi
 
     # Extract repo path for dynamic URL
-    local remote_url=$(git config --get remote.origin.url 2>/dev/null || echo "")
+    local remote_url
+    remote_url=$(git config --get remote.origin.url 2>/dev/null || echo "")
     local repo_path=""
     if [[ -n "$remote_url" ]]; then
         repo_path=$(echo "$remote_url" | sed -E 's#.*github\.com[:/]##' | sed 's/\.git$//')
@@ -1423,8 +1410,7 @@ print_summary() {
     printf "%-25s %s\n" "-------------------------" "-------------"
 
     for component in commitlint gitleaks precommit_hooks signed_commits release_please commitlint_ci branch_protection; do
-        local var="STATE_${component}"
-        local status="${!var}"
+        local status="${STATE[$component]}"
         local color="$NC"
 
         case "$status" in
@@ -1463,13 +1449,13 @@ write_commitcraft_config() {
   "hook_manager": "$HOOK_MANAGER",
   "ticket_tool": "$ticket_tool",
   "components": {
-    "commitlint": "${STATE_commitlint}",
-    "gitleaks": "${STATE_gitleaks}",
-    "precommit_hooks": "${STATE_precommit_hooks}",
-    "signed_commits": "${STATE_signed_commits}",
-    "release_please": "${STATE_release_please}",
-    "commitlint_ci": "${STATE_commitlint_ci}",
-    "branch_protection": "${STATE_branch_protection}"
+    "commitlint": "${STATE[commitlint]}",
+    "gitleaks": "${STATE[gitleaks]}",
+    "precommit_hooks": "${STATE[precommit_hooks]}",
+    "signed_commits": "${STATE[signed_commits]}",
+    "release_please": "${STATE[release_please]}",
+    "commitlint_ci": "${STATE[commitlint_ci]}",
+    "branch_protection": "${STATE[branch_protection]}"
   }
 }
 EOF
