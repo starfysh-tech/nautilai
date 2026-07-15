@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      "this should be an object, not a string"
+    ]
+  }
+}
