@@ -58,8 +58,9 @@ is_detectable() {
 }
 
 # Neutral scan dir outside any /tests/ or /fixtures/ path segment.
+workdir=""
+trap 'if [ -n "$workdir" ]; then rm -rf "$workdir"; fi' EXIT
 workdir="$(mktemp -d "${TMPDIR:-/tmp}/phi-eval.XXXXXX")"
-trap 'rm -rf "$workdir"' EXIT
 
 # --- Load gold into parallel arrays -----------------------------------------
 # role_of[fixture]=role ; exp["fixture|class"]=count

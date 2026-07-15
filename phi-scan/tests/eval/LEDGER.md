@@ -30,7 +30,7 @@ From `PATTERNS` in `phi_check.py`: `ssn`, `email`, `phone`, `ip_v4`, `date_us`,
 `date_iso`, `zip_5` (with a `zip_5(restricted)` variant for the 17 HIPAA
 restricted ZIP prefixes). Output format per finding:
 
-```
+```text
   {line}:{col} [PHI|TEST] {class}[(restricted)]: {value}
 ```
 
@@ -62,7 +62,7 @@ Both are documented so no one mistakes the workaround for a bug:
 
 Commit baseline: `8ae3a64` (working tree). `python3` stdlib scanner, no model.
 
-```
+```text
 # phi-scan deterministic scanner — recall / precision eval
 
 fixture                          role           result
@@ -101,7 +101,7 @@ To prove the grader is not green-by-default, one planted SSN in
 `pos_direct_identifiers.txt` was temporarily changed from `457-55-1234` to
 `REDACTED-XX-XXXX` (no longer a valid SSN pattern) and the grader re-run:
 
-```
+```text
 pos_direct_identifiers.txt  positive  FAIL  [email=2/2 ip_v4=3/3 phone=3/3 ssn=1/2]  (observed != gold)
 ## Recall (HARD GATE) ... detected 21/22 (95%), threshold 100%
 hard: 0 (recall gate FAIL)
