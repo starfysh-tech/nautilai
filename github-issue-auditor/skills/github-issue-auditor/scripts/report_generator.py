@@ -93,7 +93,8 @@ class ReportGenerator:
 
         return lines
 
-    def _generate_configuration_section(self, config: Dict[str, Any]) -> List[str]:
+    @staticmethod
+    def _generate_configuration_section(config: Dict[str, Any]) -> List[str]:
         """Generate configuration section."""
         lines = []
 

@@ -224,7 +224,8 @@ class DiscoveryEngine:
         print(f"✓ {len(orphaned)} found")
         return orphaned
 
-    def _extract_parent_number(self, body: str, pattern: str) -> Optional[int]:
+    @staticmethod
+    def _extract_parent_number(body: str, pattern: str) -> Optional[int]:
         """
         Extract parent issue number from body text.
 

@@ -140,7 +140,8 @@ class TokenSuggester:
 
         return closest_token
 
-    def _hex_to_rgb(self, hex_value: str) -> Optional[tuple]:
+    @staticmethod
+    def _hex_to_rgb(hex_value: str) -> Optional[tuple]:
         """
         Convert hex color to RGB tuple.
 

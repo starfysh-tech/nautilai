@@ -51,32 +51,33 @@ class ComponentScanner:
         Scan for CSS files that might contain @apply.
 
         Args:
-            css_directory: Directory to scan for CSS files (optional)
+        css_directory: Directory to scan for CSS files (optional)
 
-        Returns:
-            List of CSS file paths
-        """
-        css_dir = Path(css_directory) if css_directory else self.base_directory
+    Returns:
+        List of CSS file paths
+    """
+    css_dir = Path(css_directory) if css_directory else self.base_directory
 
-        if not css_dir.exists():
-            return []
+    if not css_dir.exists():
+        return []
 
-        css_files = []
-        css_extensions = ['.css', '.scss', '.sass']
+    css_files = []
+    css_extensions = ['.css', '.scss', '.sass']
 
-        for ext in css_extensions:
-            css_files.extend(css_dir.rglob(f"*{ext}"))
+    for ext in css_extensions:
+        css_files.extend(css_dir.rglob(f"*{ext}"))
 
-        # Exclude node_modules, build directories
-        css_files = [
-            f for f in css_files
-            if not any(part.startswith('.') or part in ['node_modules', 'build', 'dist']
-                      for part in f.parts)
-        ]
+    # Exclude node_modules, build directories
+    css_files = [
+        f for f in css_files
+        if not any(part.startswith('.') or part in ['node_modules', 'build', 'dist']
+                  for part in f.parts)
+    ]
 
-        return sorted(css_files)
+    return sorted(css_files)
 
-    def read_file_lines(self, file_path: Path) -> List[str]:
+    @staticmethod
+    def read_file_lines(file_path: Path) -> List[str]:
         """
         Read file and return lines with content.
 

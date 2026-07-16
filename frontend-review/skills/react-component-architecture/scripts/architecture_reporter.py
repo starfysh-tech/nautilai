@@ -50,7 +50,8 @@ class ArchitectureReporter:
             rules=self.config.get('folder_structure')
         )
 
-    def _default_config(self) -> Dict[str, Any]:
+    @staticmethod
+    def _default_config() -> Dict[str, Any]:
         """Get default configuration."""
         return {
             'component_size_limit': 200,
@@ -242,8 +243,8 @@ class ArchitectureReporter:
 
         return "\n".join(breakdown_lines)
 
+    @staticmethod
     def _generate_recommendations(
-        self,
         size_violations: List,
         prop_drilling: List,
         duplicates: List,

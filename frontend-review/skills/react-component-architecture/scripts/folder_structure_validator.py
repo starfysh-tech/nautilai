@@ -149,7 +149,8 @@ class FolderStructureValidator:
         # Primitives are simple and often have variants
         return has_variants and not has_business_logic
 
-    def _is_layout(self, content: str, file_name: str) -> bool:
+    @staticmethod
+    def _is_layout(content: str, file_name: str) -> bool:
         """Check if component is a layout."""
         layout_indicators = [
             'Layout' in file_name,
@@ -297,7 +298,8 @@ class FolderStructureValidator:
             'is_compliant': len(self.violations) == 0
         }
 
-    def suggest_folder_structure(self) -> str:
+    @staticmethod
+    def suggest_folder_structure() -> str:
         """Suggest ideal folder structure."""
         structure = """
 Suggested Folder Structure
@@ -323,6 +325,8 @@ src/
 │   └── profile/               # Profile feature
 │       ├── ProfileForm.tsx
 │       └── ProfileAvatar.tsx
+"""
+        return structure
 ├── layouts/
 │   ├── AppLayout.tsx
 │   ├── AuthLayout.tsx

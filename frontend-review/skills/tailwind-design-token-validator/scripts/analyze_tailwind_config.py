@@ -160,7 +160,6 @@ class TailwindConfigAnalyzer:
             normalized['shadows'] = tokens['shadows']
 
         return normalized
-
     def _flatten_color_object(self, colors: Dict[str, Any], prefix: str = '') -> Dict[str, str]:
         """
         Flatten nested color object (e.g., {blue: {500: '#3b82f6'}}) to {blue-500: '#3b82f6'}.
@@ -185,7 +184,8 @@ class TailwindConfigAnalyzer:
 
         return flat
 
-    def _extract_colors(self, config_content: str) -> Dict[str, str]:
+    @staticmethod
+    def _extract_colors(config_content: str) -> Dict[str, str]:
         """
         Extract color tokens from config using regex (fallback method).
 
@@ -212,7 +212,8 @@ class TailwindConfigAnalyzer:
 
         return colors
 
-    def _extract_spacing(self, config_content: str) -> Dict[str, str]:
+    @staticmethod
+    def _extract_spacing(config_content: str) -> Dict[str, str]:
         """
         Extract spacing tokens from config using regex (fallback method).
 
@@ -231,7 +232,8 @@ class TailwindConfigAnalyzer:
 
         return spacing
 
-    def _extract_fonts(self, config_content: str) -> Dict[str, List[str]]:
+    @staticmethod
+    def _extract_fonts(config_content: str) -> Dict[str, List[str]]:
         """Extract font family tokens from config."""
         fonts = {}
 
@@ -248,7 +250,8 @@ class TailwindConfigAnalyzer:
 
         return fonts
 
-    def _extract_borders(self, config_content: str) -> Dict[str, str]:
+    @staticmethod
+    def _extract_borders(config_content: str) -> Dict[str, str]:
         """Extract border radius tokens from config."""
         borders = {}
 
@@ -263,7 +266,8 @@ class TailwindConfigAnalyzer:
 
         return borders
 
-    def _extract_shadows(self, config_content: str) -> Dict[str, str]:
+    @staticmethod
+    def _extract_shadows(config_content: str) -> Dict[str, str]:
         """Extract box shadow tokens from config."""
         shadows = {}
 
