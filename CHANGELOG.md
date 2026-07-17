@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.19.0](https://github.com/starfysh-tech/nautilai/compare/v2.18.6...v2.19.0) (2026-07-17)
+
+
+### Features
+
+* **hermes:** fan out review skills via delegate_task ([e7fd4e5](https://github.com/starfysh-tech/nautilai/commit/e7fd4e5dc76a674e4d6c592bfe80a59748035014))
+
 ## [2.18.6](https://github.com/starfysh-tech/nautilai/compare/v2.18.5...v2.18.6) (2026-07-15)
 
 
