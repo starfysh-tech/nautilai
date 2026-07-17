@@ -9,7 +9,9 @@ necessary, because every constraint below has a Hermes-only solution.
 
 > The design record and per-assumption validation live in
 > [`docs/plans/hermes-dual-runtime.md`](../plans/hermes-dual-runtime.md). This file is the
-> rule set. The agent-facing summary is [`docs/llms.txt`](../llms.txt).
+> rule set. The **step-by-step porting how-to** (docs-site page) is
+> [`docs/hermes-porting.html`](../hermes-porting.html). The agent-facing summary is
+> [`docs/llms.txt`](../llms.txt).
 
 ---
 
