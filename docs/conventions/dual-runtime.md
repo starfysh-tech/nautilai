@@ -21,7 +21,12 @@ necessary, because every constraint below has a Hermes-only solution.
 
 Prove it, don't assert it. The PR diff must show **no changes** under `<plugin>/scripts/**`,
 `<plugin>/templates/**`, `<plugin>/tests/**`, or any `.claude-plugin/**`. The only permitted
-edit to a Claude-loaded file is an **additive** "Resource paths" section in `SKILL.md`.
+edits to a Claude-loaded file are **additive** adapter prose in `SKILL.md`: a "Resource paths"
+section (rule 3) for skills that ship bundled resources, or — for a skill with no bundled
+resources but a fan-out step — an additive **"Runtime note (non-Claude)"** that states the
+delegation translation (rule 7). Both must be inert to Claude: gate the note on a condition
+Claude never meets (e.g. "a runtime with a delegation primitive but not `Task`"), so Claude
+reads past it unchanged.
 
 ### 2. Bundled resources are mirrored into the skill dir, not moved
 
@@ -106,7 +111,9 @@ Hermes **has** a subagent primitive — `delegate_task`, verified against the bi
 A loaded skill drives it the same way a Claude skill drives `Task`: the SKILL.md states the
 *intent* ("delegate each analysis to a subagent"), the active agent interprets it and calls
 `delegate_task` itself. The skill never names the tool. Leaf subagents get `terminal`/`file`
-(git works; a test runner works only if installed), fresh context, and return a summary only.
+(git works; a test runner works only if installed) and return a summary only (both verified).
+The child's context is reportedly fresh, but that one is doc-stated — the probe couldn't confirm
+it (see below).
 
 What Hermes does **not** have is **git-worktree isolation**: subagents share the parent's one
 working directory (verified — a leaf reported the parent's `pwd`). So the Claude-only test is
