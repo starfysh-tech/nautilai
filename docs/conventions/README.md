@@ -139,8 +139,10 @@ never necessary, since every constraint has a Hermes-only solution.
   hand-edit the mirror.
 - *Rule:* each runtime substitutes only its own path token, so the resolved line is the
   one to follow. Hermes strips the executable bit — invoke scripts via `bash` there.
-- *Rule:* a skill that needs subagents is **Claude-only** (`autodev`); Hermes has no
-  subagent primitive.
+- *Rule:* Hermes **has** a subagent primitive (`delegate_task`, skill-drivable via intent);
+  what it lacks is **git-worktree isolation**. A skill that needs isolated worktrees is
+  Claude-only (`autodev`); read-only review fan-out (`review-plan`, `dep-review`,
+  `pr-comment-review`) ports.
 
 → Full spec + the lessons behind each rule: [`dual-runtime.md`](./dual-runtime.md)
 

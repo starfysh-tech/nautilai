@@ -61,7 +61,8 @@ and re-run the script.
 Hermes support must stay **additive** — no Claude Code path, manifest, script, or test
 changes. A skill serves both runtimes via a "Resource paths" adapter section naming
 `${CLAUDE_PLUGIN_ROOT}` and `${HERMES_SKILL_DIR}`; each runtime resolves only its own token
-and ignores the other. `autodev` is Claude-only (no Hermes subagent primitive).
+and ignores the other. `autodev` is Claude-only — Hermes has a subagent primitive
+(`delegate_task`) but no git-worktree isolation, and autodev's parallel lanes need it.
 
 The rules, and the lessons behind them (including which published Hermes docs proved wrong),
 are in [`docs/conventions/dual-runtime.md`](docs/conventions/dual-runtime.md). Read it before

@@ -146,7 +146,7 @@ on install.
 | --- | --- | --- |
 | `commit` · `push` · `pr` · `release` | yes | yes |
 | **`setup` · `check`** | yes | **no** — see below |
-| Subagents / parallel review fan-out | yes | **no** — Hermes has no subagent primitive |
+| Subagents / parallel review fan-out | yes | n/a — CommitCraft has no fan-out step (Hermes' `delegate_task` primitive is unused here) |
 | Script invocation | direct (`./script.sh`) | via `bash` (exec bit stripped on install) |
 | Discovery via `search` / `browse` | marketplace | **unreliable** — install by identifier instead |
 
