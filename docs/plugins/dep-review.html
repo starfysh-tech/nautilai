@@ -188,7 +188,7 @@
         <span class="cf-label" aria-hidden="true">Copy</span>
       </button>
     </div>
-    <p class="note">No tap needed in Hermes — <code>hermes skills tap add</code> does not index this repo. Hermes has no MCP tools (so <code>gh</code> is required) and no subagents, so PRs are evaluated sequentially.</p>
+    <p class="note">No tap needed in Hermes — <code>hermes skills tap add</code> does not index this repo. Hermes has no MCP tools (so <code>gh</code> is required), but it does have a subagent primitive (<code>delegate_task</code>), so per-PR analyses fan out via delegation; sequential inline evaluation is the fallback when no delegation primitive is present.</p>
   </section>
 
   <section id="what">

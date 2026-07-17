@@ -14,6 +14,22 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-17
+
+- **review-plan, dep-review, pr-comment-review** — these skills now fan out on Hermes
+  via delegation instead of always degrading to inline-sequential. The prior "Hermes has
+  no subagent primitive" premise was **wrong**: probing the live binary showed Hermes has
+  `delegate_task`, and — like Claude's `Task` — a loaded skill drives it just by stating
+  fan-out *intent*, so each SKILL.md gained an additive runtime-translation note (it names
+  no Hermes tool; the agent picks delegation up itself). Inline Read/Grep stays the fallback
+  only where no delegation primitive exists.
+- **autodev stays Claude-only, but for the real reason.** The same probe found Hermes
+  subagents share the parent's one working directory — there is **no git-worktree
+  isolation**. autodev's value is isolated worktrees per lane (clean per-attempt rollback),
+  not the mere existence of subagents; parallel workers in one directory would collide. The
+  convention (`docs/conventions/dual-runtime.md` Rule 7) and `docs/llms.txt` were corrected
+  to test *worktree isolation*, not "subagents exist."
+
 ## 2026-07-14
 
 - **phi-scan, cc-validate-hooks** — both now ship an offline **eval** that pins the

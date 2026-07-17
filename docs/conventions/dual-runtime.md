@@ -100,12 +100,29 @@ it installs. So `sync-resources.sh` carries an `EXCLUDE` list, and `setup` + `ch
   `--force`**, so this is fatal, not cosmetic. Name the *category* of directive to refuse; never
   spell the payload. The same applies to security-audit checklists that enumerate what to look for.
 
-### 7. A plugin that needs subagents is Claude-only
+### 7. A plugin that needs *worktree isolation* is Claude-only; fan-out alone is portable
 
-Hermes has no subagent primitive. `autodev` is not ported: its value *is* subagent fan-out plus
-git-worktree isolation, so a port would be a hollow shell. Skills that fan out for review
-(`review-plan`, `dep-review`, `pr-comment-review`) already document an inline fallback — that
-documented path *is* their Hermes behavior. Say so in the README rather than inventing new prose.
+Hermes **has** a subagent primitive — `delegate_task`, verified against the binary (July 2026).
+A loaded skill drives it the same way a Claude skill drives `Task`: the SKILL.md states the
+*intent* ("delegate each analysis to a subagent"), the active agent interprets it and calls
+`delegate_task` itself. The skill never names the tool. Leaf subagents get `terminal`/`file`
+(git works; a test runner works only if installed), fresh context, and return a summary only.
+
+What Hermes does **not** have is **git-worktree isolation**: subagents share the parent's one
+working directory (verified — a leaf reported the parent's `pwd`). So the Claude-only test is
+*worktree isolation*, not "subagents exist":
+
+- `autodev` stays **Claude-only** — its parallel lanes each need an isolated worktree for clean
+  per-attempt rollback; in one shared directory they would collide. Absence of `delegate_task`
+  was never the real blocker.
+- Skills that fan out for *read-only* review (`review-plan`, `dep-review`, `pr-comment-review`)
+  **can** delegate on Hermes. The SKILL.md adapter phrases fan-out as intent so a runtime with
+  a delegation primitive but no `Task` delegates the same per-aspect/per-PR work; the inline
+  Read/Grep path remains the fallback when no delegation primitive is present.
+
+Unverified (doc-stated only, treat conservatively): the child's context is fully fresh, and the
+concurrency=3 / depth=1 caps. Write adapters so the parent passes **all** needed context in
+`goal`/`context` regardless.
 
 ### 8. Document the five headings, and the limits
 

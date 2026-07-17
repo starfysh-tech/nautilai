@@ -92,6 +92,15 @@ verdicts, gated/auto actions). This keeps a large batch fast and each PR's
 evidence isolated. Run each per-PR subagent on `model: sonnet` — the work
 (semver parsing, CI status, changelog extraction) doesn't need the parent model.
 
+> **Runtime note (non-Claude).** `Task` is Claude-native. On a runtime with its own
+> subagent/delegation primitive but not `Task` (e.g. Hermes' `delegate_task`), delegate
+> each PR the same way: state "analyze PR #N" as the goal and pass the PR number,
+> metadata, ecosystem, and per-PR procedure as context, since the subagent starts fresh
+> and returns a summary only. Respect the runtime's concurrency cap — a large batch runs
+> in waves, not all at once. Do **not** name a specific tool; state the intent and let the
+> runtime's agent delegate. With no delegation primitive, evaluate the PRs sequentially
+> inline — never abort.
+
 **Code-search mandate (precision over raw grep).** Within analysis, verify usage
 with the structured tools, not ad-hoc text search:
 

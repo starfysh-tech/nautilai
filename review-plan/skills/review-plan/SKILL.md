@@ -72,6 +72,8 @@ Every subagent prompt must demand **condensed output**: findings only, each with
 
 Rules: give each agent ONE focused aspect; require specific `file:line` references; wait for results before synthesis. When falling back to `Explore` (or `general-purpose`) for search/extraction work, pass `model: haiku` — it's cheap, read-only fan-out. Named plugin specialist agents (`code-reviewer`, `code-explorer`, `silent-failure-hunter`, etc.) keep their own model definitions; don't override them.
 
+> **Runtime note (non-Claude).** `Task` and the named specialist types above are Claude-native. On a runtime that has its own subagent/delegation primitive but not `Task` (e.g. Hermes' `delegate_task`), delegate each aspect the same way: state the aspect as the subagent's goal and pass its full focused prompt — including "condensed output, `file:line` only" — as context, since the subagent starts with fresh context and returns a summary only. Do **not** name a specific tool or invent a specialist type; state the intent and let the runtime's agent delegate. If the runtime has no delegation primitive at all, run the inline Read/Grep fallback serially — never abort.
+
 ### Optional: Codex cross-model review
 
 If the Codex companion is installed, get an independent GPT review for a second perspective. Run its script **directly via Bash** — do **not** use the `codex:codex-rescue` subagent (it's a thin wrapper that may lack tool permissions when spawned as a subagent).

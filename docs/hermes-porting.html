@@ -179,8 +179,8 @@
       <div class="gate-row" data-v="stop">
         <span class="g-mark" aria-hidden="true">&#10007;</span>
         <div class="g-body">
-          <div class="g-title">Does the plugin's value depend on subagents?</div>
-          <div class="g-note">Hermes has <strong>no subagent primitive</strong>. If fan-out and worktree isolation <em>are</em> the plugin (<code>autodev</code>), a port is a hollow shell — keep it Claude-only. Skills that only <em>optionally</em> fan out for review (<code>review-plan</code>, <code>dep-review</code>, <code>pr-comment-review</code>) already document an inline fallback; that documented path <em>is</em> their Hermes behavior.</div>
+          <div class="g-title">Does the plugin's value depend on git-worktree isolation?</div>
+          <div class="g-note">Hermes <strong>has</strong> a subagent primitive (<code>delegate_task</code>, drivable from a skill by stating intent) but <strong>no git-worktree isolation</strong> — subagents share the parent's one working directory. If isolated worktrees <em>are</em> the plugin (<code>autodev</code>'s parallel lanes), a port is a hollow shell — keep it Claude-only. Skills that fan out for <em>read-only</em> review (<code>review-plan</code>, <code>dep-review</code>, <code>pr-comment-review</code>) <strong>can</strong> delegate on Hermes; the inline Read/Grep path is the fallback when no delegation primitive is present.</div>
         </div>
       </div>
       <div class="gate-row" data-v="stop">
