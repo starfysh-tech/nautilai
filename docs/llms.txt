@@ -42,8 +42,9 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [cc-adoption-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-adoption-audit.html): Audits a Claude Code setup against available features and surfaces what isn't being used.
 - [cc-skill-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-skill-audit.html): Audits skills against Anthropic's authoring guidance — diagnoses under/over-triggering, de-bloats bodies.
 - [cc-validate-hooks](https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html): Validates Claude Code hook configuration in `settings.json`, with an optional `--fix`.
+- [sentry-ops](https://starfysh-tech.github.io/nautilai/plugins/sentry-ops.html): Audits a repo's Sentry setup against official SDK docs fetched at runtime, triages and investigates production issues through the Sentry MCP server, instruments behind a hard PII boundary. **Not ported to Hermes**: MCP-centric, and a Hermes port would have no Sentry MCP server to call for `triage`/`investigate`.
 
-## Notes for agents
+## Notes for agents — Hermes runtime
 
 Non-obvious facts, verified against a live Hermes v0.18.2. Believing the published Hermes
 docs over these will waste your time — several of their claims did not hold.
@@ -60,6 +61,16 @@ docs over these will waste your time — several of their claims did not hold.
 - **`${CLAUDE_PLUGIN_ROOT}` is not a shell variable.** It is not exported to Bash and is not substituted inside workflow files — running it verbatim yields `/scripts/foo.sh` and exit 127. Claude resolves it from context. `${HERMES_SKILL_DIR}` *is* substituted by Hermes, including inside fenced code blocks.
 - **A skill serves both runtimes via a "Resource paths" adapter section.** Each runtime substitutes only its own token and leaves the other as literal text, so the resolved line is the one to follow. Never substitute a token yourself and never fall back to a relative path.
 - **If `skills.template_vars: false` is set in `~/.hermes/config.yaml`**, Hermes stops substituting `${HERMES_SKILL_DIR}` and bundled-script paths arrive literal, breaking any skill that calls one. Claude Code is unaffected.
+
+## Notes for agents — sentry-ops
+
+Runtime facts about the MCP surface this plugin drives. Claude Code only.
+
+- **The Sentry MCP server is a prerequisite for `triage` and `investigate`** — they read live issue data and have no repo-only fallback. `audit` and `instrument` read the repo only and need no MCP server at all. The plugin neither bundles nor provisions the server.
+- **Whether `organizationSlug` must be passed depends on the configured MCP endpoint URL** — some bake the org and project into the URL, some do not. Detect it from the live tool schema; do not assume, and trust the schema over published examples when they disagree.
+- **Not every Sentry tool is directly callable.** Unlisted ones route through `execute_sentry_tool`; use `search_sentry_tools` to find tool names and their arguments rather than guessing.
+- **Seer analysis (`analyze_issue_with_seer`) takes minutes.** Treat it as a deliberate step, never a reflex follow-up to fetching issue details.
+- **Context7 is optional.** It grounds `audit` in official SDK docs; without it `audit` falls back to `WebFetch` of `docs.sentry.io`, then degrades to structural-only checks and says so in its report.
 
 ## Optional
 

@@ -14,6 +14,24 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-22
+
+- **sentry-ops** — the Sentry knowledge worth keeping was trapped in one project's
+  repo-specific skill, so it was generalized into a plugin. The part that justified the
+  move is the PII boundary: the dangerous exposure is not what you pass to
+  `captureException`, it is what the SDK attaches on its own — console-call breadcrumbs
+  that survive build-time stripping of `console.log`, and server-side request data
+  (cookies, headers, query strings, bodies, URLs) collected by default, which turns any
+  route carrying a token or share ID in its URL into event data. Notably, porting that
+  section is what caught a wrong rule in the original skill: it asserted that IP-derived
+  geo could not be disabled from `Sentry.init`, and the docs say `sendDefaultPii` (which
+  defaults to `false`) gates the IP address. The plugin now verifies that boundary
+  against docs instead of asserting it. The audit half is deliberately *not* a checklist: a static list
+  of "correct" Sentry config rots as the SDK moves, so `audit` re-queries the official docs
+  at runtime (Context7, degrading to `WebFetch` and then to structural-only checks, saying
+  so in the report either way) and compares against what the repo actually has. Claude Code
+  only — it is MCP-centric and a Hermes port would have nothing to call.
+
 ## 2026-07-17
 
 - **review-plan, dep-review, pr-comment-review** — these skills now fan out on Hermes

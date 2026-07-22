@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>sentry-ops — nautilai</title>
+<meta name="description" content="Audit a repo's Sentry setup against official SDK docs, triage and investigate production issues through the Sentry MCP server, and add instrumentation behind a hard PII boundary." />
+<meta property="og:title" content="sentry-ops — nautilai" />
+<meta property="og:description" content="Audit a repo's Sentry setup against official SDK docs, triage and investigate production issues through the Sentry MCP server, and add instrumentation behind a hard PII boundary." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a141d" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --deep:       oklch(0.195 0.034 240);
+    --deep-2:     oklch(0.155 0.032 244);
+    --chamber:    oklch(0.235 0.034 240);
+    --foam:       oklch(0.945 0.014 205);
+    --foam-soft:  oklch(0.74 0.030 212);
+    --tide:       oklch(0.78 0.095 200);
+    --lumen:      oklch(0.80 0.135 58);
+    --line-deep:  oklch(0.55 0.03 225 / 0.28);
+    --col: 68ch;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --r: 16px;
+    --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+    --font-body: "Literata", Georgia, "Times New Roman", serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--foam);
+    font-family: var(--font-body); font-size: 1.0625rem; line-height: 1.65;
+    background-color: oklch(0.16 0.032 244);
+    background-image: linear-gradient(180deg, oklch(0.225 0.034 240) 0%, oklch(0.15 0.032 244) 100%);
+    background-attachment: fixed; background-repeat: no-repeat;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--tide); text-decoration: none; }
+  a:hover { color: var(--foam); }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 24px; }
+  h1, h2, .display { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.02em; color: var(--foam); }
+
+  .back { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); padding: 20px 0 0; }
+  .back:hover { color: var(--tide); }
+
+  header.plugin-hero { padding: 24px 0 clamp(28px, 5vw, 44px); border-bottom: 1px solid var(--line-deep); }
+  h1.plugin-name { font-size: clamp(2.2rem, 6vw, 3.2rem); line-height: 1; margin: 14px 0 10px; }
+  p.tagline { font-family: var(--font-body); font-size: 1.15rem; color: var(--foam-soft); max-width: var(--col); margin: 0; }
+
+  section { padding: clamp(28px, 5vw, 40px) 0; border-bottom: 1px solid var(--line-deep); }
+  section:last-of-type { border-bottom: none; }
+  section h2 { font-size: 1.35rem; margin: 0 0 14px; }
+  section p { margin: 0 0 12px; max-width: var(--col); color: var(--foam); }
+  section p:last-child { margin-bottom: 0; }
+
+  .skill-list { display: flex; flex-direction: column; gap: 16px; padding: 0; margin: 0; list-style: none; }
+  .skill-list li { border: 1px solid var(--line-deep); border-radius: 12px; padding: 14px 16px; }
+  .skill-list .sk-name { font-family: var(--font-display); font-weight: 600; color: var(--foam); }
+  .skill-list .sk-triggers { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam-soft); margin-top: 6px; }
+
+  /* ── Flow diagram: numbered steps, decision splits, color-coded lanes ──
+     See _slots.md for the markup contract and the 7-step cap rule. */
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 0; max-width: var(--col); margin: 14px 0; }
+  .flow-step { display: flex; align-items: center; gap: 9px; background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 10px; padding: 8px 13px; }
+  .flow-step .fs-num { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: var(--tide); color: var(--deep-2); font-family: var(--font-display); font-size: 0.68rem; font-weight: 700; }
+  .flow-step .fs-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+  .flow-step .fs-label { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; }
+  .flow-step .fs-sub { font-family: var(--font-mono); font-size: 0.7rem; color: var(--foam-soft); white-space: nowrap; }
+  .flow-arrow { color: var(--tide); font-family: var(--font-mono); font-size: 1rem; padding: 0 10px; flex-shrink: 0; }
+  .flow-arrow::after { content: "\2192"; }
+
+  /* Decision/branch marker — where a diagram forks into the lanes below it */
+  .flow-split { display: flex; align-items: center; justify-content: center; padding: 0 9px; flex-shrink: 0; color: var(--lumen); }
+  .flow-split svg { width: 20px; height: 20px; display: block; }
+
+  /* Legend — always pairs the lane color with a label/icon, never color alone */
+  .flow-legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 4px 0 10px; font-family: var(--font-mono); font-size: 0.76rem; color: var(--foam-soft); }
+  .flow-legend .fl-item { display: inline-flex; align-items: center; gap: 6px; }
+  .flow-legend .fl-swatch { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .flow-legend .fl-swatch[data-lane="ok"] { background: var(--tide); }
+  .flow-legend .fl-swatch[data-lane="degrade"] { background: var(--lumen); }
+
+  .flow-lanes { display: flex; flex-direction: column; gap: 10px; max-width: var(--col); margin: 10px 0; }
+  .flow-lane { display: flex; align-items: center; flex-wrap: wrap; gap: 0; border-radius: 10px; padding: 7px; }
+  .flow-lane-label { display: flex; align-items: center; gap: 5px; font-family: var(--font-mono); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--foam-soft); min-width: 74px; flex-shrink: 0; margin-right: 8px; }
+  .flow-lane[data-lane="ok"] { background: oklch(0.6 0.09 200 / 0.07); }
+  .flow-lane[data-lane="ok"] .flow-step { border-color: oklch(0.62 0.09 200 / 0.4); }
+  .flow-lane[data-lane="ok"] .flow-lane-label::before { content: "\2713"; color: var(--tide); }
+  .flow-lane[data-lane="degrade"] { background: oklch(0.72 0.1 58 / 0.08); }
+  .flow-lane[data-lane="degrade"] .flow-step { border-color: oklch(0.72 0.13 58 / 0.5); }
+  .flow-lane[data-lane="degrade"] .flow-lane-label::before { content: "\26A0"; color: var(--lumen); }
+
+  @media (max-width: 560px) {
+    .flow, .flow-lane { flex-direction: column; align-items: stretch; }
+    .flow-step { width: 100%; }
+    .flow-arrow { text-align: center; padding: 4px 0; }
+    .flow-arrow::after { content: "\2193"; }
+    .flow-split { padding: 4px 0; }
+    .flow-split svg { transform: rotate(90deg); }
+    .flow-lane-label { margin: 0 0 4px; }
+  }
+
+  /* ── Collapsible tech detail: native <details>, no JS ── */
+  details.tech { background: var(--chamber); border: 1px solid var(--line-deep); border-radius: 12px; padding: 0 16px; margin: 12px 0; max-width: var(--col); }
+  details.tech summary { cursor: pointer; list-style: none; font-family: var(--font-display); font-weight: 600; color: var(--tide); padding: 13px 0; }
+  details.tech summary::-webkit-details-marker { display: none; }
+  details.tech summary::before { content: "\25B8"; display: inline-block; margin-right: 8px; transition: transform 0.15s var(--ease); }
+  details.tech[open] summary::before { transform: rotate(90deg); }
+  details.tech .tech-body { padding: 0 0 15px; font-size: 0.95rem; }
+  details.tech .tech-body ul { margin: 0; padding-left: 20px; }
+  details.tech .tech-body li { margin-bottom: 6px; }
+  details.tech .tech-body li:last-child { margin-bottom: 0; }
+  details.tech code { font-family: var(--font-mono); font-size: 0.82rem; }
+
+  .copyfield {
+    display: flex; align-items: center; gap: 12px; max-width: var(--col);
+    padding: 9px 9px 9px 14px; border: 1px solid var(--line-deep); border-radius: 10px;
+    background: oklch(0.5 0.03 230 / 0.08);
+    transition: border-color 0.18s var(--ease), background 0.18s var(--ease);
+  }
+  .copyfield:hover { border-color: var(--tide); background: oklch(0.6 0.06 205 / 0.10); }
+  .cf-code { font-family: var(--font-mono); font-size: 0.82rem; color: var(--foam); white-space: nowrap; overflow-x: auto; min-width: 0; flex: 1; }
+  .cf-code .prompt { color: var(--tide); user-select: none; }
+  .copy-btn {
+    display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+    padding: 6px 11px; border-radius: 8px; border: 1px solid var(--line-deep);
+    background: transparent; color: var(--foam-soft); cursor: pointer;
+    font-family: var(--font-mono); font-size: 0.82rem; font-weight: 500;
+    transition: color 0.18s var(--ease), border-color 0.18s var(--ease);
+  }
+  .copy-btn:hover { color: var(--foam); border-color: var(--tide); }
+  .copy-btn svg { width: 14px; height: 14px; }
+  .copy-btn .ic-check, .copy-btn .ic-fail { display: none; }
+  .copy-btn.copied { color: var(--lumen); border-color: var(--lumen); }
+  .copy-btn.copied .ic-copy { display: none; } .copy-btn.copied .ic-check { display: inline; }
+  .copy-btn.failed { color: #ff8c7a; border-color: #ff8c7a; }
+  .copy-btn.failed .ic-copy { display: none; } .copy-btn.failed .ic-fail { display: inline; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+  footer { padding: 30px 0 40px; color: var(--foam-soft); font-size: 0.82rem; }
+  .foot-links { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--font-display); }
+  :focus-visible { outline: 2px solid var(--lumen); outline-offset: 3px; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div id="copy-live" class="visually-hidden" aria-live="polite" role="status"></div>
+<div class="wrap">
+  <a class="back" href="../index.html#plugins">&larr; all plugins</a>
+
+  <header class="plugin-hero">
+    <h1 class="plugin-name">sentry-ops</h1>
+    <p class="tagline">Audit a repo's Sentry setup against the official SDK docs, work production issues through the Sentry MCP server, and add instrumentation behind a PII boundary.</p>
+  </header>
+
+  <section id="install">
+    <h2>Install</h2>
+    <div class="copyfield">
+      <code class="cf-code"><span class="prompt">/</span>plugin install sentry-ops@nautilai</code>
+      <button class="copy-btn" type="button" data-copy="/plugin install sentry-ops@nautilai" aria-label="Copy install command">
+        <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="cf-label" aria-hidden="true">Copy</span>
+      </button>
+    </div>
+  </section>
+
+  <section id="what">
+    <h2>What it does</h2>
+    <p>One skill with four workflows over a repo's error monitoring. <code>audit</code> reads the repo's actual Sentry setup — SDK and version from the lockfile, <code>Sentry.init</code> options, integrations, sourcemap upload, release and dist wiring, sampling rates, <code>beforeSend</code> scrubbing, environment gating, per-runtime DSNs — then checks it against the official Sentry docs fetched at runtime rather than against a frozen checklist. <code>triage</code> and <code>investigate</code> read live issue data through the Sentry MCP server; <code>investigate</code> takes one issue to a root cause at <code>file:line</code>, navigating by tags when stack traces are minified and sourcemaps are absent. <code>instrument</code> adds or repairs capture sites behind a PII gate that covers both what you attach and what the SDK attaches on its own.</p>
+  </section>
+
+  <section id="commands">
+    <h2>Commands / skills</h2>
+    <ul class="skill-list">
+      <li><div class="sk-name">/sentry-ops</div><p>Routes to the right workflow for what you asked.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/sentry-ops audit</div><p>Validate the repo's Sentry configuration against the official SDK docs for the detected platform, and report the gaps.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/sentry-ops triage</div><p>Pull unresolved production issues through the Sentry MCP server and rank them by what is worth acting on rather than by raw event count.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/sentry-ops investigate &lt;issue-id-or-url&gt;</div><p>Trace one issue to a root cause in the repo, cited at <code>file:line</code>.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/sentry-ops instrument</div><p>Add or repair capture sites — <code>captureException</code>, messages, breadcrumbs, context — behind the PII boundary.</p><div class="sk-triggers">explicit slash form only</div></li>
+    </ul>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p>The <code>audit</code> workflow discovers before it judges. It reads the SDK and its version from the lockfile, then the <code>Sentry.init</code> call and everything around it — integrations, sourcemap upload, release and dist wiring, sampling rates, <code>beforeSend</code> scrubbing, environment gating, per-runtime DSNs. Only then does it fetch the official Sentry docs for that SDK and version through Context7 and compare. Grounding the expectations at runtime is what keeps the audit from rotting as the SDK moves.</p>
+
+    <div class="flow">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">discover setup</span><span class="fs-sub">lockfile + Sentry.init</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">ground expectations</span><span class="fs-sub">Context7</span></span></div>
+    </div>
+    <div class="flow-legend">
+      <span class="fl-item"><span class="fl-swatch" data-lane="ok"></span> docs reachable</span>
+      <span class="fl-item"><span class="fl-swatch" data-lane="degrade"></span> no docs source</span>
+    </div>
+    <div class="flow-split" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v6"/><path d="M12 10c0 4-6 2-6 7"/><path d="M12 10c0 4 6 2 6 7"/></svg></div>
+    <div class="flow-lanes">
+      <div class="flow-lane" data-lane="ok"><span class="flow-lane-label">ok</span>
+        <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">compare against docs</span></span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">report gaps</span><span class="fs-sub">auto-fix / report / ask-user</span></span></div>
+      </div>
+      <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">degrade</span>
+        <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">structural checks only</span></span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">report, and say so</span></span></div>
+      </div>
+    </div>
+
+    <p>The live half runs against the Sentry MCP server. <code>triage</code> lists unresolved production issues and ranks them by what is worth acting on; <code>investigate</code> takes one of them the rest of the way. When the stack trace is minified and no sourcemap was uploaded, it navigates by the issue's tags, read against the tagging convention the repo already uses, instead of trusting the frames.</p>
+
+    <div class="flow">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">list unresolved</span><span class="fs-sub">Sentry MCP</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">rank by impact</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">fetch one issue</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">navigate by tags</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">5</span><span class="fs-body"><span class="fs-label">root cause</span><span class="fs-sub">file:line</span></span></div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>The PII boundary covers what the SDK attaches on its own, not only what you pass it: in the browser, the page URL, referrer and headers via a default-on HTTP context integration, plus console, fetch, XHR and navigation breadcrumbs; on the server, request data including cookies, headers, query strings and bodies. Any route carrying a token or share ID in its URL becomes event data.</li>
+          <li>Which options gate that collection is version-dependent, so <code>audit</code> resolves the boundary against the docs for the SDK version the repo actually resolved rather than asserting it. Porting this section is what caught a wrong rule in the skill it came from.</li>
+          <li>Anything touching PII handling or sampling behavior is classified <code>ask-user</code> under the repo's <a href="https://github.com/starfysh-tech/nautilai/blob/main/docs/conventions/finding-dispositions.md">finding-dispositions</a> convention, never self-resolved.</li>
+          <li>Whether an organization slug must be passed to a Sentry MCP tool depends on whether the configured endpoint URL already bakes in the org and project — this is detected, not assumed.</li>
+          <li>Not every Sentry tool is directly callable; unlisted ones route through <code>execute_sentry_tool</code>, and <code>search_sentry_tools</code> resolves names and arguments.</li>
+          <li>Seer analysis (<code>analyze_issue_with_seer</code>) runs for minutes, so it is a deliberate step, not an automatic follow-up to fetching issue details.</li>
+          <li>Without Context7, <code>audit</code> falls back to <code>WebFetch</code> against <code>docs.sentry.io</code>; if that also fails it degrades to structural-only checks and states the limitation in the report rather than implying the setup was validated against docs.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <section id="requirements">
+    <h2>Requirements</h2>
+    <p>A user-configured <strong>Sentry MCP server is required for <code>triage</code> and <code>investigate</code></strong> — they read live issue data and there is no repo-only fallback. This plugin neither bundles nor provisions it. <code>audit</code> and <code>instrument</code> read the repo only and need no MCP server. The <strong>Context7 MCP server is optional</strong>: it grounds <code>audit</code> in the official SDK docs, and <code>audit</code> degrades explicitly without it. Claude Code only — this plugin is not ported to Hermes Agent.</p>
+  </section>
+
+  <footer>
+    <nav class="foot-links">
+      <a href="https://github.com/starfysh-tech/nautilai/tree/main/sentry-ops" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      <a href="../index.html#plugins">&larr; all plugins</a>
+    </nav>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    function legacyCopy(text) {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed'; ta.style.top = '-9999px';
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        return ok;
+      } catch (e) { return false; }
+    }
+    function copyText(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).then(function () { return true; }, function () { return legacyCopy(text); });
+      }
+      return Promise.resolve(legacyCopy(text));
+    }
+    var live = document.getElementById('copy-live');
+    document.addEventListener('click', function (e) {
+      var btn = e.target.closest && e.target.closest('.copy-btn');
+      if (!btn) return;
+      var text = btn.getAttribute('data-copy') || '';
+      var label = btn.querySelector('.cf-label');
+      copyText(text).then(function (ok) {
+        clearTimeout(btn._resetT);
+        btn.classList.remove('copied', 'failed');
+        if (ok) {
+          btn.classList.add('copied');
+          if (label) label.textContent = 'Copied';
+          if (live) live.textContent = 'Copied ' + text;
+        } else {
+          btn.classList.add('failed');
+          if (label) label.textContent = 'Press ⌘C';
+          if (live) live.textContent = 'Copy failed — select the command and press Command-C.';
+        }
+        btn._resetT = setTimeout(function () {
+          btn.classList.remove('copied', 'failed');
+          if (label) label.textContent = 'Copy';
+        }, 2000);
+      });
+    });
+  })();
+</script>
+</body>
+</html>
