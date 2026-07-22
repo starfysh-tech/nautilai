@@ -95,6 +95,17 @@ Each area is a question against the grounded answer, not a fixed rule.
   the SDK attaches.
 - Is there a `beforeSend` (or equivalent) scrubbing gate, and does it cover what the
   integrations attach — not just what application code passes?
+- **Read the scrubber against its own stated intent.** A scrubbing hook is the one place
+  a repo writes down its PII policy, usually in a header comment. Enumerate the event
+  fields it actually mutates, then compare that list to what the default-on integrations
+  populate. The gap between "fail closed" in the comment and the fields the code reaches
+  is a finding — a scrubber that covers URLs but not breadcrumb messages, `extra`, or
+  `contexts` reads as complete and is not. Check the event shape the hook is typed
+  against, too: a hook typed for error events does not run on transactions.
+- **Check the scrubbing gates against each other across runtimes.** Where a repo runs
+  more than one SDK, a mitigation applied on one side and not the other is a strong
+  signal — the team already recognized the risk, so the unprotected runtime is an
+  oversight rather than an accepted trade-off. Name the protected site as evidence.
 - Are user identities attached, and deliberately?
 - Any ID logged that is really a **bearer capability** (Phase 0 step: possessing it
   grants access without auth)? Treat as `ask-user`, never `auto-fix`.
