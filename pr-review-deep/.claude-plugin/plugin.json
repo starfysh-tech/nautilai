@@ -3,7 +3,7 @@
   "name": "pr-review-deep",
   "displayName": "Deep PR Review",
   "version": "2.20.0",
-  "description": "Rigorous, evidence-based code quality review of a branch or PR — abstraction design, type/boundary contracts, and behavior-preserving structural simplification. Proposes high-leverage restructurings with cited evidence; never performs them or expands scope.",
+  "description": "Structural code-quality review of a branch or PR — finds whole branches, layers, and modes that can be deleted rather than merely rearranged, and holds abstraction design, type/boundary contracts, and decomposition to a high standard. Proposes high-leverage restructurings with cited evidence; never performs them or expands scope.",
   "author": {
     "name": "Randall Noval",
     "email": "randall@starfysh.net",

@@ -1,13 +1,16 @@
 # pr-review-deep
 
-A rigorous, evidence-based **code quality** review for a branch or PR — focused on
-implementation quality, maintainability, abstraction design, type/boundary
-contracts, and behavior-preserving structural simplification.
+A rigorous, evidence-based **structural code-quality** review for a branch or PR —
+it hunts for whole branches, layers, or modes that can be **deleted** rather than
+merely rearranged, and holds abstraction design, type/boundary contracts, and
+decomposition to a high standard.
 
 The reviewer is **ambitious in identifying** high-leverage restructurings (not just
 local cleanups) and **proposes** them with cited evidence. It does **not** perform
 them or expand the PR's scope — every optimization is surfaced for the author's
-decision.
+decision. It is a depth pass, **not a breadth audit**: it does not run tests,
+security tooling, or coverage checks — reach for a multi-dimension review tool for
+those.
 
 ## Install
 
