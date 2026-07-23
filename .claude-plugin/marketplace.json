@@ -175,7 +175,7 @@
     {
       "name": "sentry-ops",
       "source": "./sentry-ops",
-      "description": "Audit a repo’s Sentry setup against official SDK docs, triage and investigate production issues through the Sentry MCP server, and add instrumentation behind a hard PII boundary — including what the SDK attaches on its own. One skill, four workflows.",
+      "description": "Audit a repo’s Sentry setup against official SDK docs and instrument capture behind a hard PII boundary — including what the SDK attaches on its own. Complements the official Sentry plugin, which owns SDK setup and issue-fixing. One skill, two workflows.",
       "version": "2.19.0",
       "author": {
         "name": "Randall Noval"

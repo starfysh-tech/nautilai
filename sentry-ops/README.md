@@ -1,10 +1,33 @@
 # Sentry Ops
 
-Audit a repo’s Sentry setup against official SDK docs, triage and investigate production
-issues through the Sentry MCP server, and add instrumentation behind a hard PII boundary —
-including what the SDK attaches on its own. One skill, four workflows.
+Audit a repo’s Sentry setup against official SDK docs and instrument capture behind a hard
+PII boundary — including what the SDK attaches on its own. Complements the official Sentry
+plugin, which owns SDK setup and issue-fixing. One skill, two workflows.
 
 Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
+
+## Relationship to the official Sentry plugin
+
+This plugin is intentionally narrow. Sentry ships an official
+[`sentry`](https://github.com/getsentry/sentry-for-ai) plugin that already does — first
+party, and better — the two biggest jobs:
+
+- **SDK setup** in ~20 languages/frameworks (`sentry-sdk-setup`), plus feature setup,
+  alerts, and SDK upgrades.
+- **Finding and fixing production issues** through a bundled Sentry MCP server
+  (`sentry-fix-issues`, `sentry-code-review`).
+
+`sentry-ops` does **not** compete with either. It covers the two gaps that plugin leaves:
+
+- **`audit`** — validate an *existing* setup against current docs. The official plugin
+  installs Sentry; it has no equivalent for confirming an install is correct (sourcemaps
+  actually uploading, sampling sane, scrubbing complete).
+- **`instrument`** — the **inbound-PII gate**: what the SDK attaches to events on its own.
+  The official plugin's PII model is about data coming *out* of Sentry (treat event data
+  as untrusted, don't leak it into code); this is the complementary *inbound* half.
+
+Both workflows are **repo-only** — they read code and docs, never the Sentry MCP. For
+anything about live issues, use the official plugin.
 
 ## Install
 
@@ -16,33 +39,26 @@ Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
 ## Use
 
 ```text
-/sentry-ops                                # routes to the right workflow
-/sentry-ops audit                          # validate the repo's Sentry setup
-/sentry-ops triage                         # find and prioritize production issues
-/sentry-ops investigate <issue-id-or-url>  # one issue → root cause at file:line
-/sentry-ops instrument                     # add or fix capture sites
+/sentry-ops             # runs discovery, then recommends audit or instrument
+/sentry-ops audit       # validate this repo's Sentry setup against official SDK docs
+/sentry-ops instrument  # add or fix capture sites behind the PII boundary
 ```
 
 ## Workflows
 
 1. **audit** — checks the repo's Sentry configuration (init, DSN handling, integrations,
-   sampling, release/environment tagging, source maps) against the official SDK docs for
-   the detected platform.
-2. **triage** — pulls current production issues and ranks them by what's worth acting on
-   rather than by raw event count.
-3. **investigate** — takes one issue and traces it to a root cause in the repo, citing
-   `file:line`.
-4. **instrument** — adds or repairs capture sites (`captureException`, messages,
+   sampling, release/environment tagging, sourcemaps, scrubbing coverage) against the
+   official SDK docs for the detected platform and version, grounded at runtime rather
+   than from a frozen checklist. Reports findings with dispositions; fixes nothing itself.
+2. **instrument** — adds or repairs capture sites (`captureException`, messages,
    breadcrumbs, context) behind a PII boundary that covers both what you attach *and*
    what the SDK attaches on its own — the page URL, referrer and headers in the browser,
    and request data including cookies, query strings and bodies on the server.
 
 ## Requirements
 
-- **Sentry MCP server — required for `triage` and `investigate`.** These workflows read
-  live issue data; there is no repo-only fallback. You configure the MCP server yourself;
-  this plugin does not bundle or provision it. Without it, run `audit` and `instrument`.
-- **`audit` and `instrument` work without any MCP server** — they read the repo only.
+- **No Sentry MCP server needed.** Both workflows are repo-only — they read your code and
+  the official docs. (The official Sentry plugin is what bundles and uses the MCP.)
 - **Context7 MCP server — optional.** It grounds `audit` in official SDK docs. Without it,
   `audit` falls back to `WebFetch` against `docs.sentry.io`; if that also fails, it degrades
   to structural-only checks (config present, obvious misconfigurations) and says so
@@ -56,10 +72,10 @@ touching PII handling or sampling behavior is `ask-user`, never self-resolved.
 
 ## Runtime
 
-**Claude Code only — not ported to Hermes Agent.** The plugin is MCP-centric and Hermes has
-no equivalent Sentry MCP wiring, so a port would have nothing to call for `triage` and
-`investigate`. Per [`docs/conventions/dual-runtime.md`](../docs/conventions/dual-runtime.md)
-a Hermes port must be additive; there is no additive path here.
+**Claude Code only — not currently ported to Hermes Agent.** Porting to Hermes must be
+additive per [`docs/conventions/dual-runtime.md`](../docs/conventions/dual-runtime.md), and
+the port hasn't been done. Nothing in the two repo-only workflows is Claude-specific, so a
+future Hermes port is possible; it simply isn't wired yet.
 
 ## License
 

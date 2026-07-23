@@ -1,7 +1,8 @@
 # Audit
 
 Validate this repo's Sentry setup against what the official docs actually say. Repo-only
-— no Sentry MCP server needed.
+— reads code and docs, not the Sentry MCP. This is the check the official `sentry`
+plugin has no equivalent for: it sets Sentry up, this confirms an existing setup is right.
 
 **This is a discover → ground → compare loop, not a checklist.** The checks below are
 written as *questions to put to the docs*, deliberately not as answers. Sentry SDK
@@ -68,7 +69,9 @@ Each area is a question against the grounded answer, not a fixed rule.
   and actually running in CI — not merely a plugin present but unconfigured?
 - Do the identifiers the upload keys on match what the runtime reports?
 - Symptom to look for: production frames showing hashed chunk names and single-letter
-  functions. **High severity** — it degrades every future investigation, not one issue.
+  functions. **High severity** — it degrades every future issue-fix (whoever does it,
+  including the official plugin's `sentry-fix-issues`), forcing tag-navigation instead of
+  readable frames. It's one config fix that unblocks all of them.
 
 **Release attribution**
 - Is `release` set, from a real build-time source rather than a hardcoded string?

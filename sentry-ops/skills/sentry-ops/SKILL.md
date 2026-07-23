@@ -1,26 +1,39 @@
 ---
 name: sentry-ops
-description: "Audit a repo's Sentry setup against official SDK docs, triage and investigate production issues through the Sentry MCP server, and add instrumentation behind a hard PII boundary. Use when the user runs /sentry-ops, mentions Sentry, names a Sentry issue ID or URL, asks why something is failing in production, asks whether Sentry is set up correctly, or asks to add error tracking to a code path. Subcommands: audit | triage | investigate | instrument."
-argument-hint: "[audit|triage|investigate|instrument] [issue-id-or-url]"
+description: "Audit a repo's Sentry setup against official SDK docs and add instrumentation behind a hard PII boundary. Use when the user runs /sentry-ops, asks whether Sentry is set up correctly, wants a repo's Sentry config validated, or asks to add error tracking to a code path. Complements the official Sentry plugin, which owns SDK setup and fixing production issues. Subcommands: audit | instrument."
+argument-hint: "[audit|instrument]"
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, ToolSearch, WebFetch, AskUserQuestion]
 ---
 
 # Sentry Ops
 
-Four workflows. Read exactly one per run.
+Two workflows. Read exactly one per run.
+
+## Relationship to the official Sentry plugin
+
+This plugin is deliberately **narrow and complementary**. If the official `sentry`
+plugin is installed, it owns the things it does first-party and better:
+
+- **Setting up an SDK** in any language/framework → its `sentry-sdk-setup`.
+- **Finding and fixing production issues** through the Sentry MCP server → its
+  `sentry-fix-issues` (and `sentry-code-review` for `sentry[bot]` PR comments).
+
+`sentry-ops` covers the two things that plugin does not: **auditing an already-installed
+setup** against current docs, and the **inbound-PII gate** — what the SDK attaches to
+events on its own. Both workflows are **repo-only**: they read code and docs, never the
+Sentry MCP. If a request is really "fix this production issue," point the user at the
+official plugin rather than reaching for issue data here.
 
 ## Dispatch
 
 Take the first whitespace-delimited token of `$ARGUMENTS` as the subcommand; the
 remaining words are context to pass into the workflow, not part of the dispatch.
 
-- First token is `audit|triage|investigate|instrument` → read
+- First token is `audit|instrument` → read
   `${CLAUDE_PLUGIN_ROOT}/skills/sentry-ops/workflows/<token>.md` and follow it exactly.
-- `$ARGUMENTS` is empty → run **Phase 0** below, then recommend a subcommand and stop.
-  Do not pick one silently.
-- `$ARGUMENTS` looks like a Sentry issue ID or a `sentry.io` URL with no subcommand →
-  `investigate`, passing it as context.
-- Anything else → say the subcommand wasn't recognized and list the four. Do not guess.
+- `$ARGUMENTS` is empty → run **Phase 0** below, then recommend `audit` or `instrument`
+  and stop. Do not pick one silently.
+- Anything else → say the subcommand wasn't recognized and list the two. Do not guess.
 
 `${CLAUDE_PLUGIN_ROOT}` is resolved to an absolute path by the runtime. Never substitute
 it yourself and never fall back to a relative path; if it did not resolve, stop and say so.
@@ -42,8 +55,9 @@ Find and read, in this order:
    passed, and whether init is gated (`enabled:`, an env check, a build flag). More than
    one init for the same runtime is a finding, not a variant.
 3. **Stack-trace readability** — is the production build minified, and does anything
-   upload sourcemaps (bundler plugin, `sentry-cli`, debug IDs)? This decides whether
-   `investigate` can navigate by stack frame or must navigate by tag.
+   upload sourcemaps (bundler plugin, `sentry-cli`, debug IDs)? Missing sourcemaps on a
+   minified build is an `audit` finding: every future issue-fix (via the official plugin)
+   lands on unreadable frames and has to navigate by tag instead.
 4. **Release attribution** — is `release` (and `dist`) set, from what source? If not,
    events cannot be attributed to a deploy from Sentry alone.
 5. **Existing capture conventions** — sample the existing `captureException` /
@@ -56,34 +70,6 @@ Find and read, in this order:
 
 State what you found before acting on it. If a fact is unavailable, say so — an
 unverified assumption about a capture path is how PII leaks get introduced.
-
-## Sentry MCP — session facts
-
-`triage` and `investigate` need a user-configured Sentry MCP server. `audit` and
-`instrument` do not; they are repo-only.
-
-If Sentry MCP tools are not present, say so plainly and offer `audit` or `instrument`
-instead. Do not simulate issue data, and do not fetch from the Sentry web API as a
-substitute unless the user explicitly sets that up.
-
-**Detect the scope; do not assume it.** A Sentry MCP endpoint URL may bake in the org
-and project (`.../mcp/<org>/<project>`) or may not. When it does, the tool schemas omit
-`organizationSlug` even though the published docs and examples show it — passing it
-fails. When it does not, it is required.
-
-> **Trust the live tool schema over any documented example.** Read the schema you were
-> actually given. If a call fails on an argument that the docs show, the docs are
-> describing a differently-scoped endpoint.
-
-Not every Sentry tool is directly callable. A small set is exposed directly
-(typically issue search, event search, resource fetch, issue update, Seer analysis);
-the rest — alert rules, DSNs, monitors, release details, full issue details — route
-through a generic execute/proxy tool. When you do not know a tool's name or its
-arguments, **search the tool catalog first** rather than guessing at a call.
-
-`analyze_issue_with_seer` takes minutes. It is **not** a default follow-up to fetching
-issue details. Run it only when the user asks, or when the issue details genuinely do
-not reveal the cause and you say why first.
 
 ## Grounding rule — for `audit` especially
 
@@ -103,7 +89,7 @@ the report:
    value present or not) and **state in the report that doc-grounded checks were
    skipped**. Never silently downgrade.
 
-## PII boundary — applies to every workflow
+## PII boundary — applies to both workflows
 
 Two separate problems. Most projects police the first and get bitten by the second.
 

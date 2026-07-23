@@ -1,6 +1,11 @@
 # Instrument
 
-Add or fix capture sites. Repo-only — no Sentry MCP server needed.
+Add or fix capture sites behind the PII gate. Repo-only — reads code, not the Sentry MCP.
+
+This is not SDK setup. Installing or wiring a Sentry SDK in a new project is the official
+`sentry` plugin's `sentry-sdk-setup`. This workflow assumes the SDK is already installed
+and covers the part that plugin doesn't emphasize: getting each capture site right against
+this repo's conventions, and the **inbound-PII gate** (§4).
 
 Complete Phase 0 in `SKILL.md` first. Steps 1 and 2 are entirely built on it.
 
@@ -21,8 +26,9 @@ search and grouping.
 
 ## 2. Normalize non-`Error` values before capture
 
-Passing a plain object to `captureException` produces a useless title and no stack — see
-`investigate.md` step 3 for what that looks like in the UI.
+Passing a plain object to `captureException` produces a useless title (a short minified
+token, or `[object Object]`) and no stack — the real message ends up buried in serialized
+context. `audit` flags existing sites with this defect; here you prevent new ones.
 
 If Phase 0 found an existing normalization helper, **use it.** Do not hand-roll a second
 one. If there is none, add one small dependency-free helper in a leaf module with no

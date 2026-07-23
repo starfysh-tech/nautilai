@@ -14,6 +14,20 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-23
+
+- **sentry-ops** — narrowed from four workflows to two (`audit`, `instrument`) to
+  complement Sentry's official `sentry` plugin instead of competing with it. That plugin
+  is first-party, bundles a Sentry MCP server, and owns the two biggest jobs — SDK setup
+  across ~20 languages and fixing production issues (`sentry-fix-issues`). `sentry-ops`'s
+  `triage` and `investigate` duplicated the issue-fixing half with a worse setup story
+  (you had to wire the MCP yourself), so they were dropped. What's left is the two gaps
+  the official plugin leaves and does not cover: auditing an *existing* setup against
+  current docs, and the *inbound* PII gate — what the SDK attaches to events on its own.
+  The plugin is now fully repo-only (no Sentry MCP), which also makes the two PII models
+  cleanly complementary: the official plugin guards data coming out of Sentry, this
+  guards what goes in.
+
 ## 2026-07-22
 
 - **sentry-ops** — the Sentry knowledge worth keeping was trapped in one project's
