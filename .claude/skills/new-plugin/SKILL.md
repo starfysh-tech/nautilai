@@ -98,7 +98,15 @@ Create a new plugin in this repo and register it. Plugin name comes from `$ARGUM
    `check-marketplace-sync.sh` asserts the dropdown lists exactly the marketplace
    plugins, so a new plugin isn't reportable until it's here.
 
-10. **Validate**:
+10. **Add a row to the root README plugin table** — append one row to the table under
+    `## Plugins` in the repo-root `README.md`, keeping it in the same order as
+    `marketplace.json`: `| **<name>** | <one-line description> | `/plugin install
+    <name>@nautilai` | [<name>/](./<name>/README.md) |`. **Not CI-enforced** — unlike the
+    docs page and the bug-report dropdown, nothing checks this table, so it drifts
+    silently if you skip it (it fell eight plugins behind once). It is the human-facing
+    index; `marketplace.json` stays the canonical registry.
+
+11. **Validate**:
 
 ```bash
 claude plugin validate ./<name> --strict
@@ -108,4 +116,4 @@ python3 -c "from html.parser import HTMLParser; HTMLParser().feed(open('docs/ind
 bash .github/scripts/check-marketplace-sync.sh  # docs page + dropdown + version sync
 ```
 
-11. Report the created files and remind: commit with a `feat:` conventional commit (release-please will bump the linked version on release).
+12. Report the created files and remind: commit with a `feat:` conventional commit (release-please will bump the linked version on release).
