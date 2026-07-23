@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "sentry-hygiene",
   "displayName": "Sentry Hygiene",
-  "version": "2.19.0",
+  "version": "2.20.0",
   "description": "Audit a repo’s Sentry setup against official SDK docs and instrument capture behind a hard PII boundary — including what the SDK attaches on its own. Complements the official Sentry plugin, which owns SDK setup and issue-fixing. One skill, two workflows.",
   "author": {
     "name": "Randall Noval",
