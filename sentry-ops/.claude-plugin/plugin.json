@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "sentry-ops",
   "displayName": "Sentry Ops",
-  "version": "2.19.0",
+  "version": "2.20.0",
   "description": "Audit a repo’s Sentry setup against official SDK docs, triage and investigate production issues through the Sentry MCP server, and add instrumentation behind a hard PII boundary — including what the SDK attaches on its own. One skill, four workflows.",
   "author": {
     "name": "Randall Noval",

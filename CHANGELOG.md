@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.20.0](https://github.com/starfysh-tech/nautilai/compare/v2.19.0...v2.20.0) (2026-07-23)
+
+
+### Features
+
+* **sentry-ops:** add sentry-ops plugin ([#124](https://github.com/starfysh-tech/nautilai/issues/124)) ([2ccadbc](https://github.com/starfysh-tech/nautilai/commit/2ccadbc52744f6280a629d2954ca607b960599ef))
+
 ## [2.19.0](https://github.com/starfysh-tech/nautilai/compare/v2.18.6...v2.19.0) (2026-07-17)
 
 

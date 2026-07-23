@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "autodev",
   "displayName": "AutoDev",
-  "version": "2.19.0",
+  "version": "2.20.0",
   "description": "Bounded autonomous development loop: scripted worktree lanes, fast worker subagents, objective script-based verification, and a hard 3-failure escalation to the user.",
   "author": {
     "name": "Randall Noval",
