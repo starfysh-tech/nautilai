@@ -72,12 +72,20 @@ Create a new plugin in this repo and register it. Plugin name comes from `$ARGUM
    release-please merges multiple `extra-files` targeting the same file (`marketplace.json`)
    via a `CompositeUpdater`, so two jsonpaths into one file is supported.
 
-7. **Add a card to the docs page** — in `docs/index.html`, copy the `<div class="feature">`
-   block of an existing plugin and adapt it: heading, description, badges, the
-   `handoff#readme`-style docs link, and a `feature-term` with copy-fields. Give each command
-   its own `.copyfield` with a `.copy-btn` whose `data-copy` is the **exact** command
-   (including the leading `/`) — including a `/plugin install <name>@nautilai` field so users
-   never have to substitute a placeholder. Also add the plugin to the footer link list.
+7. **Add an entry to the docs index** — `docs/index.html` renders the plugin directory
+   from a **JavaScript object registry**, not hand-written markup. Append one object to
+   that array (it sits just above the `FILTERLABEL` map), copying an existing entry's
+   shape rather than writing HTML:
+
+```js
+{id:'<name>',cat:'<Audit & validate|Git & PRs|Context & planning|Security>',cf:'<audit|git|context|security>',tag:'<short-tag>',desc:'…',badges:['…','…'],install:'/plugin install <name>@nautilai',run:'/<primary-command>',runNote:'<what that run does>',more:['/<other>','/<other>'],docs:'plugins/<name>.html'},
+```
+
+   `cat` is the human label and `cf` its filter key — they must correspond via
+   `FILTERLABEL`, or the entry vanishes when that filter is active. Omit `more` for a
+   single-command plugin. Every command string carries its leading `/`; the copy buttons
+   are generated from these values, so a missing slash ships a broken copy-to-clipboard.
+   Also add the plugin to the footer link list (plain `<a href="plugins/<name>.html">`).
 
 8. **Generate the themed docs page** — create `docs/plugins/<name>.html` from
    `docs/plugins/_TEMPLATE.html`, filling every slot per `docs/plugins/_slots.md`

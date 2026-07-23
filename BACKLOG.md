@@ -32,3 +32,21 @@ Tracked, non-urgent work for the nautilai marketplace and its plugins.
     documented primary path is the one path never validated.
   - **Cost / risk:** one session, one small task; failures are visible, not
     silent (worst case is first-run friction, which is itself the data).
+
+## sentry-ops
+
+- **Deferred workflows.** Five candidates were scoped and left out of the initial
+  plugin, which ships four workflows (`audit`, `triage`, `investigate`,
+  `instrument`):
+  - alert-rule and monitor review
+  - release-health and adoption analysis
+  - quota and sampling cost tuning
+  - performance-trace investigation
+  - cron monitor setup
+  - **Why:** four workflows that hold up under real use beat eight thin ones. Each
+    deferred item needs its own grounding — alerting and quota behavior are
+    org-level Sentry settings, and performance traces are a different data shape
+    than issues — so bolting them on would have diluted the four that work.
+  - **Cost / risk:** each is largely additive (a new workflow file plus its
+    disposition rules), so none blocks the others; the real cost is the same
+    docs-grounding pass `audit` already pays, repeated per surface.
