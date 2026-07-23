@@ -144,6 +144,7 @@ you passed.
 ## Findings
 
 Report findings per the marketplace's finding-dispositions convention:
-`auto-fix` (mechanical and safe), `report` (needs a human judgment call), `ask-user`
-(destructive, ambiguous, or policy-bearing). Never auto-apply a `report` or `ask-user`
+`auto-fix` (mechanical, reversible, intent-preserving — apply and report it), `report`
+(informational; remediation is the user's to perform), `ask-user` (any judgment about
+intent, trade-offs, or correctness — surface and wait). Never auto-apply an `ask-user`
 finding. Cite `file:line` for every finding that points at code.
