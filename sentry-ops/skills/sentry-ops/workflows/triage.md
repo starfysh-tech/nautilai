@@ -45,9 +45,9 @@ If `release` *is* configured, use it, and say which release.
 
 For each shortlisted issue:
 
-- Issue short ID and title. If the title is a short meaningless token, note that it
-  likely means a non-`Error` value was captured — the real message is in the serialized
-  context, and it is an instrumentation defect worth fixing via `instrument`.
+- Issue short ID and title. A short meaningless token as the title is the mis-captured
+  non-`Error` signature (`investigate.md` step 3) — flag it as an instrumentation defect
+  for `instrument`, and don't rank it on the token.
 - First seen / last seen, event count, users affected.
 - The tags that locate it in the codebase.
 - One line on why it is ranked where it is.

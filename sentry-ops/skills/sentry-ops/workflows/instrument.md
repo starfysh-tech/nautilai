@@ -25,9 +25,9 @@ Passing a plain object to `captureException` produces a useless title and no sta
 `investigate.md` step 3 for what that looks like in the UI.
 
 If Phase 0 found an existing normalization helper, **use it.** Do not hand-roll a second
-one. If there is none, add one small dependency-free helper in its own module — not
-inside the data-access layer, so a UI module can wrap an error without importing the
-data layer and its transitive deps into that module's tests.
+one. If there is none, add one small dependency-free helper in a leaf module with no
+heavy imports, so any capturing module — on any runtime — can pull it in cheaply and
+test in isolation.
 
 Apply it at every site where a caught or destructured `error` can reach Sentry:
 
@@ -35,8 +35,8 @@ Apply it at every site where a caught or destructured `error` can reach Sentry:
 - `catch (e)` where `e` may be a string, a rejected non-`Error`, or a response body.
 - Rejected promises from `fetch`-style APIs.
 
-Preserve the original's fields (code, details, hint, status) into context — normalizing
-should not lose the diagnostic payload.
+Preserve the original error's own diagnostic fields into context — normalizing should
+not lose the payload the raw value carried.
 
 ## 3. Other capture shapes
 
@@ -59,11 +59,11 @@ errors routinely embed a user email in the message text. And confirm against Pha
 whether any ID you are about to log is a **bearer capability** rather than an
 identifier; if possessing it grants access to the record, do not log it.
 
-**What the SDK adds on its own.** Your capture call is not the only thing on the event.
-Default integrations attach request/page URL, console and network breadcrumbs, and
-IP-derived location without being asked. Before adding a capture on a path whose URL
-carries a token, code, or share ID — auth callbacks, share links, password resets —
-check what the URL will look like on the event, not just what you passed.
+**What the SDK adds on its own.** Your capture call is not the only thing on the event;
+default integrations enrich it — see the boundary in `SKILL.md` for what, and check it
+against docs rather than from memory. Before adding a capture on a path whose URL carries
+a token, code, or share ID — auth callbacks, share links, password resets — check what
+the event will carry, not just what you passed.
 
 If this repo's own documented rules are narrower than this gate, the gate wins, and say
 so rather than silently overriding project docs.

@@ -37,9 +37,10 @@ Find and read, in this order:
 
 1. **SDK and version** — the Sentry package(s) and resolved versions from the lockfile,
    not the manifest range. Multiple SDKs (browser + server + edge) are common; find all.
-2. **Init sites** — every `Sentry.init` / `sentry_sdk.init` call. Note the file, the
-   options passed, and whether init is gated (`enabled:`, an env check, a build flag).
-   More than one init for the same runtime is a finding, not a variant.
+2. **Init sites** — every `Sentry.init` / `sentry_sdk.init` call. One read of these
+   sites yields items 2, 4, and 7; gather them together. Note the file, the options
+   passed, and whether init is gated (`enabled:`, an env check, a build flag). More than
+   one init for the same runtime is a finding, not a variant.
 3. **Stack-trace readability** — is the production build minified, and does anything
    upload sourcemaps (bundler plugin, `sentry-cli`, debug IDs)? This decides whether
    `investigate` can navigate by stack frame or must navigate by tag.
@@ -114,7 +115,8 @@ public URLs, invite tokens), it is a credential, not an identifier. Anyone with 
 read access can replay it. Identify these in Phase 0 before logging any ID.
 
 **2. What the SDK attaches that you never passed.** This is the part that leaks. Default
-integrations enrich events on their own, without any capture call:
+integrations enrich events on their own, without any capture call. The specifics below
+hold in current SDKs and are what to verify against docs — not a frozen list to trust:
 
 - **Browser: the page URL.** `httpContextIntegration` is on by default and attaches the
   request URL, user-agent, referrer, and headers to every event.

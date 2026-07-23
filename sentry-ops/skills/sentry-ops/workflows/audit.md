@@ -5,26 +5,23 @@ Validate this repo's Sentry setup against what the official docs actually say. R
 
 **This is a discover → ground → compare loop, not a checklist.** The checks below are
 written as *questions to put to the docs*, deliberately not as answers. Sentry SDK
-defaults change between major versions; a frozen answer list would be wrong within a
-year and confidently so. Resolve every expectation against the docs for the SDK and
-major version this repo actually resolved.
+defaults change between major versions, so resolve every expectation against the docs for
+the SDK and major version this repo actually resolved.
 
 ## 1. Discover
 
 Run Phase 0 from `SKILL.md` in full. Everything below compares against its output.
 
-Additionally collect, per SDK present:
+Extend Phase 0's init read with the detail it did not need — don't re-read the files:
 
-- Every option passed to init, with its literal value — and note which options are
-  *absent*, since absence means the documented default applies and the default is the
-  thing you must look up.
+- The *literal value* of every option, and which options are *absent* — absence means the
+  documented default applies, and that default is the thing you must look up.
 - Integrations explicitly added, and any explicitly removed or filtered out.
 - Sourcemap/debug-symbol upload: bundler plugin, CLI step, CI job, auth token source.
 - Sampling: error sample rate and trace sample rate (or sampler function), plus profiling
   and session-replay rates if present.
 - Scrubbing hooks: `beforeSend`, `beforeSendTransaction`, `beforeBreadcrumb`,
   `ignoreErrors`, `denyUrls`, and any equivalent.
-- Where the DSN and any auth token come from, per runtime, and what happens when unset.
 
 ## 2. Ground
 
@@ -128,13 +125,10 @@ Group findings by area, ordered by severity. Every finding carries:
   breaks and when.
 - A disposition: `auto-fix` / `report` / `ask-user`.
 
-Dispositions for this workflow:
-- `auto-fix` — mechanical and unambiguous, e.g. adding a missing tag to match the
-  repo's own existing convention.
-- `report` — anything requiring a judgment call: sampling rates, which integrations to
-  disable, scrubbing policy.
-- `ask-user` — anything touching PII, secrets, DSN/token handling, or cost. Never
-  auto-apply these.
+Disposition maps to `SKILL.md`'s Findings convention; how it lands here:
+- `auto-fix` — e.g. adding a missing tag to match the repo's own existing convention.
+- `report` — sampling rates, which integrations to disable, scrubbing policy.
+- `ask-user` — anything touching PII, secrets, DSN/token handling, or cost.
 
 Open with a short state-of-play: SDKs and versions found, grounding tier used, and what
 you could **not** verify. If you ran structural-only, say so at the top — a reader must
