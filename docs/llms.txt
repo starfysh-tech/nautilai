@@ -42,7 +42,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [cc-adoption-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-adoption-audit.html): Audits a Claude Code setup against available features and surfaces what isn't being used.
 - [cc-skill-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-skill-audit.html): Audits skills against Anthropic's authoring guidance — diagnoses under/over-triggering, de-bloats bodies.
 - [cc-validate-hooks](https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html): Validates Claude Code hook configuration in `settings.json`, with an optional `--fix`.
-- [sentry-ops](https://starfysh-tech.github.io/nautilai/plugins/sentry-ops.html): Audits a repo's Sentry setup against official SDK docs fetched at runtime, triages and investigates production issues through the Sentry MCP server, instruments behind a hard PII boundary. **Not ported to Hermes**: MCP-centric, and a Hermes port would have no Sentry MCP server to call for `triage`/`investigate`.
+- [sentry-hygiene](https://starfysh-tech.github.io/nautilai/plugins/sentry-hygiene.html): Audits a repo's Sentry setup against official SDK docs fetched at runtime, and instruments capture behind a hard PII boundary. Repo-only (no Sentry MCP). Deliberately complements the official `sentry` plugin, which owns SDK setup and fixing production issues. **Not currently ported to Hermes.**
 
 ## Notes for agents — Hermes runtime
 
@@ -62,14 +62,13 @@ docs over these will waste your time — several of their claims did not hold.
 - **A skill serves both runtimes via a "Resource paths" adapter section.** Each runtime substitutes only its own token and leaves the other as literal text, so the resolved line is the one to follow. Never substitute a token yourself and never fall back to a relative path.
 - **If `skills.template_vars: false` is set in `~/.hermes/config.yaml`**, Hermes stops substituting `${HERMES_SKILL_DIR}` and bundled-script paths arrive literal, breaking any skill that calls one. Claude Code is unaffected.
 
-## Notes for agents — sentry-ops
+## Notes for agents — sentry-hygiene
 
-Runtime facts about the MCP surface this plugin drives. Claude Code only.
+Claude Code only. Two workflows, both repo-only.
 
-- **The Sentry MCP server is a prerequisite for `triage` and `investigate`** — they read live issue data and have no repo-only fallback. `audit` and `instrument` read the repo only and need no MCP server at all. The plugin neither bundles nor provisions the server.
-- **Whether `organizationSlug` must be passed depends on the configured MCP endpoint URL** — some bake the org and project into the URL, some do not. Detect it from the live tool schema; do not assume, and trust the schema over published examples when they disagree.
-- **Not every Sentry tool is directly callable.** Unlisted ones route through `execute_sentry_tool`; use `search_sentry_tools` to find tool names and their arguments rather than guessing.
-- **Seer analysis (`analyze_issue_with_seer`) takes minutes.** Treat it as a deliberate step, never a reflex follow-up to fetching issue details.
+- **This plugin is complementary to the official `sentry` plugin, not a replacement.** If a task is "set up a Sentry SDK" or "fix/triage/investigate a production issue," that is the official plugin's job (`sentry-sdk-setup`, `sentry-fix-issues`). `sentry-hygiene` does the two things it doesn't: `audit` (validate an existing setup vs docs) and `instrument` (add/fix capture behind the inbound-PII gate).
+- **Neither workflow calls a Sentry MCP server.** Both read the repo and the docs only. Do not reach for issue data here; there is no MCP surface.
+- **The two PII models are complementary.** The official plugin guards data coming *out* of Sentry (event data is untrusted input, don't leak it into code). `sentry-hygiene` guards the *inbound* half — what the SDK attaches to events on its own (page URL, breadcrumbs, server request data) that no capture call passed.
 - **Context7 is optional.** It grounds `audit` in official SDK docs; without it `audit` falls back to `WebFetch` of `docs.sentry.io`, then degrades to structural-only checks and says so in its report.
 
 ## Optional

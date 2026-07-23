@@ -14,6 +14,23 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-07-23
+
+- **sentry-ops → renamed `sentry-hygiene`, and narrowed from four workflows to two**
+  (`audit`, `instrument`). The trigger was Sentry's own first-party `sentry` plugin: it
+  bundles a Sentry MCP server and owns the two biggest jobs — SDK setup across ~20
+  languages and fixing production issues (`sentry-fix-issues`). Our `triage` and
+  `investigate` duplicated the issue-fixing half with a worse setup story (you had to
+  wire the MCP yourself), so they were dropped. What's left is the two gaps the official
+  plugin does not cover: auditing an *existing* setup against current docs, and the
+  *inbound* PII gate — what the SDK attaches to events on its own. The plugin is now
+  fully repo-only (no Sentry MCP), which also makes the two PII models cleanly
+  complementary: the official plugin guards data coming out of Sentry, this guards what
+  goes in. The rename followed the narrowing — "ops" implied the production/issue work
+  that moved to the official plugin, so the name pointed at the half we removed;
+  "hygiene" names what's left, keeping a setup correct and its capture PII-safe.
+  (Shipped once as `sentry-ops` in v2.20.0; renamed before meaningful adoption.)
+
 ## 2026-07-22
 
 - **sentry-ops** — the Sentry knowledge worth keeping was trapped in one project's
