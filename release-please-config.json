@@ -45,7 +45,7 @@
         { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[13].version" },
         { "type": "json", "path": "autodev/.claude-plugin/plugin.json", "jsonpath": "$.version" },
         { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[14].version" },
-        { "type": "json", "path": "sentry-ops/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": "sentry-hygiene/.claude-plugin/plugin.json", "jsonpath": "$.version" },
         { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[15].version" }
       ]
     }

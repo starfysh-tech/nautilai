@@ -33,10 +33,10 @@ Tracked, non-urgent work for the nautilai marketplace and its plugins.
   - **Cost / risk:** one session, one small task; failures are visible, not
     silent (worst case is first-run friction, which is itself the data).
 
-## sentry-ops
+## sentry-hygiene
 
 - **Narrowed to complement the official Sentry plugin, not compete.** After Sentry's
-  first-party `sentry` plugin landed, `sentry-ops` dropped `triage` and `investigate`
+  first-party `sentry` plugin landed, `sentry-hygiene` dropped `triage` and `investigate`
   (subsumed by that plugin's `sentry-fix-issues`, which also bundles the MCP) and now
   ships two repo-only workflows: `audit` and `instrument`. The five originally-deferred
   candidates are **not on our roadmap** — every one is squarely the official plugin's
@@ -47,5 +47,5 @@ Tracked, non-urgent work for the nautilai marketplace and its plugins.
   - performance-trace investigation → part of its `sentry-fix-issues`
   - cron monitor setup → its per-SDK setup skills
   - **Why:** building these would re-compete with a first-party plugin that does them
-    better. `sentry-ops`'s durable value is the two gaps it leaves — auditing an
+    better. `sentry-hygiene`'s durable value is the two gaps it leaves — auditing an
     existing setup, and the inbound-PII gate. Keep the scope there.

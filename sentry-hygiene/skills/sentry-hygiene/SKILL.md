@@ -1,11 +1,11 @@
 ---
-name: sentry-ops
-description: "Audit a repo's Sentry setup against official SDK docs and add instrumentation behind a hard PII boundary. Use when the user runs /sentry-ops, asks whether Sentry is set up correctly, wants a repo's Sentry config validated, or asks to add error tracking to a code path. Complements the official Sentry plugin, which owns SDK setup and fixing production issues. Subcommands: audit | instrument."
+name: sentry-hygiene
+description: "Audit a repo's Sentry setup against official SDK docs and add instrumentation behind a hard PII boundary. Use when the user runs /sentry-hygiene, asks whether Sentry is set up correctly, wants a repo's Sentry config validated, or asks to add error tracking to a code path. Complements the official Sentry plugin, which owns SDK setup and fixing production issues. Subcommands: audit | instrument."
 argument-hint: "[audit|instrument]"
 allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, ToolSearch, WebFetch, AskUserQuestion]
 ---
 
-# Sentry Ops
+# Sentry Hygiene
 
 Two workflows. Read exactly one per run.
 
@@ -18,7 +18,7 @@ plugin is installed, it owns the things it does first-party and better:
 - **Finding and fixing production issues** through the Sentry MCP server → its
   `sentry-fix-issues` (and `sentry-code-review` for `sentry[bot]` PR comments).
 
-`sentry-ops` covers the two things that plugin does not: **auditing an already-installed
+`sentry-hygiene` covers the two things that plugin does not: **auditing an already-installed
 setup** against current docs, and the **inbound-PII gate** — what the SDK attaches to
 events on its own. Both workflows are **repo-only**: they read code and docs, never the
 Sentry MCP. If a request is really "fix this production issue," point the user at the
@@ -30,7 +30,7 @@ Take the first whitespace-delimited token of `$ARGUMENTS` as the subcommand; the
 remaining words are context to pass into the workflow, not part of the dispatch.
 
 - First token is `audit|instrument` → read
-  `${CLAUDE_PLUGIN_ROOT}/skills/sentry-ops/workflows/<token>.md` and follow it exactly.
+  `${CLAUDE_PLUGIN_ROOT}/skills/sentry-hygiene/workflows/<token>.md` and follow it exactly.
 - `$ARGUMENTS` is empty → run **Phase 0** below, then recommend `audit` or `instrument`
   and stop. Do not pick one silently.
 - Anything else → say the subcommand wasn't recognized and list the two. Do not guess.

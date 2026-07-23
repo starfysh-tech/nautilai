@@ -27,7 +27,7 @@ body:
         - dep-review
         - github-issue-auditor
         - autodev
-        - sentry-ops
+        - sentry-hygiene
     validations:
       required: true
   - type: input

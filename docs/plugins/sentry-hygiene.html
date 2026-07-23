@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>sentry-ops — nautilai</title>
+<title>sentry-hygiene — nautilai</title>
 <meta name="description" content="Audit a repo's Sentry setup against official SDK docs and instrument capture behind a hard PII boundary. Complements the official Sentry plugin, which owns SDK setup and issue-fixing." />
-<meta property="og:title" content="sentry-ops — nautilai" />
+<meta property="og:title" content="sentry-hygiene — nautilai" />
 <meta property="og:description" content="Audit a repo's Sentry setup against official SDK docs and instrument capture behind a hard PII boundary. Complements the official Sentry plugin, which owns SDK setup and issue-fixing." />
 <meta property="og:type" content="website" />
 <meta name="theme-color" content="#0a141d" />
@@ -151,15 +151,15 @@
   <a class="back" href="../index.html#plugins">&larr; all plugins</a>
 
   <header class="plugin-hero">
-    <h1 class="plugin-name">sentry-ops</h1>
+    <h1 class="plugin-name">sentry-hygiene</h1>
     <p class="tagline">Audit a repo's Sentry setup against the official SDK docs and instrument capture behind a PII boundary. Complements the official Sentry plugin.</p>
   </header>
 
   <section id="install">
     <h2>Install</h2>
     <div class="copyfield">
-      <code class="cf-code"><span class="prompt">/</span>plugin install sentry-ops@nautilai</code>
-      <button class="copy-btn" type="button" data-copy="/plugin install sentry-ops@nautilai" aria-label="Copy install command">
+      <code class="cf-code"><span class="prompt">/</span>plugin install sentry-hygiene@nautilai</code>
+      <button class="copy-btn" type="button" data-copy="/plugin install sentry-hygiene@nautilai" aria-label="Copy install command">
         <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
         <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -171,15 +171,15 @@
   <section id="what">
     <h2>What it does</h2>
     <p>One skill with two workflows, both repo-only — they read code and docs, never a Sentry MCP server. <code>audit</code> reads the repo's actual Sentry setup — SDK and version from the lockfile, <code>Sentry.init</code> options, integrations, sourcemap upload, release and dist wiring, sampling rates, <code>beforeSend</code> scrubbing, environment gating, per-runtime DSNs — then checks it against the official Sentry docs fetched at runtime rather than against a frozen checklist. <code>instrument</code> adds or repairs capture sites behind a PII gate that covers both what you attach and what the SDK attaches on its own.</p>
-    <p>It is deliberately complementary to the first-party <a href="https://github.com/getsentry/sentry-for-ai">official Sentry plugin</a>, which owns SDK setup and fixing production issues through a bundled MCP server. <code>sentry-ops</code> covers the two gaps that plugin leaves: validating an <em>existing</em> setup, and the inbound-PII gate — what the SDK attaches to events on its own. For live issues, use the official plugin.</p>
+    <p>It is deliberately complementary to the first-party <a href="https://github.com/getsentry/sentry-for-ai">official Sentry plugin</a>, which owns SDK setup and fixing production issues through a bundled MCP server. <code>sentry-hygiene</code> covers the two gaps that plugin leaves: validating an <em>existing</em> setup, and the inbound-PII gate — what the SDK attaches to events on its own. For live issues, use the official plugin.</p>
   </section>
 
   <section id="commands">
     <h2>Commands / skills</h2>
     <ul class="skill-list">
-      <li><div class="sk-name">/sentry-ops</div><p>Runs discovery, then recommends <code>audit</code> or <code>instrument</code>.</p><div class="sk-triggers">explicit slash form only</div></li>
-      <li><div class="sk-name">/sentry-ops audit</div><p>Validate the repo's Sentry configuration against the official SDK docs for the detected platform, and report the gaps.</p><div class="sk-triggers">explicit slash form only</div></li>
-      <li><div class="sk-name">/sentry-ops instrument</div><p>Add or repair capture sites — <code>captureException</code>, messages, breadcrumbs, context — behind the PII boundary.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/sentry-hygiene</div><p>Runs discovery, then recommends <code>audit</code> or <code>instrument</code>.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/sentry-hygiene audit</div><p>Validate the repo's Sentry configuration against the official SDK docs for the detected platform, and report the gaps.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/sentry-hygiene instrument</div><p>Add or repair capture sites — <code>captureException</code>, messages, breadcrumbs, context — behind the PII boundary.</p><div class="sk-triggers">explicit slash form only</div></li>
     </ul>
   </section>
 
@@ -234,7 +234,7 @@
 
   <footer>
     <nav class="foot-links">
-      <a href="https://github.com/starfysh-tech/nautilai/tree/main/sentry-ops" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      <a href="https://github.com/starfysh-tech/nautilai/tree/main/sentry-hygiene" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
       <a href="../index.html#plugins">&larr; all plugins</a>
     </nav>
   </footer>

@@ -402,7 +402,7 @@
       <a href="plugins/dep-review.html">dep-review</a>
       <a href="plugins/github-issue-auditor.html">github-issue-auditor</a>
       <a href="plugins/autodev.html">autodev</a>
-      <a href="plugins/sentry-ops.html">sentry-ops</a>
+      <a href="plugins/sentry-hygiene.html">sentry-hygiene</a>
       <a href="https://starfysh.net" target="_blank" rel="noopener noreferrer">Starfysh</a>
     </nav>
   </div>
@@ -470,7 +470,7 @@
       {id:'dep-review',cat:'Git & PRs',cf:'git',tag:'deps',desc:'Evaluates Dependabot PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts grounded in the PR diff and codebase usage. Batch all open PRs or one by number. Low-risk patch/minor-dev-dep bumps that pass CI auto-merge; other merges and closes gate behind approval.',badges:['verdicts','auto-merge','batch','file:line'],install:'/plugin install dep-review@nautilai',run:'/dep-review',runNote:'triage Dependabot PRs',docs:'plugins/dep-review.html'},
       {id:'github-issue-auditor',cat:'Git & PRs',cf:'git',tag:'issues',desc:'Audits a repo’s GitHub issues for cleanup — fuzzy-matched duplicates, orphaned sub-issues, unlabeled or stale items, and inconsistent labels against the repo’s own auto-detected taxonomy. Read-only by default; mutations are gated.',badges:['duplicates','orphans','stale','gated'],install:'/plugin install github-issue-auditor@nautilai',run:'/github-issue-auditor',runNote:'audit issue hygiene',docs:'plugins/github-issue-auditor.html'},
       {id:'autodev',cat:'Context & planning',cf:'context',tag:'autonomous',desc:'Runs a ticket or plan through a bounded autonomous loop: scripted worktree lanes, fast haiku worker subagents, objective script-based verification, and a hard stop with a guidance handoff after 3 counted implementation failures.',badges:['worktrees','haiku-workers','verify','3-strike'],install:'/plugin install autodev@nautilai',run:'/autodev',runNote:'run a ticket to done or blocked',docs:'plugins/autodev.html'},
-      {id:'sentry-ops',cat:'Audit & validate',cf:'audit',tag:'sentry',desc:'Audits a repo’s Sentry setup — SDK version, init options, integrations, sourcemaps, sampling, scrubbing — against official SDK docs fetched at runtime rather than a frozen checklist, and instruments capture behind a PII boundary that also covers what the SDK attaches on its own. Repo-only; complements the official Sentry plugin, which owns SDK setup and issue-fixing.',badges:['audit','instrument','PII gate','repo-only'],install:'/plugin install sentry-ops@nautilai',run:'/sentry-ops audit',runNote:'validate the Sentry setup',more:['/sentry-ops instrument'],docs:'plugins/sentry-ops.html'}
+      {id:'sentry-hygiene',cat:'Audit & validate',cf:'audit',tag:'sentry',desc:'Audits a repo’s Sentry setup — SDK version, init options, integrations, sourcemaps, sampling, scrubbing — against official SDK docs fetched at runtime rather than a frozen checklist, and instruments capture behind a PII boundary that also covers what the SDK attaches on its own. Repo-only; complements the official Sentry plugin, which owns SDK setup and issue-fixing.',badges:['audit','instrument','PII gate','repo-only'],install:'/plugin install sentry-hygiene@nautilai',run:'/sentry-hygiene audit',runNote:'validate the Sentry setup',more:['/sentry-hygiene instrument'],docs:'plugins/sentry-hygiene.html'}
     ];
     var FILTERLABEL = { all:'All', git:'Git & PRs', audit:'Audit & validate', context:'Context & planning', security:'Security' };
     var listEl = document.getElementById('pdex-list'), detailEl = document.getElementById('pdex-detail'),

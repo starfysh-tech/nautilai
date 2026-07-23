@@ -1,4 +1,4 @@
-# Sentry Ops
+# Sentry Hygiene
 
 Audit a repo’s Sentry setup against official SDK docs and instrument capture behind a hard
 PII boundary — including what the SDK attaches on its own. Complements the official Sentry
@@ -17,7 +17,7 @@ party, and better — the two biggest jobs:
 - **Finding and fixing production issues** through a bundled Sentry MCP server
   (`sentry-fix-issues`, `sentry-code-review`).
 
-`sentry-ops` does **not** compete with either. It covers the two gaps that plugin leaves:
+`sentry-hygiene` does **not** compete with either. It covers the two gaps that plugin leaves:
 
 - **`audit`** — validate an *existing* setup against current docs. The official plugin
   installs Sentry; it has no equivalent for confirming an install is correct (sourcemaps
@@ -33,15 +33,15 @@ anything about live issues, use the official plugin.
 
 ```text
 /plugin marketplace add starfysh-tech/nautilai
-/plugin install sentry-ops@nautilai
+/plugin install sentry-hygiene@nautilai
 ```
 
 ## Use
 
 ```text
-/sentry-ops             # runs discovery, then recommends audit or instrument
-/sentry-ops audit       # validate this repo's Sentry setup against official SDK docs
-/sentry-ops instrument  # add or fix capture sites behind the PII boundary
+/sentry-hygiene             # runs discovery, then recommends audit or instrument
+/sentry-hygiene audit       # validate this repo's Sentry setup against official SDK docs
+/sentry-hygiene instrument  # add or fix capture sites behind the PII boundary
 ```
 
 ## Workflows
