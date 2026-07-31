@@ -101,8 +101,9 @@ class TailwindClassValidator:
 
         return violations
 
+    @staticmethod
     def _check_dynamic_concatenation(
-        self, file_path: Path, line_num: int, line: str
+        file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
         """Check for dynamic class concatenation that breaks purging."""
         violations = []
@@ -122,8 +123,9 @@ class TailwindClassValidator:
 
         return violations
 
+    @staticmethod
     def _check_inline_styles(
-        self, file_path: Path, line_num: int, line: str
+        file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
         """Check for inline style attributes."""
         violations = []
@@ -142,8 +144,9 @@ class TailwindClassValidator:
 
         return violations
 
+    @staticmethod
     def _check_responsive_patterns(
-        self, file_path: Path, line_num: int, line: str
+        file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
         """Check for proper mobile-first responsive patterns."""
         violations = []
@@ -157,14 +160,15 @@ class TailwindClassValidator:
 
         return violations
 
+    @staticmethod
     def _check_class_ordering(
-        self, file_path: Path, line_num: int, line: str
+        file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
         """Check for consistent class ordering (layout → typography → color → state)."""
         violations = []
 
         # Extract className attribute
-        class_match = re.search(r'className=["\'`]([^"\'`]+)["\'`]', line)
+        class_match = re.search(r'className=["\'`"]([^"\'`]+)["\'`"]', line)
         if not class_match:
             return violations
 
@@ -209,7 +213,8 @@ class TailwindClassValidator:
 
         return violations
 
-    def _hex_to_rgb(self, hex_value: str):
+    @staticmethod
+    def _hex_to_rgb(hex_value: str):
         """
         Convert hex color to RGB tuple.
 
@@ -288,7 +293,8 @@ class TailwindClassValidator:
         first_token = list(token_names.keys())[0]
         return f"Use semantic token → {category[:-1]}-{first_token}"
 
-    def check_apply_overuse(self, css_file: Path, lines: List[str]) -> List[Dict[str, Any]]:
+    @staticmethod
+    def check_apply_overuse(css_file: Path, lines: List[str]) -> List[Dict[str, Any]]:
         """
         Check for excessive @apply usage in CSS files.
 

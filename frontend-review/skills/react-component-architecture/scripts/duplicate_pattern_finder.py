@@ -36,7 +36,8 @@ class DuplicatePatternFinder:
         self.min_occurrences = min_occurrences
         self.patterns: List[DuplicatePattern] = []
 
-    def _normalize_snippet(self, snippet: str) -> str:
+    @staticmethod
+    def _normalize_snippet(snippet: str) -> str:
         """Normalize whitespace for comparison, then truncate."""
         normalized = re.sub(r'\s+', ' ', snippet.strip())
         return normalized[:200]

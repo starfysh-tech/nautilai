@@ -141,7 +141,8 @@ class ComponentAnalyzer:
             cyclomatic_complexity=cyclomatic_complexity
         )
 
-    def _extract_component_name(self, content: str, file_path: Path) -> Optional[str]:
+    @staticmethod
+    def _extract_component_name(content: str, file_path: Path) -> Optional[str]:
         """Extract component name from file content."""
         # Try to find function/const component declaration
         patterns = [

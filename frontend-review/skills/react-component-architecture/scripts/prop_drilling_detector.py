@@ -145,7 +145,8 @@ class PropDrillingDetector:
 
         return chains
 
-    def _find_prop_line(self, content: str, prop_name: str) -> int:
+    @staticmethod
+    def _find_prop_line(content: str, prop_name: str) -> int:
         """Find line number where prop is first used."""
         lines = content.split('\n')
         for i, line in enumerate(lines, 1):

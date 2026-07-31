@@ -36,8 +36,9 @@ class AccessibilityChecker:
 
         return violations
 
+    @staticmethod
     def _check_aria_attributes(
-        self, file_path: Path, line_num: int, line: str
+        file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
         """Check for missing or improper ARIA attributes."""
         violations = []
@@ -84,8 +85,9 @@ class AccessibilityChecker:
 
         return violations
 
+    @staticmethod
     def _check_focus_states(
-        self, file_path: Path, line_num: int, line: str
+        file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
         """Check for proper focus state styling."""
         violations = []
@@ -96,7 +98,7 @@ class AccessibilityChecker:
         for element in interactive_elements:
             if f'<{element}' in line.lower():
                 # Check if className includes focus: variants
-                class_match = re.search(r'className=["\'`]([^"\'`]+)["\'`]', line)
+                class_match = re.search(r'className=["\'`"]([^"\'`]+)["\'`"]', line)
                 if class_match:
                     classes = class_match.group(1)
                     if 'focus:' not in classes and 'focus-visible:' not in classes:
@@ -112,8 +114,9 @@ class AccessibilityChecker:
 
         return violations
 
+    @staticmethod
     def _check_semantic_html(
-        self, file_path: Path, line_num: int, line: str
+        file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
         """Check for proper semantic HTML usage."""
         violations = []
@@ -144,8 +147,9 @@ class AccessibilityChecker:
 
         return violations
 
+    @staticmethod
     def _check_color_contrast(
-        self, file_path: Path, line_num: int, line: str
+        file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
         """Check for potential color contrast issues."""
         violations = []
