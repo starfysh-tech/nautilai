@@ -799,7 +799,7 @@ def scan_frontend_role_coupling(base_path: str) -> dict:
 
 def _parse_permission_list(node: ast.expr) -> tuple[list[str], dict[str, list[str]]]:
     """Parse a PERMISSIONS = [(Model, ["view", "add"]), ...] list."""
-    models = []
+    models: list[str] = []
     perms_per_model: dict[str, list[str]] = {}
     if not isinstance(node, ast.List):
         return models, perms_per_model

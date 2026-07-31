@@ -31,7 +31,7 @@ class ComponentScanner:
         if not self.base_directory.exists():
             raise FileNotFoundError(f"Directory not found: {self.base_directory}")
 
-        component_files = []
+        component_files: List[Path] = []
 
         for ext in self.extensions:
             # Recursively find all files with extension
@@ -61,7 +61,7 @@ class ComponentScanner:
         if not css_dir.exists():
             return []
 
-        css_files = []
+        css_files: List[Path] = []
         css_extensions = ['.css', '.scss', '.sass']
 
         for ext in css_extensions:

@@ -146,7 +146,7 @@ class TailwindClassValidator:
         self, file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
         """Check for proper mobile-first responsive patterns."""
-        violations = []
+        violations: List[Dict[str, Any]] = []
 
         # Check for desktop-first patterns (less common but worth flagging)
         # Example: max-md: without corresponding min-md:
@@ -160,15 +160,15 @@ class TailwindClassValidator:
     def _check_class_ordering(
         self, file_path: Path, line_num: int, line: str
     ) -> List[Dict[str, Any]]:
-        """Check for consistent class ordering (layout → typography → color → state)."""
-        violations = []
+        """Check for consistent class ordering (layout 126 typography 126 color 126 state)."""
+        violations: List[Dict[str, Any]] = []
 
         # Extract className attribute
-        class_match = re.search(r'className=["\'`]([^"\'`]+)["\'`]', line)
+        class_match = re.search(r'className=["\'`"]([^"\'`]+)["\'`"]', line)
         if not class_match:
             return violations
 
-        classes = class_match.group(1).split()
+        classes: List[str] = class_match.group(1).split()
 
         # Define category order
         layout_classes = {'flex', 'grid', 'block', 'inline', 'hidden', 'container', 'mx', 'my', 'px', 'py', 'p', 'm', 'w', 'h'}
@@ -178,9 +178,9 @@ class TailwindClassValidator:
 
         # Check if classes are roughly in order (simplified check)
         # This is a basic heuristic and could be improved
-        categories_seen = []
+        categories_seen: List[str] = []
         for cls in classes:
-            prefix = cls.split('-')[0] if '-' in cls else cls
+            prefix: str = cls.split('-')[0] if '-' in cls else cls
 
             if any(layout in cls for layout in layout_classes):
                 categories_seen.append('layout')

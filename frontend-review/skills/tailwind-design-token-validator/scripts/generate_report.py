@@ -5,7 +5,7 @@ Outputs formatted violation reports with fixes.
 
 import json
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, DefaultDict
 
 
 class ReportGenerator:
@@ -73,8 +73,8 @@ class ReportGenerator:
         report_lines.append("=" * 60)
         report_lines.append(f"Summary: {len(self.violations)} total violations")
 
-        by_type = defaultdict(int)
-        by_severity = defaultdict(int)
+        by_type: DefaultDict[str, int] = defaultdict(int)
+        by_severity: DefaultDict[str, int] = defaultdict(int)
 
         for v in self.violations:
             by_type[v['type']] += 1
@@ -170,21 +170,21 @@ class ReportGenerator:
 
     def _count_by_severity(self) -> Dict[str, int]:
         """Count violations by severity."""
-        counts = defaultdict(int)
+        counts: DefaultDict[str, int] = defaultdict(int)
         for v in self.violations:
             counts[v['severity']] += 1
         return dict(counts)
 
     def _count_by_type(self) -> Dict[str, int]:
         """Count violations by type."""
-        counts = defaultdict(int)
+        counts: DefaultDict[str, int] = defaultdict(int)
         for v in self.violations:
             counts[v['type']] += 1
         return dict(counts)
 
     def _count_by_file(self) -> Dict[str, int]:
         """Count violations by file."""
-        counts = defaultdict(int)
+        counts: DefaultDict[str, int] = defaultdict(int)
         for v in self.violations:
             counts[v['file']] += 1
         return dict(counts)

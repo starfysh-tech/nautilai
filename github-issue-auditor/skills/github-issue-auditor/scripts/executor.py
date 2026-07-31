@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 class ActionExecutor:
     """Executes approved actions via gh CLI."""
 
-    def __init__(self, dry_run: bool = False):
+    def __init__(self, dry_run: bool = False) -> None:
         """
         Initialize action executor.
 
@@ -18,8 +18,8 @@ class ActionExecutor:
             dry_run: If True, preview actions without executing
         """
         self.dry_run = dry_run
-        self.executed_actions = []
-        self.failed_actions = []
+        self.executed_actions: List[Any] = []
+        self.failed_actions: List[Any] = []
 
     def execute_actions(self, actions: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
