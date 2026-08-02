@@ -47,6 +47,7 @@ After installing, reload plugins if prompted, then invoke the plugin's skill.
 | **github-issue-auditor** | Audit a GitHub repo's issues for cleanup — fuzzy-matched duplicates, orphaned sub-issues, unlabeled or stale items, and inconsistent labels against the repo's own auto-detected taxonomy. Read-only by default; any mutation is opt-in behind an approval gate. | `/plugin install github-issue-auditor@nautilai` | [github-issue-auditor/](./github-issue-auditor/README.md) |
 | **autodev** | Bounded autonomous development loop — scripted worktree lanes, fast worker subagents, objective script-based verification, and a hard 3-failure escalation to the user. | `/plugin install autodev@nautilai` | [autodev/](./autodev/README.md) |
 | **sentry-hygiene** | Audit a repo's Sentry setup against official SDK docs and instrument capture behind a hard PII boundary — including what the SDK attaches on its own. Complements the official Sentry plugin, which owns SDK setup and issue-fixing. | `/plugin install sentry-hygiene@nautilai` | [sentry-hygiene/](./sentry-hygiene/README.md) |
+| **action-first** | Persistent output-style skill — shapes every response around one doable-now action: lead with the command/step, number and cap multi-step work, restate progress each turn, cut preamble and recap. | `/plugin install action-first@nautilai` | [action-first/](./action-first/README.md) |
 
 _More plugins will surface here over time._
 

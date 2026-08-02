@@ -182,6 +182,17 @@
       },
       "homepage": "https://starfysh-tech.github.io/nautilai/plugins/sentry-hygiene.html",
       "license": "MIT"
+    },
+    {
+      "name": "action-first",
+      "source": "./action-first",
+      "description": "Persistent output-style skill that shapes every response around one doable-now action: lead with the command/step, number and cap multi-step work, restate progress each turn, give concrete time estimates, and cut preamble/recap.",
+      "version": "2.20.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/action-first.html",
+      "license": "MIT"
     }
   ]
 }
