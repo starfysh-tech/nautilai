@@ -13,17 +13,12 @@ reshaped until you say "stop action-first" or "normal mode".
 
 ## What it changes
 
-- First line is a command, path, or step — not context.
-- Multi-step work is numbered, capped at 5 items, and folded down to the fewest steps
-  that still work.
-- Progress restates every turn ("step 3 of 5 done: ...").
-- Time estimates are concrete units, never "some work."
-- No preamble ("Let me...", "Great question"), no recap, no sign-off ("Hope this helps").
-- Errors state cause and fix, no alarm language.
-
-Falls back to normal explanatory mode for `explain`/`walk me through` requests,
-destructive-action confirmations, debug spirals, and real ambiguity — see
-[`skills/action-first/SKILL.md`](skills/action-first/SKILL.md) for the full rule set.
+Ten rules govern the shape of every response — leading with the action, numbering and
+capping multi-step work, restating progress, concrete time estimates, no preamble or
+sign-off — plus override conditions for explanations, destructive actions, debug
+spirals, and real ambiguity. See
+[`skills/action-first/SKILL.md`](skills/action-first/SKILL.md) for the full rule set
+and the pre-send check; this README won't restate it.
 
 ## Install
 
