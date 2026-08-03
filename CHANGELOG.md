@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.21.0](https://github.com/starfysh-tech/nautilai/compare/v2.20.0...v2.21.0) (2026-08-03)
+
+
+### Features
+
+* **action-first:** add persistent output-style plugin ([#129](https://github.com/starfysh-tech/nautilai/issues/129)) ([5fca426](https://github.com/starfysh-tech/nautilai/commit/5fca426ebd54f3e7c0d1537a37e3cbbb0678427b))
+
 ## [2.20.0](https://github.com/starfysh-tech/nautilai/compare/v2.19.0...v2.20.0) (2026-07-23)
 
 
