@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "action-first",
+  "displayName": "Action First",
+  "version": "2.20.0",
+  "description": "Persistent output-style skill that shapes every response around one doable-now action: lead with the command/step, number and cap multi-step work, restate progress each turn, give concrete time estimates, and cut preamble/recap.",
+  "author": { "name": "Randall Noval", "email": "randall@starfysh.net", "url": "https://github.com/starfysh-tech" },
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/action-first#readme",
+  "repository": "https://github.com/starfysh-tech/nautilai",
+  "license": "MIT",
+  "keywords": ["claude-code", "output-style", "productivity"],
+  "skills": "./skills/"
+}

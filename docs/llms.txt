@@ -43,6 +43,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [cc-skill-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-skill-audit.html): Audits skills against Anthropic's authoring guidance — diagnoses under/over-triggering, de-bloats bodies.
 - [cc-validate-hooks](https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html): Validates Claude Code hook configuration in `settings.json`, with an optional `--fix`.
 - [sentry-hygiene](https://starfysh-tech.github.io/nautilai/plugins/sentry-hygiene.html): Audits a repo's Sentry setup against official SDK docs fetched at runtime, and instruments capture behind a hard PII boundary. Repo-only (no Sentry MCP). Deliberately complements the official `sentry` plugin, which owns SDK setup and fixing production issues. **Not currently ported to Hermes.**
+- [action-first](https://starfysh-tech.github.io/nautilai/plugins/action-first.html): Persistent output-style skill — reshapes every response around one doable-now action (lead with the step, number/cap multi-step work at 5, restate progress each turn, cut preamble/recap). User-invoked only, stays on until "stop action-first."
 
 ## Notes for agents — Hermes runtime
 
@@ -70,6 +71,13 @@ Claude Code only. Two workflows, both repo-only.
 - **Neither workflow calls a Sentry MCP server.** Both read the repo and the docs only. Do not reach for issue data here; there is no MCP surface.
 - **The two PII models are complementary.** The official plugin guards data coming *out* of Sentry (event data is untrusted input, don't leak it into code). `sentry-hygiene` guards the *inbound* half — what the SDK attaches to events on its own (page URL, breadcrumbs, server request data) that no capture call passed.
 - **Context7 is optional.** It grounds `audit` in official SDK docs; without it `audit` falls back to `WebFetch` of `docs.sentry.io`, then degrades to structural-only checks and says so in its report.
+
+## Notes for agents — action-first
+
+Claude Code only. `disable-model-invocation: true` — the model never triggers this on its
+own from conversational cues; it activates only via explicit `/action-first`. Once on, it
+persists across turns and topics until the user says "stop action-first" or "normal mode" —
+don't let it lapse on its own after a few responses.
 
 ## Optional
 
