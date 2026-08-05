@@ -3,7 +3,7 @@ name: cc-skill-audit
 description: Audit existing Claude Code skills against Anthropic's authoring guidance. Use when reviewing a SKILL.md's quality, diagnosing why a skill under- or over-triggers, tightening a description for better trigger reliability, restructuring a bloated SKILL.md, checking a skill for cross-surface portability or security before sharing, or sweeping a skills directory (including installed plugins) for skills that need work — including a scored sweep that ranks every installed skill worst-to-best and writes skill-audit-report.md.
 argument-hint: "[skill-name-or-path]"
 context: fork
-allowed-tools: [Read, Write, Edit, Glob, Grep, Task, Bash(python3:*), Bash(grep:*), Bash(ls:*), Bash(git:*), WebFetch]
+allowed-tools: [Read, Write, Edit, Glob, Grep, Task, Workflow, Bash(python3:*), Bash(grep:*), Bash(ls:*), Bash(git:*), WebFetch]
 ---
 
 # Auditing Skills
@@ -83,6 +83,13 @@ Run the audit in this order. Stop after any step where the user wants to discuss
 
 Sweep mode runs a scored, ranked audit across every installed skill via a multi-agent Workflow (Haiku scorers → Sonnet fact-checkers → one ranking agent), then offers a deep single-skill audit (the workflow above) on the weakest results.
 
+**In Claude Code, this skill runs with `context: fork` (line 5), and the `Workflow`
+tool is not reachable from inside a fork.** Confirmed empirically: a forked run's
+`ToolSearch({query: "select:Workflow"})` returns "No matching deferred tools
+found." So step 6's fallback below is the *de facto* path on this surface, not a
+rare edge case — plan for it, don't treat the Workflow path as the default that
+usually works.
+
 1. **Ask scope.** Workflow scripts cannot prompt the user, so ask before launching. Use AskUserQuestion:
    - Question: "Which skills should the audit cover?"
    - Options:
@@ -140,7 +147,22 @@ Sweep mode runs a scored, ranked audit across every installed skill via a multi-
    - Summarize for the user: average scores, frontmatter failure count, the 3-5 weakest skills, and the cross-set patterns.
    - Offer to run this skill's deep single-skill audit workflow (steps 1-9 above) on the bottom 3-5 skills.
 
-6. **Fallback — no Workflow tool.** If the Workflow tool is unavailable in this environment, fall back to a batched Task fan-out that preserves the scored deliverable: spawn parallel subagents (Task, `general-purpose`, model: haiku) in batches of ~5 skills each. Each subagent reads its batch's SKILL.md files, applies the mechanical checklist from `references/audit-checklist.md` (with the `docs_rules` block from step 3 pasted into its prompt), and returns per skill: clarity 1-5, frontmatter pass/fail, trigger quality 1-5, the single top fix, and severity-tagged findings — with disk evidence for every factual claim. The parent then does the judgment synthesis (trigger-overlap analysis, description rewrites, duplicate-name detection), spot-checks each batch's factual claims against disk (this replaces the workflow's Sonnet verify phase — do not skip it), ranks worst-to-best, and writes `skill-audit-report.md` per step 5, marking it: "fallback run — scores are self-reported by cheap scorers without independent verification; treat as an upper bound." Cheap scorers grade leniently (a uniform 4/4 trigger column across a whole set is a calibration smell, not a clean bill).
+6. **Fallback — no Workflow tool.** If the Workflow tool is unavailable in this environment, fall back to a batched Task fan-out that preserves the scored deliverable: spawn parallel subagents (Agent tool, `general-purpose`, model: haiku) in batches of ~5 skills each.
+
+   **Never pass a `name:` to these spawns, and never end your turn until every
+   batch has returned.** A named `Agent` call is a background teammate: it parks
+   awaiting mailbox instructions instead of returning inline, and if you end your
+   turn on a sentence like "the batches are running, I'll wait for their
+   notifications," your turn is what completes — a forked skill's turn ending
+   *is* the fork completing. It is not re-invoked when its background children
+   finish. Their finished output sits orphaned indefinitely (observed: 5 batches
+   finished full reports in ~3 minutes, then sat idle for 2+ hours until manually
+   killed, because the parent had already reported itself done). Instead: spawn
+   each batch unnamed, then call `TaskOutput` with `block: true` on each one in
+   turn before doing anything else — this blocks your own execution until that
+   batch's result is in hand, so the turn cannot end early.
+
+   Each subagent reads its batch's SKILL.md files, applies the mechanical checklist from `references/audit-checklist.md` (with the `docs_rules` block from step 3 pasted into its prompt), and returns per skill: clarity 1-5, frontmatter pass/fail, trigger quality 1-5, the single top fix, and severity-tagged findings — with disk evidence for every factual claim. The parent then does the judgment synthesis (trigger-overlap analysis, description rewrites, duplicate-name detection), spot-checks each batch's factual claims against disk (this replaces the workflow's Sonnet verify phase — do not skip it), ranks worst-to-best, and writes `skill-audit-report.md` per step 5, marking it: "fallback run — scores are self-reported by cheap scorers without independent verification; treat as an upper bound." Cheap scorers grade leniently (a uniform 4/4 trigger column across a whole set is a calibration smell, not a clean bill).
 
 ### Notes
 
@@ -254,6 +276,7 @@ narrate it.
 
 ## Version
 
+- v1.3 (2026-08-05): Fixed a sweep-mode stall: the fallback's batch subagents were spawned as named background agents, which park awaiting mailbox instructions instead of returning inline — a run's 5 batches finished in ~3 minutes and then sat orphaned for 2+ hours because the parent (a `context: fork` skill) had already ended its turn declaring it would "wait for notifications," and a forked skill's turn ending is the fork completing, not a pause. Step 6 now spawns batches unnamed and blocks on each via `TaskOutput({block: true})` before synthesizing. Documented that `context: fork` makes the Workflow tool unreachable on Claude Code (confirmed via `ToolSearch` returning no match from inside a fork), so the fallback is the normal path here, not a rare one. Added `Workflow` to `allowed-tools` (latent gap, inert while the fork issue stood).
 - v1.2 (2026-07-08): Merged the personal `skill-audit` scorecard tool into sweep mode as a scored, ranked Workflow (Haiku score → Sonnet verify → rank), grounded against live docs, writing `skill-audit-report.md`; batched Task fan-out kept as the fallback when the Workflow tool is unavailable. Post-validation fixes from a clean-agent run: plugin-scope discovery is real code (was a comment), the fallback now produces the scored report with a scores-are-an-upper-bound caveat and a mandatory parent fact-check pass, and the frontmatter snapshot re-verified against live docs (name optional, description recommended, 1,536-char listing cap; reserved-word rule scoped to cross-surface packaging).
 - v1.1 (2026-06-18): Packaged as the `cc-skill-audit` plugin (renamed from the personal `audit-skills` skill to avoid a public name collision). Added a runtime docs-anchor step (fetch `llms.txt` instead of trusting frozen snapshots), trigger-testing in the audit workflow, and installed-plugin skill discovery in sweep mode. Generalized security examples (removed private project context).
 - v1.0 (2026-05-12): Initial release. Grounded in Anthropic's Skills overview, Skill authoring best practices, and skill-creator (anthropics/skills repo). Community patterns from external authoring guides incorporated where they don't conflict with official guidance, and flagged where they go beyond official docs.
