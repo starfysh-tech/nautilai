@@ -14,11 +14,12 @@ This skill assumes Anthropic's official guidance as the ground truth (Skills ove
 
 ## Ground the audit against current docs first
 
-This skill's embedded guidance is a **snapshot** (see `## Version`), not live ground truth. Claude Code's skill model changes; frontmatter fields, limits, and surfaces get added or renamed. Before reporting findings that hinge on a documented detail (frontmatter fields, the description character limit, supported surfaces), fetch the canonical docs index and verify:
+This skill's embedded guidance is a **snapshot**, not live ground truth (see the
+verification date noted at the top of `references/audit-checklist.md`). Claude Code's skill model changes; frontmatter fields, limits, and surfaces get added or renamed. Before reporting findings that hinge on a documented detail (frontmatter fields, the description character limit, supported surfaces), fetch the canonical docs index and verify:
 
 - Fetch `https://code.claude.com/docs/llms.txt` (the self-updating docs index) and, when a specific claim is at stake, the linked Skills page (`https://code.claude.com/docs/en/skills.md`).
 - If a check in `references/` contradicts the live docs (e.g. a field this skill calls "undocumented" is now documented), **trust the live docs** and note the divergence in the report. Don't fail a skill on a stale rule.
-- If the fetch is unavailable (offline, sandboxed surface), proceed with the snapshot but say so: "guidance anchored to this skill's 2026-06-18 snapshot; could not verify against live docs."
+- If the fetch is unavailable (offline, sandboxed surface), proceed with the snapshot but say so: "guidance anchored to the snapshot dated in references/audit-checklist.md; could not verify against live docs."
 
 ## Scope
 
@@ -69,7 +70,7 @@ Run the audit in this order. Stop after any step where the user wants to discuss
 5. **Score severity.** Use three levels:
    - **Blocker**: the skill is broken or unsafe (invalid YAML, hardcoded secrets, name collision with reserved words, missing required fields)
    - **High**: the skill will underperform (vague description, undertriggering pattern, bloated body, no clear trigger conditions)
-   - **Medium**: improvements that matter but aren't urgent (gerund naming, version block, missing gotchas section)
+   - **Medium**: improvements that matter but aren't urgent (gerund naming, a version/changelog block present, missing gotchas section)
 
 6. **Report findings** using the format in "Output format" below. Show the user the problems, the reasoning, and the recommended fix. Do not rewrite the skill yet.
 
@@ -273,10 +274,3 @@ Append-only — never edit or delete an entry; retire one with `- **Obsolete:**
 <date> — <reason>`. Dedup on **Trigger**. Capture only explicit behavioral
 corrections, not passing preferences. Mention the capture in one line; don't
 narrate it.
-
-## Version
-
-- v1.3 (2026-08-05): Fixed a sweep-mode stall: the fallback's batch subagents were spawned as named background agents, which park awaiting mailbox instructions instead of returning inline — a run's 5 batches finished in ~3 minutes and then sat orphaned for 2+ hours because the parent (a `context: fork` skill) had already ended its turn declaring it would "wait for notifications," and a forked skill's turn ending is the fork completing, not a pause. Step 6 now spawns batches unnamed and blocks on each via `TaskOutput({block: true})` before synthesizing. Documented that `context: fork` makes the Workflow tool unreachable on Claude Code (confirmed via `ToolSearch` returning no match from inside a fork), so the fallback is the normal path here, not a rare one. Added `Workflow` to `allowed-tools` (latent gap, inert while the fork issue stood).
-- v1.2 (2026-07-08): Merged the personal `skill-audit` scorecard tool into sweep mode as a scored, ranked Workflow (Haiku score → Sonnet verify → rank), grounded against live docs, writing `skill-audit-report.md`; batched Task fan-out kept as the fallback when the Workflow tool is unavailable. Post-validation fixes from a clean-agent run: plugin-scope discovery is real code (was a comment), the fallback now produces the scored report with a scores-are-an-upper-bound caveat and a mandatory parent fact-check pass, and the frontmatter snapshot re-verified against live docs (name optional, description recommended, 1,536-char listing cap; reserved-word rule scoped to cross-surface packaging).
-- v1.1 (2026-06-18): Packaged as the `cc-skill-audit` plugin (renamed from the personal `audit-skills` skill to avoid a public name collision). Added a runtime docs-anchor step (fetch `llms.txt` instead of trusting frozen snapshots), trigger-testing in the audit workflow, and installed-plugin skill discovery in sweep mode. Generalized security examples (removed private project context).
-- v1.0 (2026-05-12): Initial release. Grounded in Anthropic's Skills overview, Skill authoring best practices, and skill-creator (anthropics/skills repo). Community patterns from external authoring guides incorporated where they don't conflict with official guidance, and flagged where they go beyond official docs.

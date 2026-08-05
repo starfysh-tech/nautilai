@@ -157,20 +157,18 @@ A short list of common failure modes Claude hits when running this skill. Anthro
 
 **Severity if missing**: Medium. Recommend adding once the skill has been used enough to surface real failure modes.
 
-### 3.6 Includes a version block (recommended, not required)
-Three or four lines at the bottom tracking what changed and when. Useful for skills that get updated.
+### 3.6 Does not carry a version/changelog block
+A SKILL.md is a live artifact loaded whole on every trigger, not a place for
+history. Version numbers and "what changed and when" entries belong in the
+repo's changelog (`docs/plugin-changelog.md` in nautilai) or the PR description
+that made the change — not in the file itself. A version block is also a
+portability liability: it's tied to one repo's release history, but the same
+SKILL.md ships standalone via Claude.ai zip or a personal `~/.claude/skills/`
+copy with no such history to anchor it.
 
-Example template:
-```
-## Version
-- v1.2 (2026-04-15): Added Gotchas for Stripe API edge cases
-- v1.1 (2026-02-03): Tightened description triggers
-- v1.0 (2025-12-10): Initial release
-```
-
-Only bump versions for real post-release edits, not for build-time iterations during initial authoring.
-
-**Severity if missing**: Medium for skills you maintain; skip for one-shot skills.
+**Severity if present**: Medium. Recommend deleting it and moving any content
+worth keeping (e.g. a docs-snapshot date the skill's own logic depends on) into
+a one-line reference to the changelog instead of an inline history.
 
 ### 3.7 Persists user corrections across runs (recommended, not required)
 A skill that runs **repeatedly against the same project** and makes judgment calls
