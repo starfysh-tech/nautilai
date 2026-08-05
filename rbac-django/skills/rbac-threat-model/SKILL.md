@@ -8,6 +8,7 @@ description: >-
   stories, RBAC risk assessment, privilege-escalation scenarios, "how would an attacker exploit
   this", or "prioritize these RBAC findings by business impact". Complements rbac-audit-django:
   the audit finds code-level gaps; this skill translates them into business-risk narratives.
+disable-model-invocation: true
 context: fork
 allowed-tools: [Read, Glob, Grep, Write]
 ---
@@ -17,6 +18,11 @@ allowed-tools: [Read, Glob, Grep, Write]
 Generate adversarial abuse cases for any RBAC system. Where the audit skill asks
 "is this permission check correct?", this skill asks "if I were a malicious
 insider with a valid account, what's the most damage I could do?"
+
+This skill is **user-invoked only** (`disable-model-invocation: true`), matching
+`rbac-remediation-playbooks`: generating a threat model right after an audit
+completes is plausible, but deciding to run one is a deliberate act, not
+something that should auto-fire on the model's own judgment.
 
 Code-level severity and business-level risk diverge. A "Medium" missing check on
 a bulk-export endpoint can be a critical threat if it exposes regulated data

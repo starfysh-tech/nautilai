@@ -4,6 +4,9 @@ Verdicts are **AUTO-MERGE / MERGE / SKIP / INVESTIGATE**. Dispositions (what the
 about a verdict — gate, report) live in SKILL.md "Finding dispositions". This file
 is the rules + ecosystem detail for *landing* a verdict from the Phase 2 evidence.
 
+**Sections:** [Decision rules](#decision-rules) · [Ecosystem detection](#ecosystem-detection-no-hardcoded-paths) ·
+[Ecosystem commands](#ecosystem-commands) · [Edge cases](#edge-cases) · [Confidence levels](#confidence-levels)
+
 ## Decision rules
 
 | Verdict | Conditions | Disposition (see SKILL.md) |

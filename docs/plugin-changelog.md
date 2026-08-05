@@ -14,6 +14,18 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-08-05
+
+- **cc-skill-audit — fixed sweep mode never completing.** A real run's 5 batch
+  subagents finished full reports in ~3 minutes, then sat parked for 2+ hours: the
+  fallback path spawned them as *named* background agents (which wait for mailbox
+  instructions instead of returning inline), and the parent — running with
+  `context: fork` — ended its turn declaring it would "wait for notifications," which
+  for a forked skill means the fork itself completing, not pausing. The fallback now
+  spawns batches unnamed and blocks on each via `TaskOutput({block: true})`. Also
+  documented that `context: fork` makes the `Workflow` tool unreachable in Claude
+  Code, so the fallback is this skill's normal path here, not a rare one.
+
 ## 2026-07-23
 
 - **sentry-ops → renamed `sentry-hygiene`, and narrowed from four workflows to two**

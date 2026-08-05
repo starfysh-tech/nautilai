@@ -23,7 +23,7 @@ Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
 Reviews a SKILL.md (or a whole directory of them) against Anthropic's official skill-authoring guidance, then reports findings-first with Blocker / High / Medium severity:
 
 1. **Frontmatter & description** — required fields, name/description validity, and trigger reliability. The description is the trigger, so it's audited hardest — and *tested*: the audit drafts direct / implicit / alternative-phrasing / should-not-fire prompts to catch under- and over-triggering.
-2. **Body** — conciseness, structure, progressive disclosure into `references/`, and a gotchas/version block.
+2. **Body** — conciseness, structure, progressive disclosure into `references/`, and a gotchas section (flags a version/changelog block for removal — that content belongs in the PR or repo changelog, not the skill).
 3. **Bundled resources** — folder conventions, orphan/missing files, TOCs on large references, script self-containment.
 4. **Portability** — across Claude Code, Cowork, and Claude.ai (sandbox vs. full filesystem, shell access, hardcoded paths).
 5. **Security** — no hardcoded credentials, no silent safety overrides, no commercial deps disguised as open source, declared network access.

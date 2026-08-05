@@ -15,6 +15,9 @@ The reviewer's job is to be **ambitious in identifying** structural improvements
 ## Core Stance
 
 > Audit the current branch's changes for implementation quality. Identify where the change could be structured to materially improve maintainability without altering behavior — better abstractions, clearer boundaries, fewer moving parts, higher legibility. Where a higher-leverage structure is available, describe it concretely and propose it. Be thorough and precise: substantiate every finding against the actual code.
+>
+> This is a structural/maintainability pass only — it does not run tests, security
+> tooling, or coverage analysis (detailed under Scope Discipline below).
 
 ## Shoals — learn from corrections
 
