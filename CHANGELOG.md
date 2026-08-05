@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.21.2](https://github.com/starfysh-tech/nautilai/compare/v2.21.1...v2.21.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **cc-skill-audit:** block on batch subagents instead of orphaning them ([#134](https://github.com/starfysh-tech/nautilai/issues/134)) ([39c314d](https://github.com/starfysh-tech/nautilai/commit/39c314d93e3544bc68ea28c56fcb61d5aa7c9cda))
+
 ## [2.21.1](https://github.com/starfysh-tech/nautilai/compare/v2.21.0...v2.21.1) (2026-08-05)
 
 
