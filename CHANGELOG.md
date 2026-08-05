@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.21.1](https://github.com/starfysh-tech/nautilai/compare/v2.21.0...v2.21.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **handoff:** make narrative pack advisory, not ground truth ([#132](https://github.com/starfysh-tech/nautilai/issues/132)) ([c0cf3d6](https://github.com/starfysh-tech/nautilai/commit/c0cf3d69ffd8c7e46bc635fa17144790ca655ab8))
+
 ## [2.21.0](https://github.com/starfysh-tech/nautilai/compare/v2.20.0...v2.21.0) (2026-08-03)
 
 
