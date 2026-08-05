@@ -11,6 +11,10 @@ For each finding, score severity:
 - **High**: skill will underperform
 - **Medium**: improvement worth making but not urgent
 
+**Sections:** [1. Frontmatter](#1-frontmatter) · [2. Description](#2-description) ·
+[3. Body](#3-body-skillmd-content-after-frontmatter) · [4. Bundled resources](#4-bundled-resources) ·
+[5. Portability](#5-portability) · [6. Security](#6-security)
+
 ---
 
 ## 1. Frontmatter

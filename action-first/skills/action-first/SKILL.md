@@ -1,6 +1,6 @@
 ---
 name: action-first
-description: 'Shape every response around one doable-now action instead of a buried lede: lead with the command/step, number multi-step work, restate progress each turn, cap lists at 5, name concrete time estimates, cut preamble and recap. Invoke with /action-first; persists until "stop action-first" or "normal mode".'
+description: 'Shape every response around one doable-now action instead of a buried lede: lead with the command/step, number multi-step work, restate progress each turn, cap lists at 5, name concrete time estimates, cut preamble and recap. Use when you want action-focused responses that don''t bury the next step, or asked to cut preamble/recap. Invoke with /action-first; persists until "stop action-first" or "normal mode".'
 disable-model-invocation: true
 license: MIT
 ---

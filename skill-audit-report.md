@@ -36,7 +36,8 @@ verification, so individual scores are still self-reported.
 | cc-validate-hooks | — | — | — | Ready |
 | action-first | — | 1 | — | Fix |
 
-16 of 21 clean. 2 High, 5 Medium across the remaining 5.
+16 of 21 clean. 2 High, 5 Medium across the remaining 5 — **all 7 fixed in this
+same PR**, see "Fixes applied" below.
 
 ## High-severity findings
 
@@ -80,6 +81,29 @@ Confirmed on disk (line 110-113): recover mode is documented as a pointer to
 **pr-review-deep** (`pr-review-deep/skills/pr-review-deep/SKILL.md`)
 Non-scope statement ("does not run tests, security tooling, or coverage checks")
 sits mid-body rather than in a dedicated preamble. UX polish only.
+
+## Fixes applied
+
+All 7 findings above were fixed in this PR:
+
+- **cc-adoption-audit**: description now leads with "Use when you want to
+  discover underused features and optimize your configuration."
+- **action-first**: description now includes "Use when you want action-focused
+  responses that don't bury the next step, or asked to cut preamble/recap."
+- **rbac-threat-model**: added `disable-model-invocation: true` (confirmed
+  intent: user-invoked only, matching `rbac-remediation-playbooks`).
+- **cc-skill-audit**: added a section-link TOC to `audit-checklist.md`.
+- **dep-review**: added a section-link TOC to `decision-matrix.md` (178 lines,
+  5 sections — confirmed on disk before fixing; batch B's original claim was
+  unverified, this pass verified it directly).
+- **handoff**: recover mode preamble now states explicitly that it reuses
+  steps 1-3 (fact pack, narrative pack) but skips 4-7 (no doc file, no marker)
+  and produces a reply-only "recovery delta" instead — corrected after an
+  initial draft wrongly claimed no extraction happens at all; re-read
+  `recover.md` and fixed the claim before it shipped.
+- **pr-review-deep**: added the non-scope statement to the Core Stance preamble
+  (first section), in addition to its existing full statement under Scope
+  Discipline.
 
 ## Cross-cutting notes
 

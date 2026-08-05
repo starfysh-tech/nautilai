@@ -109,6 +109,10 @@ fresh session that picks the handoff up automatically (consumed once, no TTL on
 
 ## Recover mode (`/handoff recover`)
 
+Recover mode is a **separate procedure**, not steps 1-7 above reused verbatim: it
+extracts the fact pack and narrative pack the same way (steps 1-3), but reads
+only the pre-compaction region, and skips steps 4-7 entirely — no doc file, no
+`/clear` marker. It assembles a "recovery delta" directly in the reply instead.
 For `/handoff recover` (after auto-compact), read and follow
 `${CLAUDE_PLUGIN_ROOT}/skills/handoff/workflows/recover.md`.
 

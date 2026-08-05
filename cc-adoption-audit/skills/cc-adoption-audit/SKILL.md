@@ -1,6 +1,6 @@
 ---
 name: cc-adoption-audit
-description: Audit your Claude Code setup against available features and surface what you're not using but should, plus setup gaps. User-invoked — run /cc-adoption-audit; the agent will not auto-fire it.
+description: Audit your Claude Code setup against available features and surface what you're not using but should, plus setup gaps. Use when you want to discover underused features and optimize your configuration for your workflow. User-invoked — run /cc-adoption-audit; the agent will not auto-fire it.
 allowed-tools: Read, Glob, Grep, Bash, WebFetch, Task
 disable-model-invocation: true
 ---
