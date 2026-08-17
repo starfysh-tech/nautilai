@@ -117,10 +117,12 @@ Use it two ways:
    number that matters — an unguarded view reached by four routes is a wider
    hole than the finding text implies. Name the routes when a finding's view has
    more than one.
-2. **Draw the clusters only.** Fill the report's *Route Exposure* section per
-   its embedded instructions: one diagram per finding cluster, and only where a
-   view has multiple routes or shares a permission class. A single route to a
-   single view is a straight line — write it, don't draw it.
+2. **Draw exactly `route_clusters`.** The scanner already decided which shapes
+   branch — a view reached by more than one route, or sharing a permission class
+   — and ranked them widest-exposure first, capped at 5 with the remainder in
+   `summary.route_clusters_omitted`. Render one diagram per entry, in order.
+   Don't add a cluster it left out or skip one it included; that judgment is
+   data, not taste, and it has already been made.
 
 **Never present the route graph as complete.** Render unresolved hops as marked
 nodes and keep the legend; a graph that drops an edge it could not follow reads

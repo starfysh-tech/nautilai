@@ -36,6 +36,22 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   authorization surface. First bundled Python test suite in the repo
   (`rbac-django/tests/`), and it was proven to fail before being trusted: mutating
   the scanner to drop unresolved routes turns it red.
+- **`include()` chains are followed, but the scan refuses to guess.** Route
+  patterns are now full paths (`api/charts/`) rather than per-file fragments, and
+  a URLconf reached through an include is no longer double-counted as its own
+  root. The constraint that shaped it: if a dotted module path matches zero or
+  several files in scope, the hop stays `unresolved` instead of picking one. A
+  wrong edge asserts that a route reaches a view when it may not — strictly worse
+  than a missing edge, which at least advertises itself. Cycles and >10-deep
+  nesting terminate the same way.
+- **Which clusters get drawn moved out of the template and into the scanner.**
+  Rule 1 ("diagram branching content only") shipped as a paragraph the report
+  author could talk itself out of. Whether a shape branches is a *data* question
+  — is this view reached by >1 route, does it share a permission class — so it is
+  now a computed `route_clusters` field, ranked widest-exposure-first and capped
+  with the remainder counted in `route_clusters_omitted`. The template's job
+  dropped from deciding to rendering. A convention enforced only by prose in the
+  first skill that uses it is a convention that erodes.
 
 ## 2026-08-17
 

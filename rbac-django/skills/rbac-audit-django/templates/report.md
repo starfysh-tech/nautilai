@@ -28,30 +28,38 @@
 
 ## Route Exposure
 
-<!-- One diagram PER FINDING CLUSTER — never one graph of the whole API. Include
-     a cluster only when the flagged view is reached by MORE THAN ONE route, or
-     shares its permission class with another view. A single route to a single
-     view is a straight line: state it in the finding text and draw nothing.
+<!-- Draw EXACTLY the clusters in the scanner's `route_clusters` array — one
+     diagram each, in the order given. Do not add a cluster it omitted and do
+     not skip one it included: whether a shape branches is a data question the
+     scanner already answered (a view reached by >1 route, or sharing a
+     permission class), so it is not yours to re-decide here. Each cluster
+     carries its `reason` — use it as the note under the diagram.
 
-     Omit this whole section if no cluster qualifies. Cap at 5 diagrams; if more
-     qualify, draw the highest-severity 5 and say how many were left undrawn.
+     If `route_clusters` is empty, keep the {{#unless}} fallback and draw
+     nothing. Never draw one graph of the whole API.
 
      Unresolved hops are RENDERED, never dropped (nautilai convention #14,
      rule 3): a route graph that silently omits an edge it could not follow
      reads as the complete authorization surface and gets trusted as one. Use
-     the scanner's `resolution` field verbatim and keep the legend. -->
+     each route's `resolution` verbatim — dashed edge to `?` for unresolved —
+     and keep the legend. -->
 
 {{#each route_clusters}}
-### {{cluster_title}}
+### {{view}}
 
 ```mermaid
 flowchart LR
 {{cluster_mermaid}}
 ```
 
-{{cluster_note}}
+Qualified because it is {{reason}}.
 
 {{/each}}
+{{#if route_clusters_omitted}}
+> {{route_clusters_omitted}} further qualifying cluster(s) were not drawn (cap of
+> 5). They are listed in `rbac-audit-findings.json`; this section is a sample,
+> not the full set.
+{{/if}}
 {{#unless route_clusters}}
 No view in this codebase is reached by more than one route or shares a
 permission class, so every route path is a straight line — described in the

@@ -957,6 +957,10 @@ def build_summary(inventory: dict) -> dict:
                 r["view"] for r in routes if r["view"]
             ).values() if count > 1
         ),
+        "route_clusters_drawn": len(inventory["route_clusters"]),
+        # A truncated report must say it truncated; silence would read as
+        # "these were all of them".
+        "route_clusters_omitted": count_omitted_clusters(routes, viewsets),
     }
 
 
@@ -1014,74 +1018,254 @@ def _pattern_from_node(node: ast.AST) -> tuple[str | None, str | None]:
     return None, "route pattern is computed at runtime"
 
 
+# Depth bound on include() recursion. Real URLconfs nest a handful deep; this
+# only has to stop a pathological or generated tree, not model one.
+_MAX_INCLUDE_DEPTH = 10
+
+
+def _include_target(node: ast.AST | None) -> str | None:
+    """Dotted module path of an `include("app.urls")` call, else None.
+
+    Only the string form is resolvable. `include(router.urls)` and the
+    `include((patterns, namespace))` tuple form build their targets at runtime,
+    so they stay unresolved rather than being guessed at.
+    """
+    if not isinstance(node, ast.Call):
+        return None
+    fn = node.func
+    name = (
+        fn.id if isinstance(fn, ast.Name)
+        else fn.attr if isinstance(fn, ast.Attribute)
+        else None
+    )
+    if name != "include" or not node.args:
+        return None
+    first = node.args[0]
+    if isinstance(first, ast.Constant) and isinstance(first.value, str):
+        return first.value
+    return None
+
+
+def _resolve_include(dotted: str, url_files: list[Path]) -> tuple[Path | None, str | None]:
+    """Map `api.urls` onto a file in scope. Returns (file, reason-if-unresolved).
+
+    Refuses to guess: zero matches or more than one both stay unresolved. A
+    wrong edge is worse than a missing one — it would assert a route reaches a
+    view when it may not.
+    """
+    rel = dotted.replace(".", "/") + ".py"
+    matches = [fp for fp in url_files if fp.as_posix().endswith(rel)]
+    if len(matches) == 1:
+        return matches[0], None
+    if not matches:
+        return None, f"include('{dotted}') — no matching URLconf found in scope"
+    return None, (
+        f"include('{dotted}') — ambiguous: {len(matches)} candidate modules match, "
+        "so the target is not determined"
+    )
+
+
+def _scan_url_file(
+    filepath: Path,
+    url_files: list[Path],
+    prefix: str,
+    visited: frozenset[Path],
+    depth: int,
+) -> list[dict]:
+    """Extract routes from one URLconf, recursing through resolvable include()s."""
+    routes: list[dict] = []
+    tree = parse_file(str(filepath))
+    if tree is None:
+        return routes  # unparseable file — skip it, never fail the whole scan
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+
+        if isinstance(node.func, ast.Name) and node.func.id in ("path", "re_path"):
+            if not node.args:
+                continue
+            pattern, pattern_reason = _pattern_from_node(node.args[0])
+            arg1 = node.args[1] if len(node.args) > 1 else None
+            composed = None if pattern is None else prefix + pattern
+
+            inc = _include_target(arg1)
+            if inc is not None:
+                target, why = _resolve_include(inc, url_files)
+                if pattern_reason:
+                    why = why or pattern_reason
+                elif target is not None and target in visited:
+                    why = f"include('{inc}') — cycle back to an already-visited URLconf"
+                elif target is not None and depth >= _MAX_INCLUDE_DEPTH:
+                    why = f"include('{inc}') — nesting deeper than {_MAX_INCLUDE_DEPTH} levels"
+                if why is None and target is not None:
+                    routes.extend(_scan_url_file(
+                        target, url_files, composed or "", visited | {target}, depth + 1,
+                    ))
+                else:
+                    routes.append({
+                        "pattern": composed if composed is not None else pattern,
+                        "view": None,
+                        "file": str(filepath),
+                        "line": node.lineno,
+                        "kind": node.func.id,
+                        "resolution": "unresolved",
+                        "reason": why or "include() target not statically resolvable",
+                    })
+                continue
+
+            view, resolution, view_reason = (
+                _view_from_node(arg1) if arg1 is not None
+                else (None, "unresolved", "route declares no view argument")
+            )
+            # A computed pattern makes the edge unusable even when the view
+            # itself is legible, so it downgrades the whole record.
+            if pattern_reason:
+                resolution = "unresolved"
+            reason = pattern_reason or view_reason
+            record = {
+                "pattern": composed,
+                "view": view,
+                "file": str(filepath),
+                "line": node.lineno,
+                "kind": node.func.id,
+                "resolution": resolution,
+            }
+            if reason:
+                record["reason"] = reason
+            routes.append(record)
+
+        elif isinstance(node.func, ast.Attribute) and node.func.attr == "register":
+            if not node.args:
+                continue
+            raw_prefix, _ = _pattern_from_node(node.args[0])
+            view = None
+            if len(node.args) > 1:
+                if isinstance(node.args[1], ast.Name):
+                    view = node.args[1].id
+                elif isinstance(node.args[1], ast.Attribute):
+                    view = node.args[1].attr
+            routes.append({
+                "pattern": None if raw_prefix is None else prefix + raw_prefix,
+                "view": view,
+                "file": str(filepath),
+                "line": node.lineno,
+                "kind": "router",
+                "resolution": "router-inferred",
+                "reason": (
+                    "DRF router expands this into list/detail/extra-action routes "
+                    "at runtime; the concrete URLs are not visible statically"
+                ),
+            })
+
+    return routes
+
+
 def scan_urlpatterns(scope: str) -> list[dict]:
     """Extract the route -> view edge from every URLconf in scope.
 
-    Returns one record per route. Unresolved hops are included with a reason
-    rather than omitted, so a diagram built from this can show its own gaps.
+    Returns one record per route, with `include()` chains followed so patterns
+    are full paths rather than per-file fragments. Unresolved hops are included
+    with a reason rather than omitted, so a diagram built from this can show
+    its own gaps.
     """
-    routes: list[dict] = []
+    url_files = _url_files(scope)
+    if not url_files:
+        return []
 
-    for filepath in _url_files(scope):
+    # A URLconf reached through include() is not independently routable, so
+    # scanning it as its own root as well would emit every one of its routes
+    # twice — once bare, once prefixed. Roots are the files nothing includes.
+    included: set[Path] = set()
+    for filepath in url_files:
         tree = parse_file(str(filepath))
         if tree is None:
-            continue  # unparseable file — skip it, never fail the whole scan
-
+            continue
         for node in ast.walk(tree):
-            if not isinstance(node, ast.Call):
-                continue
+            dotted = _include_target(node)
+            if dotted:
+                target, _ = _resolve_include(dotted, url_files)
+                if target is not None:
+                    included.add(target)
 
-            # path(...) / re_path(...)
-            if isinstance(node.func, ast.Name) and node.func.id in ("path", "re_path"):
-                if not node.args:
-                    continue
-                pattern, pattern_reason = _pattern_from_node(node.args[0])
-                view, resolution, view_reason = (
-                    _view_from_node(node.args[1]) if len(node.args) > 1
-                    else (None, "unresolved", "route declares no view argument")
-                )
-                # A computed pattern makes the edge unusable even when the view
-                # itself is legible, so it downgrades the whole record.
-                if pattern_reason:
-                    resolution = "unresolved"
-                reason = pattern_reason or view_reason
-                record = {
-                    "pattern": pattern,
-                    "view": view,
-                    "file": str(filepath),
-                    "line": node.lineno,
-                    "kind": node.func.id,
-                    "resolution": resolution,
-                }
-                if reason:
-                    record["reason"] = reason
-                routes.append(record)
+    # Every file being included means the include graph is a cycle with no
+    # entry point. Treat them all as roots so the cycle is still reported
+    # rather than the scan silently returning nothing.
+    roots = [fp for fp in url_files if fp not in included] or url_files
 
-            # <router>.register(prefix, ViewSet, ...)
-            elif isinstance(node.func, ast.Attribute) and node.func.attr == "register":
-                if not node.args:
-                    continue
-                prefix, _ = _pattern_from_node(node.args[0])
-                view = None
-                if len(node.args) > 1:
-                    if isinstance(node.args[1], ast.Name):
-                        view = node.args[1].id
-                    elif isinstance(node.args[1], ast.Attribute):
-                        view = node.args[1].attr
-                routes.append({
-                    "pattern": prefix,
-                    "view": view,
-                    "file": str(filepath),
-                    "line": node.lineno,
-                    "kind": "router",
-                    "resolution": "router-inferred",
-                    "reason": (
-                        "DRF router expands this into list/detail/extra-action routes "
-                        "at runtime; the concrete URLs are not visible statically"
-                    ),
-                })
-
+    routes: list[dict] = []
+    for filepath in roots:
+        routes.extend(_scan_url_file(filepath, url_files, "", frozenset({filepath}), 0))
     return routes
+
+
+def _qualifying_clusters(routes: list[dict], viewsets: list[dict]) -> list[dict]:
+    """Views whose route shape actually branches — the only ones worth drawing.
+
+    Two ways to qualify (nautilai convention #14, rule 1): a view reached by
+    more than one route, or a view sharing a permission class with another
+    view. A single route to a single view is a straight line; it belongs in
+    prose, and drawing it makes the report worse, not better.
+    """
+    by_view: dict[str, list[dict]] = {}
+    for r in routes:
+        if r.get("view"):
+            by_view.setdefault(r["view"], []).append(r)
+
+    # permission class -> views declaring it, for the shared-permission test
+    perm_owners: dict[str, list[str]] = {}
+    for vs in viewsets:
+        perms = vs.get("permission_classes")
+        if isinstance(perms, list):
+            for p in perms:
+                perm_owners.setdefault(p, []).append(vs["name"])
+
+    clusters = []
+    for view, view_routes in by_view.items():
+        shared = sorted({
+            other
+            for owners in perm_owners.values()
+            if view in owners
+            for other in owners
+            if other != view
+        })
+        reasons = []
+        if len(view_routes) > 1:
+            reasons.append(f"reached by {len(view_routes)} routes")
+        if shared:
+            reasons.append(f"shares a permission class with {', '.join(shared)}")
+        if not reasons:
+            continue
+        clusters.append({
+            "view": view,
+            "routes": view_routes,
+            "shared_permission_with": shared,
+            "unresolved_hops": [r for r in view_routes if r["resolution"] == "unresolved"],
+            "reason": "; ".join(reasons),
+        })
+
+    # Widest exposure first; name breaks ties so output is deterministic.
+    clusters.sort(key=lambda c: (-len(c["routes"]), c["view"]))
+    return clusters
+
+
+def build_route_clusters(
+    routes: list[dict], viewsets: list[dict], cap: int = 5,
+) -> list[dict]:
+    """The clusters a report should draw, ranked and capped.
+
+    Anything past the cap is dropped here but counted by
+    `count_omitted_clusters` — a truncated report must say so rather than
+    reading as complete coverage.
+    """
+    return _qualifying_clusters(routes, viewsets)[:cap]
+
+
+def count_omitted_clusters(
+    routes: list[dict], viewsets: list[dict], cap: int = 5,
+) -> int:
+    """How many qualifying clusters the cap left undrawn."""
+    return max(0, len(_qualifying_clusters(routes, viewsets)) - cap)
 
 
 def main():
@@ -1098,6 +1282,7 @@ def main():
 
     # Phase 1: Scan using discovered patterns
     viewsets, unclassified = scan_viewsets(scope, through_models)
+    routes = scan_urlpatterns(scope)
 
     # Degrade loudly: if a preferred tool is missing, say so in the output so
     # the skill can note reduced structural coverage rather than trust a thin scan.
@@ -1131,7 +1316,11 @@ def main():
         },
         "viewsets": viewsets,
         "unclassified_views": unclassified,
-        "routes": scan_urlpatterns(scope),
+        "routes": routes,
+        # Which clusters to draw is decided here, not by the report author —
+        # rule 1 is a data question (does this shape branch?), so leaving it to
+        # prose in the template would make it advisory.
+        "route_clusters": build_route_clusters(routes, viewsets),
         "permission_classes": scan_permission_classes(scope, discovered_roles),
         "queryset_managers": scan_queryset_managers(scope),
         "role_name_strings": scan_role_name_strings(scope, discovered_roles),

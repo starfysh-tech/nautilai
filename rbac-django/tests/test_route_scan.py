@@ -156,6 +156,138 @@ urlpatterns = [path("pkg/", PkgView.as_view())]
         check("unparseable file skipped, no crash", True)
 
 
+def test_include_is_followed_and_prefixed():
+    """include("app.urls") resolves into composed full paths, not an opaque hop."""
+    with tempfile.TemporaryDirectory() as root:
+        write(root, "proj/urls.py", '''
+from django.urls import path, include
+urlpatterns = [path("api/", include("api.urls"))]
+''')
+        write(root, "api/urls.py", '''
+from django.urls import path
+from .views import UserView
+urlpatterns = [path("users/", UserView.as_view())]
+''')
+        routes = scan_urlpatterns(root)
+        print("test_include_is_followed_and_prefixed")
+        check("one composed route", len(routes) == 1, routes)
+        r = routes[0] if routes else None
+        check("prefix composed", r and r["pattern"] == "api/users/", r)
+        check("view resolved through include", r and r["view"] == "UserView", r)
+        check("resolution is resolved", r and r["resolution"] == "resolved", r)
+        check("no leftover unresolved include row",
+              not any(x["resolution"] == "unresolved" for x in routes), routes)
+
+
+def test_included_file_is_not_also_emitted_standalone():
+    """A file reached via include() is not independently routable — no double count."""
+    with tempfile.TemporaryDirectory() as root:
+        write(root, "proj/urls.py", '''
+from django.urls import path, include
+urlpatterns = [path("api/", include("api.urls"))]
+''')
+        write(root, "api/urls.py", '''
+from django.urls import path
+from .views import UserView
+urlpatterns = [path("users/", UserView.as_view())]
+''')
+        routes = scan_urlpatterns(root)
+        print("test_included_file_is_not_also_emitted_standalone")
+        check("bare 'users/' not emitted", by_pattern(routes, "users/") is None, routes)
+        check("exactly one route total", len(routes) == 1, routes)
+
+
+def test_ambiguous_or_missing_include_stays_unresolved():
+    """Never guess: 0 or 2+ candidate modules must not produce an edge."""
+    with tempfile.TemporaryDirectory() as root:
+        write(root, "proj/urls.py", '''
+from django.urls import path, include
+urlpatterns = [
+    path("a/", include("api.urls")),
+    path("b/", include("nowhere.urls")),
+]
+''')
+        # two files both matching "api/urls.py" — genuinely ambiguous
+        write(root, "svc1/api/urls.py", 'from django.urls import path\nurlpatterns = [path("x/", X.as_view())]')
+        write(root, "svc2/api/urls.py", 'from django.urls import path\nurlpatterns = [path("y/", Y.as_view())]')
+        routes = scan_urlpatterns(root)
+        print("test_ambiguous_or_missing_include_stays_unresolved")
+        amb = by_pattern(routes, "a/")
+        check("ambiguous include unresolved", amb and amb["resolution"] == "unresolved", amb)
+        check("reason names the ambiguity",
+              amb and ("ambiguous" in amb["reason"].lower() or "candidate" in amb["reason"].lower()), amb)
+        missing = by_pattern(routes, "b/")
+        check("missing module unresolved", missing and missing["resolution"] == "unresolved", missing)
+        check("no invented edge for ambiguous include", amb and amb["view"] is None, amb)
+
+
+def test_include_cycle_terminates():
+    """A urls.py cycle must not hang or recurse forever."""
+    with tempfile.TemporaryDirectory() as root:
+        write(root, "a/urls.py", '''
+from django.urls import path, include
+urlpatterns = [path("b/", include("b.urls"))]
+''')
+        write(root, "b/urls.py", '''
+from django.urls import path, include
+urlpatterns = [path("a/", include("a.urls"))]
+''')
+        routes = scan_urlpatterns(root)
+        print("test_include_cycle_terminates")
+        check("terminated without hanging", True)
+        check("cycle edge reported, not dropped", len(routes) >= 1, routes)
+        check("every route still has a resolution",
+              all(r.get("resolution") for r in routes), routes)
+
+
+def test_route_clusters_only_include_branching_shapes():
+    """Convention #14 rule 1, enforced by the scanner rather than by prose."""
+    with tempfile.TemporaryDirectory() as root:
+        write(root, "app/urls.py", '''
+from django.urls import path
+from .views import ChartView, SoloView
+urlpatterns = [
+    path("charts/", ChartView.as_view()),
+    path("charts/<int:pk>/", ChartView.as_view()),
+    path("solo/", SoloView.as_view()),
+]
+''')
+        write(root, "app/views.py", '''
+from rest_framework import viewsets
+class ChartView(viewsets.ModelViewSet):
+    permission_classes = [IsStaff]
+class SoloView(viewsets.ModelViewSet):
+    permission_classes = [IsOwner]
+''')
+        routes = scan_urlpatterns(root)
+        viewsets_ = rbac_scanner.scan_viewsets(root, set())[0]
+        clusters = rbac_scanner.build_route_clusters(routes, viewsets_)
+        print("test_route_clusters_only_include_branching_shapes")
+        names = [c["view"] for c in clusters]
+        check("multi-route view clustered", "ChartView" in names, names)
+        check("single-route view NOT clustered", "SoloView" not in names, names)
+        cv = next((c for c in clusters if c["view"] == "ChartView"), None)
+        check("cluster carries its routes", cv and len(cv["routes"]) == 2, cv)
+        check("cluster states why it qualified", cv and cv.get("reason"), cv)
+
+
+def test_route_clusters_cap_and_report_omissions():
+    """Capping is stated, never silent."""
+    with tempfile.TemporaryDirectory() as root:
+        write(root, "app/urls.py",
+              "from django.urls import path\nurlpatterns = [\n"
+              + "\n".join(f'    path("v{i}/a/", V{i}.as_view()),\n    path("v{i}/b/", V{i}.as_view()),'
+                          for i in range(8))
+              + "\n]\n")
+        routes = scan_urlpatterns(root)
+        clusters = rbac_scanner.build_route_clusters(routes, [], cap=5)
+        print("test_route_clusters_cap_and_report_omissions")
+        check("capped at 5", len(clusters) == 5, len(clusters))
+        check("omission count exposed",
+              rbac_scanner.count_omitted_clusters(routes, [], cap=5) == 3,
+              rbac_scanner.count_omitted_clusters(routes, [], cap=5))
+
+
 def test_empty_scope():
     with tempfile.TemporaryDirectory() as root:
         print("test_empty_scope")
@@ -168,6 +300,12 @@ if __name__ == "__main__":
         test_router_register,
         test_unresolved_hops_are_reported_not_dropped,
         test_ignores_non_url_files_and_bad_syntax,
+        test_include_is_followed_and_prefixed,
+        test_included_file_is_not_also_emitted_standalone,
+        test_ambiguous_or_missing_include_stays_unresolved,
+        test_include_cycle_terminates,
+        test_route_clusters_only_include_branching_shapes,
+        test_route_clusters_cap_and_report_omissions,
         test_empty_scope,
     ):
         fn()
