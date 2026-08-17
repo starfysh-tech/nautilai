@@ -76,7 +76,7 @@ identifier above.
 | Capability | Claude Code | Hermes |
 | --- | --- | --- |
 | GitHub reads/replies | `mcp__github__*`, else `gh` | **`gh` only** — no MCP tools |
-| Triage subagent at scale (>10 threads) | yes | **no** — triage runs inline |
+| Triage subagent at scale (>10 threads) | yes (`Task`) | via `delegate_task`; inline triage is the fallback with no delegation primitive |
 
 **`gh` is required** in Hermes and must be authenticated — the skill already treats it as the
 baseline and stops cleanly if it is absent. Hermes' tool sandbox uses a truncated `PATH` with no

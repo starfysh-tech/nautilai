@@ -1,0 +1,37 @@
+version = 1
+
+# Vendored third-party code — analyzed upstream, not ours to fix.
+exclude_patterns = ["docs/vendor/**"]
+
+# Disabled: the analyzer flags JS-0833 "syntax error" on every ES module in the
+# repo and finds nothing else. All three flagged files are valid — `node --check`
+# passes on each:
+#
+#   wireframe/skills/wireframe/scripts/mermaid-ascii.mjs   (import)
+#   commitcraft/templates/commitlint.config.js             (export default)
+#   cc-skill-audit/skills/cc-skill-audit/scripts/workflow.js (export const)
+#
+# Setting `module_system = "es-modules"` did not clear them, even with this file
+# live on the default branch — despite that being the documented default. So the
+# analyzer's entire output here is 3 false positives and 0 true findings, on a
+# repo that is a Claude Code plugin marketplace rather than a JS project (no
+# package.json anywhere, 5 JS files total).
+#
+# Security coverage is unaffected: gitleaks, semgrep, and the DeepSource Secrets
+# analyzer all still run. Re-enable if this repo ever grows real JS, and re-test
+# `module_system` then.
+[[analyzers]]
+name = "javascript"
+enabled = false
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+[[analyzers]]
+name = "shell"
+enabled = true
+
+[[analyzers]]
+name = "secrets"
+enabled = true

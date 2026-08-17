@@ -112,12 +112,13 @@ identifier above.
 | Capability | Claude Code | Hermes |
 | --- | --- | --- |
 | GitHub reads/merges | `mcp__github__*`, else `gh` | **`gh` only** — no MCP tools |
-| Parallel per-PR evaluation | subagents, concurrent | **sequential** — no subagent primitive |
+| Parallel per-PR evaluation | subagents, concurrent | via `delegate_task` (concurrency-capped); sequential inline is the fallback with no delegation primitive |
 
 **`gh` is required** in Hermes and must be authenticated; the skill already falls back to it as
 the baseline. Hermes' tool sandbox uses a truncated `PATH` with no Homebrew, so a
-Homebrew-installed `gh` may not be found there. A large batch of Dependabot PRs is noticeably
-slower without parallel evaluation.
+Homebrew-installed `gh` may not be found there. Hermes fans out per-PR analysis via
+`delegate_task` (concurrency-capped, so a large batch runs in waves); if a runtime offers no
+delegation primitive, evaluation falls back to sequential inline and is noticeably slower.
 
 ### Update behavior
 

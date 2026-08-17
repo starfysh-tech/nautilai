@@ -72,11 +72,13 @@ v0.18.2); install by the identifier above.
 
 | Capability | Claude Code | Hermes |
 | --- | --- | --- |
-| Parallel specialist subagents | yes | **no** — Hermes has no subagent primitive |
-| Analysis | fans out to `code-explorer`, `code-reviewer`, etc. | runs the **documented inline fallback** (Read/Grep) sequentially |
+| Parallel specialist subagents | yes (`Task`) | via `delegate_task` — no named-specialist types, so each analysis runs as a generic delegated subagent |
+| Analysis | fans out to `code-explorer`, `code-reviewer`, etc. | fans out via delegation; falls back to inline Read/Grep if no delegation primitive is present |
 
-The skill already specifies that fallback for Claude (specialists are opportunistic, never
-required), so Hermes gets the same analysis — serially, and slower. No finding is skipped.
+Hermes has a subagent primitive (`delegate_task`), driven from the skill by stating fan-out
+intent. It has no named specialist agent types, so each aspect runs as a generic delegated
+subagent given the same focused prompt. Where delegation is unavailable, the skill's documented
+inline Read/Grep fallback runs serially. No finding is skipped either way.
 
 ### Update behavior
 

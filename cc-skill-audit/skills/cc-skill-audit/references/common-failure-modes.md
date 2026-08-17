@@ -85,7 +85,7 @@ Likely causes, in order of frequency:
    Fix: run a quick eval. Pick 3-5 prompts that previously triggered the skill, send them to the current model, check trigger rate. If under 80%, rewrite the description per `description-patterns.md`.
 
 2. **Description drift.**
-   Fix: run `git log -p SKILL.md` (or check the version block) for recent description edits. Revert to the version that worked, or compare to identify which change broke the trigger.
+   Fix: run `git log -p SKILL.md` for recent description edits (or check the repo's changelog / PR history if the skill isn't in a git repo you can inspect directly). Revert to the version that worked, or compare to identify which change broke the trigger.
 
 3. **Another skill was installed that now wins the trigger.**
    Fix: run a directory sweep. Find any skill installed since the last working date with an overlapping description. Disambiguate by making one description more specific.

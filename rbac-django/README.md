@@ -41,6 +41,29 @@ sensitive-data mixin, and through-models from *your* code — nothing is
 hardcoded. You supply the judgment. Output: a severity-ranked, `file:line`-cited
 findings report (`report.md` + `rbac-audit-findings.json`).
 
+The scanner also maps the **route → view** edge from every URLconf, so a finding
+carries how many URLs actually reach the flagged view — an unguarded view behind
+four routes is a wider hole than one behind a single route. `include()` chains
+are followed, so patterns are full paths (`api/charts/`) rather than per-file
+fragments, and a URLconf reached through an include isn't double-counted as its
+own root.
+
+Each route is tagged `resolved`, `router-inferred` (DRF expands the concrete
+URLs at runtime), or `unresolved` with a reason. The scan **refuses to guess**:
+if a dotted module path matches zero or several files in scope, that hop stays
+unresolved rather than inventing an edge — a wrong edge asserts a route reaches
+a view when it may not, which is worse than a missing one. **Unresolved hops are
+reported, never dropped**: a route graph that silently omits an edge it could
+not follow reads as the complete authorization surface and gets trusted as one,
+so the report renders them and the counts sit in the summary table.
+
+Which clusters get drawn is decided by the **scanner**, not the report author.
+Per the [diagrams convention](../docs/conventions/diagrams.md) rule 1, a view
+qualifies only if it's reached by several routes or shares a permission class
+with a sibling; single-route views are straight lines and stay prose. Making
+that a computed field rather than an instruction is deliberate — it's a data
+question, so leaving it to prose in a template would make the rule advisory.
+
 ### 2. `rbac-threat-model`
 
 Thinks like an attacker who already holds a valid account. Generates 5-10 ranked

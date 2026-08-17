@@ -1,6 +1,6 @@
 ---
 name: pr-review-deep
-description: Use for a rigorous, evidence-based code quality review of a branch or PR — focused on implementation quality, maintainability, abstraction design, type/boundary contracts, and behavior-preserving structural simplification. The reviewer proposes high-leverage restructurings with cited evidence; it does not perform them or expand the PR's scope. User-invoked — run /pr-review-deep; the agent will not auto-fire it.
+description: Use for a rigorous, evidence-based structural code-quality review of a branch or PR — hunts for whole branches, layers, or modes that can be deleted rather than rearranged, and holds abstraction design, type/boundary contracts, and decomposition to a high standard. Proposes high-leverage restructurings with cited evidence; never performs them or expands the PR's scope. Not a breadth audit — it does not run tests, security tooling, or coverage checks. User-invoked — run /pr-review-deep; the agent will not auto-fire it.
 allowed-tools: Read, Grep, Glob, Write, Bash(git:*), Bash(gh:*), mcp__github__pull_request_read
 disable-model-invocation: true
 context: fork
@@ -15,6 +15,9 @@ The reviewer's job is to be **ambitious in identifying** structural improvements
 ## Core Stance
 
 > Audit the current branch's changes for implementation quality. Identify where the change could be structured to materially improve maintainability without altering behavior — better abstractions, clearer boundaries, fewer moving parts, higher legibility. Where a higher-leverage structure is available, describe it concretely and propose it. Be thorough and precise: substantiate every finding against the actual code.
+>
+> This is a structural/maintainability pass only — it does not run tests, security
+> tooling, or coverage analysis (detailed under Scope Discipline below).
 
 ## Shoals — learn from corrections
 
@@ -46,6 +49,7 @@ State which source you used. Only hard-stop if none can produce a diff.
 - **Propose, do not perform.** Describe each restructuring concretely — the files involved, the reframing, and what complexity it removes — and leave the decision to the author. Do not implement restructurings as part of the review.
 - **Respect the PR boundary.** Pre-existing structural debt that this PR merely touches is a follow-up suggestion with a ticket, not a merge blocker. Do not demand refactors outside the change's scope.
 - **A missed simplification is, at most, a should-fix.** It is never an automatic block. Reserve blocking severity for defects this PR introduces.
+- **State what this pass does not cover.** This is a structural/maintainability review; it does not run tests, security tooling, or coverage analysis. Where a change's risk lives in one of those dimensions, say so and recommend the appropriate check — do not let the review imply it covered ground it did not.
 
 ## Review Standards
 

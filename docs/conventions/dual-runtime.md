@@ -9,7 +9,9 @@ necessary, because every constraint below has a Hermes-only solution.
 
 > The design record and per-assumption validation live in
 > [`docs/plans/hermes-dual-runtime.md`](../plans/hermes-dual-runtime.md). This file is the
-> rule set. The agent-facing summary is [`docs/llms.txt`](../llms.txt).
+> rule set. The **step-by-step porting how-to** (docs-site page) is
+> [`docs/hermes-porting.html`](../hermes-porting.html). The agent-facing summary is
+> [`docs/llms.txt`](../llms.txt).
 
 ---
 
@@ -19,7 +21,12 @@ necessary, because every constraint below has a Hermes-only solution.
 
 Prove it, don't assert it. The PR diff must show **no changes** under `<plugin>/scripts/**`,
 `<plugin>/templates/**`, `<plugin>/tests/**`, or any `.claude-plugin/**`. The only permitted
-edit to a Claude-loaded file is an **additive** "Resource paths" section in `SKILL.md`.
+edits to a Claude-loaded file are **additive** adapter prose in `SKILL.md`: a "Resource paths"
+section (rule 3) for skills that ship bundled resources, or — for a skill with no bundled
+resources but a fan-out step — an additive **"Runtime note (non-Claude)"** that states the
+delegation translation (rule 7). Both must be inert to Claude: gate the note on a condition
+Claude never meets (e.g. "a runtime with a delegation primitive but not `Task`"), so Claude
+reads past it unchanged.
 
 ### 2. Bundled resources are mirrored into the skill dir, not moved
 
@@ -98,12 +105,31 @@ it installs. So `sync-resources.sh` carries an `EXCLUDE` list, and `setup` + `ch
   `--force`**, so this is fatal, not cosmetic. Name the *category* of directive to refuse; never
   spell the payload. The same applies to security-audit checklists that enumerate what to look for.
 
-### 7. A plugin that needs subagents is Claude-only
+### 7. A plugin that needs *worktree isolation* is Claude-only; fan-out alone is portable
 
-Hermes has no subagent primitive. `autodev` is not ported: its value *is* subagent fan-out plus
-git-worktree isolation, so a port would be a hollow shell. Skills that fan out for review
-(`review-plan`, `dep-review`, `pr-comment-review`) already document an inline fallback — that
-documented path *is* their Hermes behavior. Say so in the README rather than inventing new prose.
+Hermes **has** a subagent primitive — `delegate_task`, verified against the binary (July 2026).
+A loaded skill drives it the same way a Claude skill drives `Task`: the SKILL.md states the
+*intent* ("delegate each analysis to a subagent"), the active agent interprets it and calls
+`delegate_task` itself. The skill never names the tool. Leaf subagents get `terminal`/`file`
+(git works; a test runner works only if installed) and return a summary only (both verified).
+The child's context is reportedly fresh, but that one is doc-stated — the probe couldn't confirm
+it (see below).
+
+What Hermes does **not** have is **git-worktree isolation**: subagents share the parent's one
+working directory (verified — a leaf reported the parent's `pwd`). So the Claude-only test is
+*worktree isolation*, not "subagents exist":
+
+- `autodev` stays **Claude-only** — its parallel lanes each need an isolated worktree for clean
+  per-attempt rollback; in one shared directory they would collide. Absence of `delegate_task`
+  was never the real blocker.
+- Skills that fan out for *read-only* review (`review-plan`, `dep-review`, `pr-comment-review`)
+  **can** delegate on Hermes. The SKILL.md adapter phrases fan-out as intent so a runtime with
+  a delegation primitive but no `Task` delegates the same per-aspect/per-PR work; the inline
+  Read/Grep path remains the fallback when no delegation primitive is present.
+
+Unverified (doc-stated only, treat conservatively): the child's context is fully fresh, and the
+concurrency=3 / depth=1 caps. Write adapters so the parent passes **all** needed context in
+`goal`/`context` regardless.
 
 ### 8. Document the five headings, and the limits
 

@@ -1,5 +1,54 @@
 # Changelog
 
+## [2.23.0](https://github.com/starfysh-tech/nautilai/compare/v2.22.0...v2.23.0) (2026-08-17)
+
+
+### Features
+
+* **rbac-django:** map route exposure onto audit findings ([#140](https://github.com/starfysh-tech/nautilai/issues/140)) ([e1b8198](https://github.com/starfysh-tech/nautilai/commit/e1b8198ba648b82bc7e1b88f24fc557336a9d688))
+
+## [2.22.0](https://github.com/starfysh-tech/nautilai/compare/v2.21.2...v2.22.0) (2026-08-17)
+
+
+### Features
+
+* **wireframe:** validate mermaid diagrams before showing them ([#137](https://github.com/starfysh-tech/nautilai/issues/137)) ([a4ed1cc](https://github.com/starfysh-tech/nautilai/commit/a4ed1cc47527ae1452ad954921c2a25a9dc57eec))
+
+## [2.21.2](https://github.com/starfysh-tech/nautilai/compare/v2.21.1...v2.21.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **cc-skill-audit:** block on batch subagents instead of orphaning them ([#134](https://github.com/starfysh-tech/nautilai/issues/134)) ([39c314d](https://github.com/starfysh-tech/nautilai/commit/39c314d93e3544bc68ea28c56fcb61d5aa7c9cda))
+
+## [2.21.1](https://github.com/starfysh-tech/nautilai/compare/v2.21.0...v2.21.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **handoff:** make narrative pack advisory, not ground truth ([#132](https://github.com/starfysh-tech/nautilai/issues/132)) ([c0cf3d6](https://github.com/starfysh-tech/nautilai/commit/c0cf3d69ffd8c7e46bc635fa17144790ca655ab8))
+
+## [2.21.0](https://github.com/starfysh-tech/nautilai/compare/v2.20.0...v2.21.0) (2026-08-03)
+
+
+### Features
+
+* **action-first:** add persistent output-style plugin ([#129](https://github.com/starfysh-tech/nautilai/issues/129)) ([5fca426](https://github.com/starfysh-tech/nautilai/commit/5fca426ebd54f3e7c0d1537a37e3cbbb0678427b))
+
+## [2.20.0](https://github.com/starfysh-tech/nautilai/compare/v2.19.0...v2.20.0) (2026-07-23)
+
+
+### Features
+
+* **sentry-ops:** add sentry-ops plugin ([#124](https://github.com/starfysh-tech/nautilai/issues/124)) ([2ccadbc](https://github.com/starfysh-tech/nautilai/commit/2ccadbc52744f6280a629d2954ca607b960599ef))
+
+## [2.19.0](https://github.com/starfysh-tech/nautilai/compare/v2.18.6...v2.19.0) (2026-07-17)
+
+
+### Features
+
+* **hermes:** fan out review skills via delegate_task ([e7fd4e5](https://github.com/starfysh-tech/nautilai/commit/e7fd4e5dc76a674e4d6c592bfe80a59748035014))
+
 ## [2.18.6](https://github.com/starfysh-tech/nautilai/compare/v2.18.5...v2.18.6) (2026-07-15)
 
 

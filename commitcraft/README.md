@@ -27,6 +27,42 @@ CommitCraft also triggers from natural language — "commit my changes", "open a
 
 ## Workflows
 
+`commit` covers the first three nodes, `push` adds the push, `pr` opens the PR, and
+`release` picks up after a merge lands on `main`:
+
+```mermaid
+flowchart TD
+  CH{"on main?"}
+  BR["auto-create feature branch"]
+  C["stage files, generate commit message"]
+  HK{"pre-commit hooks"}
+  FIX["re-stage auto-fixed files"]
+  STOP["hard stop, never --no-verify"]
+  P["push to origin"]
+  PR["open PR"]
+  MERGE["merge to main"]
+  RP{"release-please functional?"}
+  RPR["release PR opens"]
+  TAG["merge release PR, tag and release"]
+  MAN["manual tag and GitHub release"]
+
+  CH -->|yes| BR
+  BR --> C
+  CH -->|no| C
+  C --> HK
+  HK -->|auto-fixable| FIX
+  FIX --> C
+  HK -->|secrets, commitlint, tests| STOP
+  HK -->|pass| P
+  P --> PR
+  PR --> MERGE
+  MERGE --> RP
+  RP -->|yes| RPR
+  RPR --> TAG
+  TAG -->|next merge to main| MERGE
+  RP -->|disabled or absent| MAN
+```
+
 | Workflow | Description |
 |---|---|
 | `commit` | Stages files individually, generates a conventional commit message, handles pre-commit hooks |
@@ -146,7 +182,7 @@ on install.
 | --- | --- | --- |
 | `commit` · `push` · `pr` · `release` | yes | yes |
 | **`setup` · `check`** | yes | **no** — see below |
-| Subagents / parallel review fan-out | yes | **no** — Hermes has no subagent primitive |
+| Subagents / parallel review fan-out | yes | n/a — CommitCraft has no fan-out step (Hermes' `delegate_task` primitive is unused here) |
 | Script invocation | direct (`./script.sh`) | via `bash` (exec bit stripped on install) |
 | Discovery via `search` / `browse` | marketplace | **unreliable** — install by identifier instead |
 

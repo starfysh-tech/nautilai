@@ -164,9 +164,11 @@ Do **not** document `hermes skills tap add` — it does not work. Do not documen
 `hermes skills search`/`browse` as a discovery path either; the `github` source is skipped and
 nautilai does not appear.
 
-State plainly: **autodev is Claude-only** (its value is subagent fan-out + worktree isolation, which
-Hermes has no equivalent for), and **Hermes has no subagents**, so review skills run the inline
-fallback they already document (`review-plan/skills/review-plan/SKILL.md:59`).
+State plainly: **autodev is Claude-only** — Hermes has a subagent primitive (`delegate_task`) but
+no **git-worktree isolation**, which autodev's parallel lanes need for clean per-attempt rollback.
+Review skills (`review-plan`, `dep-review`, `pr-comment-review`) **can** fan out via delegation on
+Hermes; the inline Read/Grep path is their fallback when no delegation primitive is present
+(`review-plan/skills/review-plan/SKILL.md:59`).
 
 ### Step 5 — CommitCraft `issue_tracker: none`
 
@@ -317,5 +319,6 @@ adapter's translation rule leans on the same mechanism rather than introducing a
 - **No generator, no bundle, no CI drift gate, no release-please fan-out.** All of it existed to
   satisfy a flat-discovery requirement that does not exist.
 - **No `tap add` support.** Dead in v0.18.2. Do not document it; do not design for it.
-- **No Hermes port of autodev** — no subagent primitive in Hermes.
+- **No Hermes port of autodev** — Hermes has `delegate_task` but no git-worktree isolation, and
+  autodev's parallel lanes need it.
 - **No GitHub Issue functionality** in the Hermes path.

@@ -8,6 +8,21 @@ Do not invent capability, and do not pull claims from the marketplace index's
 one-line description alone — that copy is already compressed; go back to the
 README for the full sentence.
 
+## Shared CSS/JS — do not inline
+
+`_TEMPLATE.html` links two shared files instead of embedding a `<style>`/`<script>`
+block: `<link rel="stylesheet" href="../assets/plugin.css" />` and
+`<script src="../assets/plugin.js"></script>`. `docs/assets/plugin.css` is the union
+of every page variant (base layout/typography, flow-diagram steps, the optional
+lane/split/legend markup, the optional dual-runtime install styling, `details.tech`,
+copyfield/copy-btn, footer) — unused selectors are harmless, they only match markup
+a given page doesn't include. `docs/assets/plugin.js` is the clipboard-copy handler,
+byte-identical across every page before this was extracted. **Never re-inline either
+one into a new page** — that's exactly the duplication this convention removes. If a
+page needs CSS no other page has, add it to `plugin.css` (favor a reusable addition)
+or, only for a true one-off, a small page-scoped `<style>` block placed *after* the
+`plugin.css` link so it can override.
+
 ## Slot list
 
 | Slot | Source | Rule |

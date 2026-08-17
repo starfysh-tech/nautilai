@@ -98,6 +98,34 @@ flowchart TD
 
 *Optional: add `%%{init: {"flowchart": {"defaultRenderer": "elk"}} }%%` as the first line for better layout in VS Code.*
 
+### Validate + preview locally
+
+```bash
+# from a file
+node ${CLAUDE_PLUGIN_ROOT}/skills/wireframe/scripts/mermaid-ascii.mjs flow.mmd
+
+# from stdin
+printf 'flowchart TD\n  A[Start] --> B[End]\n' \
+  | node ${CLAUDE_PLUGIN_ROOT}/skills/wireframe/scripts/mermaid-ascii.mjs -
+```
+
+Renders the diagram as ASCII and exits non-zero on invalid Mermaid, so a broken
+block never reaches a GitHub issue. Exit codes: `0` valid, `1` parse error,
+`2` usage, `127` dependency missing.
+
+Requires `node` and the third-party `beautiful-mermaid` package — **not bundled**,
+same as the `wiremd` CLI:
+
+```bash
+bun add -g beautiful-mermaid    # or: npm i -g beautiful-mermaid
+```
+
+Without it the skill still works; it just emits Mermaid unvalidated.
+
+Covers `flowchart`/`graph`, `sequenceDiagram`, and `stateDiagram-v2`, including
+`{Diamond}`/`([Round])` shapes, `subgraph`, `<br/>` labels, and the ELK init
+directive above.
+
 ### Sequence diagram
 
 ````
