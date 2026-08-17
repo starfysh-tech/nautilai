@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.22.0](https://github.com/starfysh-tech/nautilai/compare/v2.21.2...v2.22.0) (2026-08-17)
+
+
+### Features
+
+* **wireframe:** validate mermaid diagrams before showing them ([#137](https://github.com/starfysh-tech/nautilai/issues/137)) ([a4ed1cc](https://github.com/starfysh-tech/nautilai/commit/a4ed1cc47527ae1452ad954921c2a25a9dc57eec))
+
 ## [2.21.2](https://github.com/starfysh-tech/nautilai/compare/v2.21.1...v2.21.2) (2026-08-05)
 
 
