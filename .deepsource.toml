@@ -1,0 +1,28 @@
+version = 1
+
+# Vendored third-party code — analyzed upstream, not ours to fix.
+exclude_patterns = ["docs/vendor/**"]
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+  # This repo ships no package.json (it is a plugin marketplace, not a Node
+  # project), so the analyzer has nothing to infer the module system from and
+  # falls back to script parsing — which flags every `import` as a syntax
+  # error. Every .js/.mjs here is ESM, so state it explicitly.
+  [analyzers.meta]
+  module_system = "es-modules"
+  environment = ["nodejs", "browser"]
+
+[[analyzers]]
+name = "python"
+enabled = true
+
+[[analyzers]]
+name = "shell"
+enabled = true
+
+[[analyzers]]
+name = "secrets"
+enabled = true
