@@ -71,6 +71,9 @@ jobs:
       - name: cc-validate-hooks eval
         run: bash cc-validate-hooks/tests/eval/verdict-match.sh
 
+      - name: rbac-django route-scan tests
+        run: python3 rbac-django/tests/test_route_scan.py
+
       # Validate the repo's community-health config against GitHub's own schemas
       # (vendored by check-jsonschema). Pinned so an upstream release can't red-light
       # main on an unrelated commit. python3 is already a CI dep (the sync check is a
@@ -100,3 +103,10 @@ jobs:
       # catches the class before it reaches external review.
       - name: Shellcheck shell scripts
         run: git ls-files '*.sh' | xargs -r shellcheck -x -S warning
+
+      # Bundled Python had no gate at all: a DeepSource autofix PR dedented a
+      # method body out of its class and the resulting import-time SyntaxError
+      # passed every check here. py_compile is the floor, not a linter — it
+      # catches only what stops the module loading.
+      - name: Python syntax check
+        run: git ls-files '*.py' | xargs -r -n1 python3 -m py_compile
