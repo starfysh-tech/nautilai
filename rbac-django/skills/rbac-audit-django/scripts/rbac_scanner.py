@@ -984,23 +984,29 @@ def build_summary(inventory: dict) -> dict:
 
 def _view_from_node(node: ast.AST) -> tuple[str | None, str, str | None]:
     """Map a path()/re_path() view argument to (view, resolution, reason)."""
-    # `Something.as_view()` — the common case, direct or dotted.
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
-        if node.func.attr == "as_view":
-            target = node.func.value
+    if isinstance(node, ast.Call):
+        fn = node.func
+        # The common case, direct or dotted: Something.as_view()
+        if isinstance(fn, ast.Attribute) and fn.attr == "as_view":
+            target = fn.value
             if isinstance(target, ast.Name):
                 return target.id, "resolved", None
             if isinstance(target, ast.Attribute):
                 return target.attr, "resolved", None
-        if node.func.attr == "include":
-            return None, "unresolved", "include() chain — target URLconf not followed"
+        # Reached only for include() forms `_include_target` could not read —
+        # the string form is resolved upstream in `_scan_url_file`, so anything
+        # arriving here builds its target at runtime.
+        callee = (
+            fn.id if isinstance(fn, ast.Name)
+            else fn.attr if isinstance(fn, ast.Attribute)
+            else None
+        )
+        if callee == "include":
+            return None, "unresolved", (
+                "include() target is built at runtime, not a module string"
+            )
 
-    # `include("app.urls")`
-    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-        if node.func.id == "include":
-            return None, "unresolved", "include() chain — target URLconf not followed"
-
-    # A bare class/callable reference, e.g. `path("x/", MyView)`.
+    # A bare class or callable reference, as in path("x/", MyView)
     if isinstance(node, ast.Name):
         return node.id, "resolved", None
 
@@ -1065,6 +1071,100 @@ def _resolve_include(dotted: str, url_files: list[Path]) -> tuple[Path | None, s
     )
 
 
+def _include_block_reason(
+    inc: str, target: Path | None, why: str | None,
+    pattern_reason: str | None, visited: frozenset[Path], depth: int,
+) -> str | None:
+    """Why this include() must not be followed, or None if it may be."""
+    if pattern_reason:
+        return why or pattern_reason
+    if why:
+        return why
+    if target is None:
+        return "include() target not statically resolvable"
+    if target in visited:
+        return f"include('{inc}') — cycle back to an already-visited URLconf"
+    if depth >= _MAX_INCLUDE_DEPTH:
+        return f"include('{inc}') — nesting deeper than {_MAX_INCLUDE_DEPTH} levels"
+    return None
+
+
+def _include_routes(
+    node: ast.Call, inc: str, pattern: str | None, pattern_reason: str | None,
+    composed: str | None, filepath: Path, url_files: list[Path],
+    visited: frozenset[Path], depth: int,
+) -> list[dict]:
+    """Follow a resolvable include(), or emit one unresolved record explaining why not."""
+    target, why = _resolve_include(inc, url_files)
+    blocked = _include_block_reason(inc, target, why, pattern_reason, visited, depth)
+    if blocked is None and target is not None:
+        return _scan_url_file(
+            target, url_files, composed or "", visited | {target}, depth + 1,
+        )
+    return [{
+        "pattern": composed if composed is not None else pattern,
+        "view": None,
+        "file": str(filepath),
+        "line": node.lineno,
+        "kind": getattr(node.func, "id", "path"),
+        "resolution": "unresolved",
+        "reason": blocked or "include() target not statically resolvable",
+    }]
+
+
+def _plain_route(
+    node: ast.Call, arg1: ast.expr | None, composed: str | None,
+    pattern_reason: str | None, filepath: Path,
+) -> dict:
+    """One path()/re_path() route pointing at a view rather than an include()."""
+    view, resolution, view_reason = (
+        _view_from_node(arg1) if arg1 is not None
+        else (None, "unresolved", "route declares no view argument")
+    )
+    # A computed pattern makes the edge unusable even when the view itself is
+    # legible, so it downgrades the whole record.
+    if pattern_reason:
+        resolution = "unresolved"
+    record = {
+        "pattern": composed,
+        "view": view,
+        "file": str(filepath),
+        "line": node.lineno,
+        "kind": getattr(node.func, "id", "path"),
+        "resolution": resolution,
+    }
+    reason = pattern_reason or view_reason
+    if reason:
+        record["reason"] = reason
+    return record
+
+
+def _router_route(node: ast.Call, prefix: str, filepath: Path) -> dict | None:
+    """One `<router>.register(prefix, ViewSet)` entry."""
+    if not node.args:
+        return None
+    raw_prefix, _ = _pattern_from_node(node.args[0])
+    view = None
+    if len(node.args) > 1:
+        second = node.args[1]
+        if isinstance(second, ast.Name):
+            view = second.id
+        elif isinstance(second, ast.Attribute):
+            view = second.attr
+    return {
+        "pattern": None if raw_prefix is None else prefix + raw_prefix,
+        "view": view,
+        "file": str(filepath),
+        "line": node.lineno,
+        "kind": "router",
+        "resolution": "router-inferred",
+        "reason": (
+            "DRF router expands this into list/detail/extra-action routes "
+            "at runtime; the concrete URLs are not visible statically"
+        ),
+    }
+
+
 def _scan_url_file(
     filepath: Path,
     url_files: list[Path],
@@ -1088,75 +1188,19 @@ def _scan_url_file(
             pattern, pattern_reason = _pattern_from_node(node.args[0])
             arg1 = node.args[1] if len(node.args) > 1 else None
             composed = None if pattern is None else prefix + pattern
-
             inc = _include_target(arg1)
             if inc is not None:
-                target, why = _resolve_include(inc, url_files)
-                if pattern_reason:
-                    why = why or pattern_reason
-                elif target is not None and target in visited:
-                    why = f"include('{inc}') — cycle back to an already-visited URLconf"
-                elif target is not None and depth >= _MAX_INCLUDE_DEPTH:
-                    why = f"include('{inc}') — nesting deeper than {_MAX_INCLUDE_DEPTH} levels"
-                if why is None and target is not None:
-                    routes.extend(_scan_url_file(
-                        target, url_files, composed or "", visited | {target}, depth + 1,
-                    ))
-                else:
-                    routes.append({
-                        "pattern": composed if composed is not None else pattern,
-                        "view": None,
-                        "file": str(filepath),
-                        "line": node.lineno,
-                        "kind": node.func.id,
-                        "resolution": "unresolved",
-                        "reason": why or "include() target not statically resolvable",
-                    })
-                continue
-
-            view, resolution, view_reason = (
-                _view_from_node(arg1) if arg1 is not None
-                else (None, "unresolved", "route declares no view argument")
-            )
-            # A computed pattern makes the edge unusable even when the view
-            # itself is legible, so it downgrades the whole record.
-            if pattern_reason:
-                resolution = "unresolved"
-            reason = pattern_reason or view_reason
-            record = {
-                "pattern": composed,
-                "view": view,
-                "file": str(filepath),
-                "line": node.lineno,
-                "kind": node.func.id,
-                "resolution": resolution,
-            }
-            if reason:
-                record["reason"] = reason
-            routes.append(record)
+                routes.extend(_include_routes(
+                    node, inc, pattern, pattern_reason, composed,
+                    filepath, url_files, visited, depth,
+                ))
+            else:
+                routes.append(_plain_route(node, arg1, composed, pattern_reason, filepath))
 
         elif isinstance(node.func, ast.Attribute) and node.func.attr == "register":
-            if not node.args:
-                continue
-            raw_prefix, _ = _pattern_from_node(node.args[0])
-            view = None
-            if len(node.args) > 1:
-                if isinstance(node.args[1], ast.Name):
-                    view = node.args[1].id
-                elif isinstance(node.args[1], ast.Attribute):
-                    view = node.args[1].attr
-            routes.append({
-                "pattern": None if raw_prefix is None else prefix + raw_prefix,
-                "view": view,
-                "file": str(filepath),
-                "line": node.lineno,
-                "kind": "router",
-                "resolution": "router-inferred",
-                "reason": (
-                    "DRF router expands this into list/detail/extra-action routes "
-                    "at runtime; the concrete URLs are not visible statically"
-                ),
-            })
+            entry = _router_route(node, prefix, filepath)
+            if entry is not None:
+                routes.append(entry)
 
     return routes
 

@@ -234,10 +234,16 @@ urlpatterns = [path("a/", include("a.urls"))]
 ''')
         routes = scan_urlpatterns(root)
         print("test_include_cycle_terminates")
-        check("terminated without hanging", True)
         check("cycle edge reported, not dropped", len(routes) >= 1, routes)
         check("every route still has a resolution",
               all(r.get("resolution") for r in routes), routes)
+        # Assert the *visited* guard stopped it, not the depth cap. Without
+        # this the depth cap silently covers for a removed cycle guard —
+        # mutation testing caught exactly that.
+        check("stopped by the cycle guard, naming it",
+              any("cycle" in (r.get("reason") or "") for r in routes), routes)
+        check("did not recurse to the depth cap",
+              len(routes) <= 4, f"{len(routes)} routes — depth-capped, not cycle-caught")
 
 
 def test_route_clusters_only_include_branching_shapes():
