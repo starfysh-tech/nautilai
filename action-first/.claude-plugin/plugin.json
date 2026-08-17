@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "action-first",
   "displayName": "Action First",
-  "version": "2.21.1",
+  "version": "2.21.2",
   "description": "Persistent output-style skill that shapes every response around one doable-now action: lead with the command/step, number and cap multi-step work, restate progress each turn, give concrete time estimates, and cut preamble/recap.",
   "author": {
     "name": "Randall Noval",
