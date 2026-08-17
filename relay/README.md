@@ -68,6 +68,24 @@ relay's environmental assumptions on your machine (see `SCHEMA.md`).
 
 ## How it works
 
+```mermaid
+flowchart TD
+    A["/handoff writes doc to ~/.claude/handoffs/slug/"] --> B["pending marker holds the doc path"]
+    B --> C["SessionStart hook fires"]
+    C -.->|"no pending marker"| M["nothing injected"]
+    C --> D["mv pending to claimed-EPOCH-PID"]
+    D -->|"mv lost to a concurrent start"| E["exit quietly, nothing injected"]
+    D -->|"mv won"| F{"source"}
+    F -->|"clear"| H{"doc path exists"}
+    F -->|"startup"| G{"marker older than 30 min"}
+    G -->|"yes"| I["expired-EPOCH, nothing injected"]
+    G -->|"no"| H
+    H -->|"no"| J["broken-EPOCH, nothing injected"]
+    H -->|"yes"| K["inject doc as additionalContext"]
+    K --> L["consumed-EPOCH, never injected again"]
+    C -.->|"on every run, after the outcome above"| N["retention sweep deletes spent markers and docs older than RELAY_RETENTION_DAYS; pending is never swept"]
+```
+
 1. `scripts/resolve-session.sh` locates the current session's transcript JSONL.
 2. `scripts/extract-transcript.sh` reads it and prints a fact pack: files
    touched, commands run, failures, user messages (verbatim, secret-scrubbed,

@@ -14,6 +14,31 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-08-17
+
+- **Adopted a diagrams convention (#14), and drew the three lifecycles worth
+  drawing.** Evaluating where Mermaid would help across the marketplace turned up
+  more places it would *hurt* than help: a diagram asserts "these are all the parts
+  and all the connections" in a way prose never does, so a linear chain or a
+  role×resource matrix gets worse when you draw it, and a scan-generated graph that
+  silently drops an edge it couldn't resolve is worse than the flat list it
+  replaced. Rules 1 and 3 exist to stop those two failures; rule 2 (README, never
+  `SKILL.md`) follows from the reader — a model pays tokens for box drawing it must
+  parse back into text. Deliberately **no CI gate**: these transitions live in prose
+  and bash control flow, so a check could verify cap values while missing whether
+  the transitions are right, and a check that can't verify the part that matters
+  implies coverage it doesn't have. See
+  [`docs/conventions/diagrams.md`](conventions/diagrams.md).
+- **autodev, relay, and commitcraft READMEs each gained one state machine.** These
+  three were picked because each hides branching that costs a maintainer real time
+  to re-derive: autodev's lane loop has a review gate that sends a *passing* build
+  back around plus two independent counters (`counted_failures` cap 3,
+  `transient_retries` cap 2 — and only the consecutive ones); relay's handoff has a
+  consume-once marker, a lost-`mv` race, and a TTL that applies on `startup` but not
+  on `/clear`; commitcraft forks on auto-fixable-vs-hard-stop hook failures and
+  again on whether release-please is wired up. Every state and transition was
+  verified against the scripts, not the prose describing them.
+
 ## 2026-08-05
 
 - **cc-skill-audit — fixed sweep mode never completing.** A real run's 5 batch

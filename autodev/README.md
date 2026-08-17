@@ -18,6 +18,26 @@ indefinitely or grade its own homework.
 
 ## How it works
 
+```mermaid
+flowchart TD
+  Init["Init lane + worktree"] --> Baseline{"baseline_verify.sh"}
+  Baseline -->|"red"| Escalated["needs_guidance: escalate_summary.sh"]
+  Baseline -->|"green"| Gate{"controller.sh check"}
+  Gate -->|"stop"| Escalated
+  Gate -->|"continue"| Worker["haiku-worker attempt"]
+  Worker --> Verify{"verify.sh"}
+  Verify -->|"pass"| Review{"review-gate verdict"}
+  Verify -->|"fail"| Classify{"classify_failure.sh"}
+  Review -->|"pass"| Success["record-success + DONE.md"]
+  Success --> Complete["Lane done"]
+  Review -->|"block"| Counted["record-failure implementation: counted_failures +1 of 3, note to RUNSTATE.md"]
+  Classify -->|"implementation"| Counted
+  Classify -->|"transient"| Transient["record-transient: consecutive transient_retries +1 of 2, not counted"]
+  Classify -->|"environment or specification"| Escalated
+  Counted --> Gate
+  Transient --> Gate
+```
+
 - **One task lane per independent task** — state in `.autodev/<slug>/`
   (`TASK.md`, `RUNSTATE.md`, `DONE.md`, optional `VERIFY.sh`), all
   self-gitignored.
