@@ -38,6 +38,21 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   on `/clear`; commitcraft forks on auto-fixable-vs-hard-stop hook failures and
   again on whether release-please is wired up. Every state and transition was
   verified against the scripts, not the prose describing them.
+- **wireframe — Mermaid mode now parses every diagram before you see it.** The mode
+  emitted Mermaid the model had never executed, so a malformed block was only
+  discovered after it was pasted into a GitHub issue — and the failure is quiet,
+  because Mermaid renders a broken graph as a plausible-looking wrong one rather
+  than an error. A bundled renderer now parses each block first; a non-zero exit
+  means the diagram is fixed before it ships, and a clean parse also yields an ASCII
+  render shown inline, so the shape is visible without leaving the terminal. The
+  renderer's verdict is treated as authoritative — no cross-checking against a second
+  engine. Absent the optional dependency it **fails open**: Mermaid is emitted
+  unvalidated exactly as before, with the install mentioned once per run. This is a
+  noted exception to convention #8 (stdlib-only bundled scripts): validating Mermaid
+  requires a Mermaid parser, and reimplementing one to satisfy the rule would be a
+  worse trade than an optional dependency that degrades cleanly — recorded in
+  [wireframe's README](../wireframe/README.md#convention-notes) so it reads as a
+  choice rather than a miss.
 
 ## 2026-08-05
 

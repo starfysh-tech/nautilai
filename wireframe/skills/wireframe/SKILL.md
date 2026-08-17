@@ -3,7 +3,7 @@ name: wireframe
 description: Create low-fidelity wireframes for UI planning — ASCII layouts, wiremd interactive prototypes, or Mermaid user-flow/screen-state diagrams for tickets. Use when the user mentions 'wireframe', 'sketch the UI', 'ASCII mockup', 'prototype this layout', 'Mermaid diagram for a user flow or screen states', or wants a quick layout before writing components.
 model: haiku
 effort: low
-allowed-tools: [Read, Grep, Glob, Write, Bash(python3:*)]
+allowed-tools: [Read, Grep, Glob, Write, Bash(python3:*), Bash(node:*)]
 ---
 
 # Wireframe
@@ -104,6 +104,33 @@ docs — flowcharts, state machines, API sequences.
 
 See `references/reference.md` for the full Mermaid syntax cheat sheet,
 rendering caveats, and a sample flow.
+
+### Validate and preview each diagram
+
+Before showing the user a Mermaid block, run it through the bundled renderer:
+
+```bash
+node ${CLAUDE_PLUGIN_ROOT}/skills/wireframe/scripts/mermaid-ascii.mjs <file.mmd|->
+```
+
+- **Exit 0** — the diagram is valid. Show the ASCII render inline alongside the
+  Mermaid block so the user sees the shape without leaving the terminal.
+- **Exit 1** — the Mermaid is malformed. The parse error names the problem; fix
+  it and re-run. Never ship a block that failed to parse. If the fix isn't
+  obvious, show the user the error and the raw block rather than rewriting the
+  diagram on a guess.
+- **Exit 2** — no argument given (usage error, not a diagram problem).
+- **Exit 127** — the renderer's dependency isn't installed. **Fail open:** emit
+  the Mermaid block unvalidated exactly as before, and tell the user *once per
+  run* (not per diagram):
+  > ASCII preview unavailable — install with `bun add -g beautiful-mermaid`.
+
+The renderer needs `node` plus the third-party `beautiful-mermaid` package,
+which is **not bundled** — same posture as the `wiremd` CLI in wiremd mode.
+Never install it yourself; a global package install is the user's call.
+
+Its verdict is authoritative: a non-zero exit means the diagram is wrong, not
+that the renderer is limited. Don't second-guess it against another engine.
 
 ## Best practices
 
