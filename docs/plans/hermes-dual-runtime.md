@@ -291,8 +291,6 @@ identical block.
 **Re-verified after the fix:** `pr-comment-review` installs `SAFE` / `ALLOWED`. The quoted phrase
 was the only trigger; the defense itself is intact.
 
-**All five skills are confirmed installable in Hermes.** Nothing in this plan is open.
-
 ## Everything is verified
 
 Nothing in this plan is now open. Hermes support for commitcraft is complete and confirmed against
