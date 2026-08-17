@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.23.0](https://github.com/starfysh-tech/nautilai/compare/v2.22.0...v2.23.0) (2026-08-17)
+
+
+### Features
+
+* **rbac-django:** map route exposure onto audit findings ([#140](https://github.com/starfysh-tech/nautilai/issues/140)) ([e1b8198](https://github.com/starfysh-tech/nautilai/commit/e1b8198ba648b82bc7e1b88f24fc557336a9d688))
+
 ## [2.22.0](https://github.com/starfysh-tech/nautilai/compare/v2.21.2...v2.22.0) (2026-08-17)
 
 
