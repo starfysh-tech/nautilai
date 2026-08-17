@@ -38,7 +38,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [rbac-django](https://starfysh-tech.github.io/nautilai/plugins/rbac-django.html): Audits a Django/DRF + React codebase for RBAC gaps, threat-models them into attacker abuse cases, generates remediation playbooks.
 - [phi-scan](https://starfysh-tech.github.io/nautilai/plugins/phi-scan.html): Scans a repo for PHI under HIPAA Safe Harbor, then AI-triages findings to filter false positives.
 - [frontend-review](https://starfysh-tech.github.io/nautilai/plugins/frontend-review.html): Audits a React + Tailwind frontend for component architecture and design-token violations.
-- [wireframe](https://starfysh-tech.github.io/nautilai/plugins/wireframe.html): Low-fidelity wireframes — ASCII layouts, wiremd prototypes, Mermaid diagrams.
+- [wireframe](https://starfysh-tech.github.io/nautilai/plugins/wireframe.html): Low-fidelity wireframes — ASCII layouts, wiremd prototypes, Mermaid diagrams (validated before they're shown; ASCII preview when the optional renderer is installed — see Notes).
 - [cc-adoption-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-adoption-audit.html): Audits a Claude Code setup against available features and surfaces what isn't being used.
 - [cc-skill-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-skill-audit.html): Audits skills against Anthropic's authoring guidance — diagnoses under/over-triggering, de-bloats bodies.
 - [cc-validate-hooks](https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html): Validates Claude Code hook configuration in `settings.json`, with an optional `--fix`.
@@ -78,6 +78,30 @@ Claude Code only. `disable-model-invocation: true` — the model never triggers 
 own from conversational cues; it activates only via explicit `/action-first`. Once on, it
 persists across turns and topics until the user says "stop action-first" or "normal mode" —
 don't let it lapse on its own after a few responses.
+
+## Notes for agents — wireframe
+
+Claude Code only. Mermaid mode validates every diagram before showing it, via a bundled
+renderer at `${CLAUDE_PLUGIN_ROOT}/skills/wireframe/scripts/mermaid-ascii.mjs` (takes a
+file path or `-` for stdin).
+
+- **The renderer's dependency is not bundled.** It needs `node` plus the third-party
+  `beautiful-mermaid` package. Exit `127` means it is absent — **fail open**: emit the
+  Mermaid unvalidated and mention the install (`bun add -g beautiful-mermaid`) once per
+  run, not once per diagram. Never install it yourself.
+- **Exit codes are the contract:** `0` valid (also prints an ASCII render — show it),
+  `1` invalid Mermaid (the message names the fault; fix and re-run, and never ship a
+  block that failed to parse), `2` usage error, `127` dependency missing.
+- **Its verdict is authoritative.** A non-zero exit means the diagram is wrong, not that
+  the renderer is limited. Do not re-check it against another engine. If the fix is not
+  obvious, show the user the error and the raw block rather than rewriting on a guess.
+- **`beautiful-mermaid` reimplements the Mermaid parser** rather than wrapping the
+  official one. Verified working: `flowchart`/`graph`, `sequenceDiagram`,
+  `stateDiagram-v2`, `{Diamond}`/`([Round])` shapes, `subgraph`, `<br/>` labels, and the
+  ELK init directive.
+- **ASCII mode is not this renderer.** ASCII mode draws UI layouts (nav bars, `[____]`
+  inputs, `[Select ▼]`); the renderer draws node graphs. Do not route ASCII-mode layout
+  work through it.
 
 ## Optional
 
