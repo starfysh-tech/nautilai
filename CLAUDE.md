@@ -125,6 +125,15 @@ PR that makes the change:
   the release `CHANGELOG.md` via commits. This log is **plugins only**; marketing
   site / docs-page changes don't belong here.
 
+**When you add an entry here, check `docs/llms.txt` and
+`docs/plugins/<name>.html` in the same PR.** Adding a changelog entry is you
+declaring the change user-visible — which is exactly when those two go stale.
+The changelog is the only judgment call in the loop; the other two surfaces
+follow from it mechanically. This has already been missed twice: the wireframe
+docs page after Mermaid validation shipped, and four surfaces (including
+`docs/conventions/diagrams.md` itself) after rbac-django's route exposure.
+Neither was caught by CI — there is no check for this.
+
 This repo follows the CommitCraft conventions it ships (see `commitcraft/README.md`):
 
 - **Conventional Commits**: `<type>(<scope>): <subject>` — types `feat|fix|docs|style|refactor|test|chore|perf|ci|revert`; imperative, lowercase subject ≤72 chars, no emoji, no attribution footers (`Co-Authored-By`, etc.).

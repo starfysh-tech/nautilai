@@ -2,6 +2,35 @@
 
 Tracked, non-urgent work for the nautilai marketplace and its plugins.
 
+## Repo & docs
+
+Doc surfaces went stale twice in one day — `docs/plugins/wireframe.html` after the
+wireframe Mermaid work, then four surfaces (including `docs/conventions/diagrams.md`
+itself) after rbac-django's route exposure. Both were caught only because the
+maintainer asked "docs updated?", not by any check.
+
+The prose fix shipped: `CLAUDE.md`'s "Plugin changelog" section now couples a
+changelog entry to `docs/llms.txt` and `docs/plugins/<name>.html`. The item below
+is the enforced version, held back deliberately until we know whether the prose
+holds.
+
+- **`check-docs-sync.sh` — CI gate on the same coupling.** A ~10-line script in
+  `.github/scripts/`, wired into `validate.yml`: if `docs/plugin-changelog.md`
+  changed, require `docs/llms.txt` or a `docs/plugins/*.html` to have changed
+  too. Escape hatch: `[docs-ok]` in any commit message on the branch.
+  - **Why:** measured against the last 80 commits on `main`, this is the only
+    candidate rule with a usable signal. Path-based alternatives are pure noise
+    here: *plugin changed → its page changed* fired on 2/2 sampled commits, and
+    *`feat`/`fix` touching a plugin → page or `llms.txt`* fired on 4/4 — all
+    false positives (bash-4 compat, error-reporting fixes). The changelog-coupled
+    rule scored **8 satisfied / 5 flagged**, and the real miss (`e1b8198`) is in
+    the flagged set. Several of those five are arguably true positives too.
+  - **Cost / risk:** at a ~38% flag rate it must ship with the escape hatch or it
+    becomes the check everyone bypasses — the same failure as the DeepSource
+    JavaScript analyzer we disabled. **Trigger to build it:** the next stale-doc
+    incident after the `CLAUDE.md` coupling shipped. If that doesn't happen, the
+    prose was enough and this stays unbuilt.
+
 ## CommitCraft
 
 - **Restructure dispatch from one arg-driven skill to plugin commands.**

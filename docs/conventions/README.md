@@ -176,7 +176,9 @@ connections*. Draw one only when the content is genuinely a graph, put it where 
 human reads it, and never let a generated one hide what it couldn't resolve.
 
 - *Exemplified by:* `autodev` README (lane lifecycle), `relay` README (handoff
-  consume-once + TTL asymmetry), `commitcraft` README (release-please loop).
+  consume-once + TTL asymmetry), `commitcraft` README (release-please loop);
+  `rbac-django` for the generated case — route clusters computed rather than
+  chosen, unresolved hops rendered with a legend.
 - *Rule:* branching content only — linear chains and matrices stay text; README
   not `SKILL.md` (the model gains nothing from box drawing it must re-parse);
   a scan-generated diagram renders unresolved edges visibly with a legend;
