@@ -95,6 +95,10 @@ a docs build). Stay inside the common subset:
 - `relay` README — handoff doc lifecycle (consume-once marker, TTL asymmetry).
 - `commitcraft` README — release-please auto-merge loop.
 
-Rule 3 has no exemplar yet — no shipped skill generates a diagram from a scan of
-the user's code. It is written down now because the first one that does will need
-it on day one, not after the first misleading graph.
+- `rbac-django` — the rule 3 exemplar, and the only skill here that *generates*
+  a diagram from the user's code. Its route scan tags every hop `resolved` /
+  `router-inferred` / `unresolved`, renders unresolved ones with a legend, and
+  refuses to resolve an ambiguous `include()` at all rather than invent an edge.
+  Rule 1 is enforced there by a computed `route_clusters` field rather than by
+  instruction — a view qualifies only if several routes reach it or it shares a
+  permission class, so the report renders that list instead of deciding it.

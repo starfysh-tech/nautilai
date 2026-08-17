@@ -35,7 +35,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [autodev](https://starfysh-tech.github.io/nautilai/plugins/autodev.html): Bounded autonomous development loop — worktree lanes, worker subagents, script-based verification, hard 3-failure escalation. **Not portable to Hermes**: Hermes has a subagent primitive (`delegate_task`) but no git-worktree isolation, and autodev's parallel lanes need an isolated worktree each for clean per-attempt rollback.
 - [relay](https://starfysh-tech.github.io/nautilai/plugins/relay.html): Transcript-grounded handoff documents a fresh session picks up automatically.
 - [github-issue-auditor](https://starfysh-tech.github.io/nautilai/plugins/github-issue-auditor.html): Audits a repo's issues for duplicates, orphaned sub-issues, stale items, inconsistent labels. Read-only by default.
-- [rbac-django](https://starfysh-tech.github.io/nautilai/plugins/rbac-django.html): Audits a Django/DRF + React codebase for RBAC gaps, threat-models them into attacker abuse cases, generates remediation playbooks.
+- [rbac-django](https://starfysh-tech.github.io/nautilai/plugins/rbac-django.html): Audits a Django/DRF + React codebase for RBAC gaps, threat-models them into attacker abuse cases, generates remediation playbooks. The audit also maps route→view exposure, so a finding says how many URLs reach the flagged view (see Notes).
 - [phi-scan](https://starfysh-tech.github.io/nautilai/plugins/phi-scan.html): Scans a repo for PHI under HIPAA Safe Harbor, then AI-triages findings to filter false positives.
 - [frontend-review](https://starfysh-tech.github.io/nautilai/plugins/frontend-review.html): Audits a React + Tailwind frontend for component architecture and design-token violations.
 - [wireframe](https://starfysh-tech.github.io/nautilai/plugins/wireframe.html): Low-fidelity wireframes — ASCII layouts, wiremd prototypes, Mermaid diagrams (validated before they're shown; ASCII preview when the optional renderer is installed — see Notes).
@@ -78,6 +78,34 @@ Claude Code only. `disable-model-invocation: true` — the model never triggers 
 own from conversational cues; it activates only via explicit `/action-first`. Once on, it
 persists across turns and topics until the user says "stop action-first" or "normal mode" —
 don't let it lapse on its own after a few responses.
+
+## Notes for agents — rbac-django
+
+Claude Code only. The audit scanner emits a `routes` array and a `route_clusters`
+array alongside the viewset/permission inventory. Both have rules that are easy to
+get wrong by "helping".
+
+- **`resolution` is the load-bearing field.** Every route is `resolved`,
+  `router-inferred` (DRF expands the concrete URLs at runtime), or `unresolved`
+  with a `reason`. Render unresolved hops — never drop them. A route graph that
+  omits an edge it could not follow reads as the complete authorization surface
+  and gets trusted as one.
+- **The scan refuses to guess, deliberately.** An `include("x.urls")` matching zero
+  or several files in scope stays unresolved rather than picking a candidate. Do
+  not "improve" this by resolving to the first match: a wrong edge asserts a route
+  reaches a view when it may not, which is worse than a missing one.
+- **Only the string form of `include()` resolves.** `include(router.urls)` and the
+  `(patterns, namespace)` tuple form are runtime constructs and stay unresolved.
+  A settings-driven `ROOT_URLCONF` is not consulted; roots are inferred as the
+  URLconfs nothing includes.
+- **Which clusters to draw is already decided.** `route_clusters` is computed
+  (a view reached by >1 route, or sharing a permission class), ranked
+  widest-exposure-first and capped, with the remainder in
+  `summary.route_clusters_omitted`. Render exactly that list — do not add a
+  cluster it omitted or skip one it included.
+- **`summary.views_reachable_by_multiple_routes`** is the number that sharpens a
+  finding; name the routes when a flagged view has more than one.
+- Tests: `python3 rbac-django/tests/test_route_scan.py` (stdlib only, offline).
 
 ## Notes for agents — wireframe
 

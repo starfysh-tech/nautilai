@@ -40,6 +40,7 @@
   <section id="what">
     <h2>What it does</h2>
     <p>Three skills form a security workflow: the audit scans for missing permission classes, tenant-isolation leaks, IDOR, and write-side authorization gaps via AST and file analysis; the threat-model translates findings into ranked attacker abuse cases using PACE framework and BIL scoring; the remediation skill generates prioritized playbooks with test scaffolds and GitHub issues using project-discovered patterns, requiring explicit user approval before proposing fixes.</p>
+    <p>The audit also maps route&rarr;view exposure by reading the URLconf, so a finding carries how many URLs actually reach the flagged view &mdash; an unguarded view behind four routes is a wider hole than one behind a single route. <code>include()</code> chains are followed, but the scan refuses to guess: an ambiguous or missing target stays unresolved rather than inventing an edge, and unresolved hops are rendered in the report with a legend instead of being dropped.</p>
   </section>
 
   <section id="commands">
