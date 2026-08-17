@@ -79,14 +79,15 @@ check locally before pushing:
 claude plugin validate ./<plugin> --strict
 ```
 
-Bundled scripts that have logic worth testing carry a self-contained bash suite
-(currently `commitcraft/` and `autodev/`). Run them directly — they build
-throwaway fixtures (commitcraft stubs `gh`), so they're offline and
-side-effect-free:
+Bundled scripts that have logic worth testing carry a self-contained suite
+(currently `commitcraft/`, `autodev/`, and `rbac-django/`). Run them directly —
+they build throwaway fixtures (commitcraft stubs `gh`; rbac-django writes
+Django-shaped files under a temp dir), so they're offline and side-effect-free:
 
 ```bash
 bash commitcraft/tests/detect-rp.test.sh
 bash autodev/tests/scripts.test.sh
+python3 rbac-django/tests/test_route_scan.py
 ```
 
 ## Versioning
@@ -123,6 +124,15 @@ PR that makes the change:
 - Skip routine churn (typo fixes, dep bumps, internal refactors) — those live in
   the release `CHANGELOG.md` via commits. This log is **plugins only**; marketing
   site / docs-page changes don't belong here.
+
+**When you add an entry here, check `docs/llms.txt` and
+`docs/plugins/<name>.html` in the same PR.** Adding a changelog entry is you
+declaring the change user-visible — which is exactly when those two go stale.
+The changelog is the only judgment call in the loop; the other two surfaces
+follow from it mechanically. This has already been missed twice: the wireframe
+docs page after Mermaid validation shipped, and four surfaces (including
+`docs/conventions/diagrams.md` itself) after rbac-django's route exposure.
+Neither was caught by CI — there is no check for this.
 
 This repo follows the CommitCraft conventions it ships (see `commitcraft/README.md`):
 

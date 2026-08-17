@@ -27,6 +27,8 @@ body:
         - dep-review
         - github-issue-auditor
         - autodev
+        - sentry-hygiene
+        - action-first
     validations:
       required: true
   - type: input

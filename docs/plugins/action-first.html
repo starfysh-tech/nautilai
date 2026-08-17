@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>action-first — nautilai</title>
+<meta name="description" content="Persistent output-style skill that shapes every response around one doable-now action: lead with the command/step, number and cap multi-step work, restate progress each turn, give concrete time estimates, and cut preamble/recap." />
+<meta property="og:title" content="action-first — nautilai" />
+<meta property="og:description" content="Persistent output-style skill that shapes every response around one doable-now action: lead with the command/step, number and cap multi-step work, restate progress each turn, give concrete time estimates, and cut preamble/recap." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a141d" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/plugin.css" />
+</head>
+<body>
+<div id="copy-live" class="visually-hidden" aria-live="polite" role="status"></div>
+<div class="wrap">
+  <a class="back" href="../index.html#plugins">&larr; all plugins</a>
+
+  <header class="plugin-hero">
+    <h1 class="plugin-name">action-first</h1>
+    <p class="tagline">Shape every response around one doable-now action instead of a buried lede — lead with the step, number and cap the rest, restate progress each turn.</p>
+  </header>
+
+  <section id="install">
+    <h2>Install</h2>
+    <div class="copyfield">
+      <code class="cf-code"><span class="prompt">/</span>plugin install action-first@nautilai</code>
+      <button class="copy-btn" type="button" data-copy="/plugin install action-first@nautilai" aria-label="Copy install command">
+        <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="cf-label" aria-hidden="true">Copy</span>
+      </button>
+    </div>
+  </section>
+
+  <section id="what">
+    <h2>What it does</h2>
+    <p>A persistent output-style skill, not a one-shot generator. Once invoked it reshapes every response for the rest of the session: the first line is a command, path, or step rather than context; multi-step work is numbered and capped at five items; progress restates every turn instead of assuming the reader remembers where things stood; time estimates land in concrete units; preamble, recap, and sign-off phrasing are cut entirely.</p>
+    <p>The shape yields to the task when the two conflict — an "explain this" request still gets a full explanation, a destructive action still gets a confirmation, a debug spiral still gets a diagnostic question instead of another blind retry. The rules govern form, not what gets said.</p>
+  </section>
+
+  <section id="commands">
+    <h2>Commands / skills</h2>
+    <ul class="skill-list">
+      <li><div class="sk-name">/action-first</div><p>Turn on action-first output shaping for the rest of the session. Stays on until you say "stop action-first" or "normal mode".</p><div class="sk-triggers">explicit slash form only</div></li>
+    </ul>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p>Every response runs through the same shape before it's sent: lead with the action, structure any multi-step work, restate where things stand, then strip the framing that doesn't survive the pre-send check.</p>
+
+    <div class="flow">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">lead with action</span><span class="fs-sub">command / path / step</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">number & cap steps</span><span class="fs-sub">max 5</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">restate progress</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">pre-send strip</span><span class="fs-sub">preamble / recap / hedges</span></span></div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Ten rules govern shape: lead with the action, number and cap multi-step work at five items, end with one concrete next step, defer tangents to a one-line offer at the end, restate progress every turn (using the harness's task/plan tool when one exists), give time estimates in concrete units, surface completed work before anything else, state errors as cause-and-fix with no alarm language, cap any list at five, and cut preamble/recap/sign-off entirely.</li>
+          <li>Five override conditions take priority over the shape: an explicit "explain" or "walk me through" request, a destructive action needing confirmation, a debug spiral (three-plus turns of "still broken"), real ambiguity worth one clarifying question, and a rule that would delete the answer itself (e.g. "what are my options" keeps 2–4 ranked options rather than being forced to one path).</li>
+          <li>Inside an agent harness, the system prompt outranks the skill: tool-call announcements the harness requires still happen, routine steps get done rather than asked-permission-for, and time estimates point at whoever executes the step.</li>
+          <li>A five-point pre-send check runs before every reply: drop an opening sentence that announces intent, drop a closing "anything else?", drop "by the way" asides, drop hedges that carry no real uncertainty, replace idioms with the literal action.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <footer>
+    <nav class="foot-links">
+      <a href="https://github.com/starfysh-tech/nautilai/tree/main/action-first" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      <a href="../index.html#plugins">&larr; all plugins</a>
+    </nav>
+  </footer>
+</div>
+
+<script src="../assets/plugin.js"></script>
+</body>
+</html>

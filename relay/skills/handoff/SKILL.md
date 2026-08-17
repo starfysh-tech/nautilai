@@ -52,6 +52,13 @@ and record the degrade reason from stderr in the doc's Provenance section;
 never block the handoff on this step, and never re-prompt the user about a
 deliberate `RELAY_NARRATIVE=off`.
 
+If the narrative pack has not landed by the time you reach step 5, write the
+doc without it — never poll for it, and never chain `sleep` to wait (use
+`run_in_background` with an until-loop if you must wait at all). Note in
+Provenance that it was outstanding. If it lands afterward, read it, cross-check
+it against what you already wrote, and fold in anything material with a
+Provenance note.
+
 ## 4. Compute the destination
 
 ```bash
@@ -64,11 +71,12 @@ doc="$dir/$(date +%Y%m%d-%H%M%S).md"
 
 ## 5. Write the doc
 
-Structure it with these sections (omit any of the twelve only if genuinely empty):
+Structure it with these sections (omit any of the thirteen only if genuinely empty):
 
 - **Goal** — what the work is trying to achieve.
 - **Current state** — what's done, what's in progress. For each in-progress item, state its done-criterion — what "done" actually means for it — so the next session resumes against a target instead of re-deriving one.
-- **Decisions** — choices made and the reasoning, so they aren't re-litigated. Build from the narrative pack, the fact pack, and in-window knowledge together; the narrative pack is transcript-grounded, so where it disagrees with post-compaction memory it wins, same rule as the fact pack.
+- **Decisions** — choices made and the reasoning, so they aren't re-litigated. Build from the narrative pack, the fact pack, and in-window knowledge together. The fact pack is mechanically extracted and wins outright. The narrative pack is an LLM summary of the transcript — treat it as a lead, not a source: it recovers reasoning nothing else can see, but it paraphrases and occasionally invents. Verify any narrative-pack claim about code, config, or a numeric constraint against the repo before it enters the doc, and note in Provenance if any claim failed that check.
+- **Constraints** — invariants the next session must not violate, from the narrative pack's `## Constraints`, verified against the code before inclusion.
 - **Open questions / blockers** — anything unresolved or waiting on input.
 - **Next steps** — the concrete actions the next session should take first.
 - **Key artifacts** — paths/URLs to plans, PRDs, ADRs, issues, commits, diffs. Reference them; do **not** restate their contents.
@@ -101,6 +109,10 @@ fresh session that picks the handoff up automatically (consumed once, no TTL on
 
 ## Recover mode (`/handoff recover`)
 
+Recover mode is a **separate procedure**, not steps 1-7 above reused verbatim: it
+extracts the fact pack and narrative pack the same way (steps 1-3), but reads
+only the pre-compaction region, and skips steps 4-7 entirely — no doc file, no
+`/clear` marker. It assembles a "recovery delta" directly in the reply instead.
 For `/handoff recover` (after auto-compact), read and follow
 `${CLAUDE_PLUGIN_ROOT}/skills/handoff/workflows/recover.md`.
 

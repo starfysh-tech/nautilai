@@ -169,6 +169,25 @@ eval (real calls, gated on a threshold across runs).
 → Full spec: [`skill-evals.md`](./skill-evals.md); standing coverage list:
 [`../skill-eval-backlog.md`](../skill-eval-backlog.md)
 
+## 14. Diagrams — branching content, human-facing surfaces
+
+A diagram asserts something prose doesn't: *these are all the parts and all the
+connections*. Draw one only when the content is genuinely a graph, put it where a
+human reads it, and never let a generated one hide what it couldn't resolve.
+
+- *Exemplified by:* `autodev` README (lane lifecycle), `relay` README (handoff
+  consume-once + TTL asymmetry), `commitcraft` README (release-please loop);
+  `rbac-django` for the generated case — route clusters computed rather than
+  chosen, unresolved hops rendered with a legend.
+- *Rule:* branching content only — linear chains and matrices stay text; README
+  not `SKILL.md` (the model gains nothing from box drawing it must re-parse);
+  a scan-generated diagram renders unresolved edges visibly with a legend;
+  update the diagram in the same PR that changes what it depicts. No CI gate —
+  the transitions aren't parseable, and a check that can't verify the part that
+  matters is worse than an honest rule.
+
+→ Full spec: [`diagrams.md`](./diagrams.md)
+
 ---
 
 ## Auditing against these

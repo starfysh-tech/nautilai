@@ -26,7 +26,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 
 - [commitcraft](https://starfysh-tech.github.io/nautilai/plugins/commitcraft.html): Conventional commits, PR creation, and release guidance. Six workflows in Claude Code (`commit`, `push`, `pr`, `release`, `setup`, `check`); **four in Hermes** — `setup` and `check` are Claude-only (see Notes). Never uses `git add -A`, never `--no-verify`, treats hook failures as hard stops. Issue tracking is configurable and can be disabled (`ticket_tool: none`). Hermes: `skills-sh/starfysh-tech/nautilai/commitcraft`
 - [review-plan](https://starfysh-tech.github.io/nautilai/plugins/review-plan.html): Validates an implementation plan against the actual codebase and shrinks it to the smallest correct version. Hermes: `skills-sh/starfysh-tech/nautilai/review-plan`
-- [pr-review-deep](https://starfysh-tech.github.io/nautilai/plugins/pr-review-deep.html): Evidence-based code-quality review of a branch or PR. Proposes restructurings with cited evidence; never performs them. Hermes: `skills-sh/starfysh-tech/nautilai/pr-review-deep`
+- [pr-review-deep](https://starfysh-tech.github.io/nautilai/plugins/pr-review-deep.html): Structural code-quality review of a branch or PR — finds whole branches/layers/modes to delete, not rearrange; proposes restructurings with cited `file:line` evidence, never performs them. Reach for this for a deep structural/maintainability pass — **not** a breadth audit: it has no test-coverage, error-handling, or security-tooling dimensions, so pair it with a multi-dimension reviewer when you need those. Hermes: `skills-sh/starfysh-tech/nautilai/pr-review-deep`
 - [pr-comment-review](https://starfysh-tech.github.io/nautilai/plugins/pr-comment-review.html): Fetches PR review threads, categorizes them, implements agreed fixes behind approval gates, pushes, replies inline. Hermes: `skills-sh/starfysh-tech/nautilai/pr-comment-review`
 - [dep-review](https://starfysh-tech.github.io/nautilai/plugins/dep-review.html): Triages Dependabot PRs with AUTO-MERGE / MERGE / SKIP / INVESTIGATE verdicts grounded in the diff and real codebase usage. Hermes: `skills-sh/starfysh-tech/nautilai/dep-review`
 
@@ -35,15 +35,17 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [autodev](https://starfysh-tech.github.io/nautilai/plugins/autodev.html): Bounded autonomous development loop — worktree lanes, worker subagents, script-based verification, hard 3-failure escalation. **Not portable to Hermes**: Hermes has a subagent primitive (`delegate_task`) but no git-worktree isolation, and autodev's parallel lanes need an isolated worktree each for clean per-attempt rollback.
 - [relay](https://starfysh-tech.github.io/nautilai/plugins/relay.html): Transcript-grounded handoff documents a fresh session picks up automatically.
 - [github-issue-auditor](https://starfysh-tech.github.io/nautilai/plugins/github-issue-auditor.html): Audits a repo's issues for duplicates, orphaned sub-issues, stale items, inconsistent labels. Read-only by default.
-- [rbac-django](https://starfysh-tech.github.io/nautilai/plugins/rbac-django.html): Audits a Django/DRF + React codebase for RBAC gaps, threat-models them into attacker abuse cases, generates remediation playbooks.
+- [rbac-django](https://starfysh-tech.github.io/nautilai/plugins/rbac-django.html): Audits a Django/DRF + React codebase for RBAC gaps, threat-models them into attacker abuse cases, generates remediation playbooks. The audit also maps route→view exposure, so a finding says how many URLs reach the flagged view (see Notes).
 - [phi-scan](https://starfysh-tech.github.io/nautilai/plugins/phi-scan.html): Scans a repo for PHI under HIPAA Safe Harbor, then AI-triages findings to filter false positives.
 - [frontend-review](https://starfysh-tech.github.io/nautilai/plugins/frontend-review.html): Audits a React + Tailwind frontend for component architecture and design-token violations.
-- [wireframe](https://starfysh-tech.github.io/nautilai/plugins/wireframe.html): Low-fidelity wireframes — ASCII layouts, wiremd prototypes, Mermaid diagrams.
+- [wireframe](https://starfysh-tech.github.io/nautilai/plugins/wireframe.html): Low-fidelity wireframes — ASCII layouts, wiremd prototypes, Mermaid diagrams (validated before they're shown; ASCII preview when the optional renderer is installed — see Notes).
 - [cc-adoption-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-adoption-audit.html): Audits a Claude Code setup against available features and surfaces what isn't being used.
 - [cc-skill-audit](https://starfysh-tech.github.io/nautilai/plugins/cc-skill-audit.html): Audits skills against Anthropic's authoring guidance — diagnoses under/over-triggering, de-bloats bodies.
 - [cc-validate-hooks](https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html): Validates Claude Code hook configuration in `settings.json`, with an optional `--fix`.
+- [sentry-hygiene](https://starfysh-tech.github.io/nautilai/plugins/sentry-hygiene.html): Audits a repo's Sentry setup against official SDK docs fetched at runtime, and instruments capture behind a hard PII boundary. Repo-only (no Sentry MCP). Deliberately complements the official `sentry` plugin, which owns SDK setup and fixing production issues. **Not currently ported to Hermes.**
+- [action-first](https://starfysh-tech.github.io/nautilai/plugins/action-first.html): Persistent output-style skill — reshapes every response around one doable-now action (lead with the step, number/cap multi-step work at 5, restate progress each turn, cut preamble/recap). User-invoked only, stays on until "stop action-first."
 
-## Notes for agents
+## Notes for agents — Hermes runtime
 
 Non-obvious facts, verified against a live Hermes v0.18.2. Believing the published Hermes
 docs over these will waste your time — several of their claims did not hold.
@@ -61,6 +63,74 @@ docs over these will waste your time — several of their claims did not hold.
 - **A skill serves both runtimes via a "Resource paths" adapter section.** Each runtime substitutes only its own token and leaves the other as literal text, so the resolved line is the one to follow. Never substitute a token yourself and never fall back to a relative path.
 - **If `skills.template_vars: false` is set in `~/.hermes/config.yaml`**, Hermes stops substituting `${HERMES_SKILL_DIR}` and bundled-script paths arrive literal, breaking any skill that calls one. Claude Code is unaffected.
 
+## Notes for agents — sentry-hygiene
+
+Claude Code only. Two workflows, both repo-only.
+
+- **This plugin is complementary to the official `sentry` plugin, not a replacement.** If a task is "set up a Sentry SDK" or "fix/triage/investigate a production issue," that is the official plugin's job (`sentry-sdk-setup`, `sentry-fix-issues`). `sentry-hygiene` does the two things it doesn't: `audit` (validate an existing setup vs docs) and `instrument` (add/fix capture behind the inbound-PII gate).
+- **Neither workflow calls a Sentry MCP server.** Both read the repo and the docs only. Do not reach for issue data here; there is no MCP surface.
+- **The two PII models are complementary.** The official plugin guards data coming *out* of Sentry (event data is untrusted input, don't leak it into code). `sentry-hygiene` guards the *inbound* half — what the SDK attaches to events on its own (page URL, breadcrumbs, server request data) that no capture call passed.
+- **Context7 is optional.** It grounds `audit` in official SDK docs; without it `audit` falls back to `WebFetch` of `docs.sentry.io`, then degrades to structural-only checks and says so in its report.
+
+## Notes for agents — action-first
+
+Claude Code only. `disable-model-invocation: true` — the model never triggers this on its
+own from conversational cues; it activates only via explicit `/action-first`. Once on, it
+persists across turns and topics until the user says "stop action-first" or "normal mode" —
+don't let it lapse on its own after a few responses.
+
+## Notes for agents — rbac-django
+
+Claude Code only. The audit scanner emits a `routes` array and a `route_clusters`
+array alongside the viewset/permission inventory. Both have rules that are easy to
+get wrong by "helping".
+
+- **`resolution` is the load-bearing field.** Every route is `resolved`,
+  `router-inferred` (DRF expands the concrete URLs at runtime), or `unresolved`
+  with a `reason`. Render unresolved hops — never drop them. A route graph that
+  omits an edge it could not follow reads as the complete authorization surface
+  and gets trusted as one.
+- **The scan refuses to guess, deliberately.** An `include("x.urls")` matching zero
+  or several files in scope stays unresolved rather than picking a candidate. Do
+  not "improve" this by resolving to the first match: a wrong edge asserts a route
+  reaches a view when it may not, which is worse than a missing one.
+- **Only the string form of `include()` resolves.** `include(router.urls)` and the
+  `(patterns, namespace)` tuple form are runtime constructs and stay unresolved.
+  A settings-driven `ROOT_URLCONF` is not consulted; roots are inferred as the
+  URLconfs nothing includes.
+- **Which clusters to draw is already decided.** `route_clusters` is computed
+  (a view reached by >1 route, or sharing a permission class), ranked
+  widest-exposure-first and capped, with the remainder in
+  `summary.route_clusters_omitted`. Render exactly that list — do not add a
+  cluster it omitted or skip one it included.
+- **`summary.views_reachable_by_multiple_routes`** is the number that sharpens a
+  finding; name the routes when a flagged view has more than one.
+- Tests: `python3 rbac-django/tests/test_route_scan.py` (stdlib only, offline).
+
+## Notes for agents — wireframe
+
+Claude Code only. Mermaid mode validates every diagram before showing it, via a bundled
+renderer at `${CLAUDE_PLUGIN_ROOT}/skills/wireframe/scripts/mermaid-ascii.mjs` (takes a
+file path or `-` for stdin).
+
+- **The renderer's dependency is not bundled.** It needs `node` plus the third-party
+  `beautiful-mermaid` package. Exit `127` means it is absent — **fail open**: emit the
+  Mermaid unvalidated and mention the install (`bun add -g beautiful-mermaid`) once per
+  run, not once per diagram. Never install it yourself.
+- **Exit codes are the contract:** `0` valid (also prints an ASCII render — show it),
+  `1` invalid Mermaid (the message names the fault; fix and re-run, and never ship a
+  block that failed to parse), `2` usage error, `127` dependency missing.
+- **Its verdict is authoritative.** A non-zero exit means the diagram is wrong, not that
+  the renderer is limited. Do not re-check it against another engine. If the fix is not
+  obvious, show the user the error and the raw block rather than rewriting on a guess.
+- **`beautiful-mermaid` reimplements the Mermaid parser** rather than wrapping the
+  official one. Verified working: `flowchart`/`graph`, `sequenceDiagram`,
+  `stateDiagram-v2`, `{Diamond}`/`([Round])` shapes, `subgraph`, `<br/>` labels, and the
+  ELK init directive.
+- **ASCII mode is not this renderer.** ASCII mode draws UI layouts (nav bars, `[____]`
+  inputs, `[Select ▼]`); the renderer draws node graphs. Do not route ASCII-mode layout
+  work through it.
+
 ## Optional
 
 - [Plugin changelog](https://github.com/starfysh-tech/nautilai/blob/main/docs/plugin-changelog.md): Hand-curated log of user-visible plugin changes, newest first.
@@ -68,3 +138,4 @@ docs over these will waste your time — several of their claims did not hold.
 - [Dual-runtime conventions](https://github.com/starfysh-tech/nautilai/blob/main/docs/conventions/dual-runtime.md): The rules for keeping a plugin working in both runtimes, and the lessons behind each — including which published Hermes docs turned out to be wrong.
 - [Port a plugin to Hermes](https://starfysh-tech.github.io/nautilai/hermes-porting.html): Step-by-step how-to for making a plugin's skill run in Hermes as well as Claude Code — the disqualifiers, the six additive edits, and the verify pass. Human-facing companion to the conventions above.
 - [Authoring conventions](https://github.com/starfysh-tech/nautilai/blob/main/docs/conventions/README.md): House rules for plugins in this repo, including the finding-disposition standard every review skill follows.
+- [Diagram conventions](https://github.com/starfysh-tech/nautilai/blob/main/docs/conventions/diagrams.md): When a Mermaid diagram earns its place and when it makes things worse — diagram branching content only (linear chains and matrices stay text), READMEs not `SKILL.md` (a model pays tokens for box drawing it must parse back to text), and a diagram generated from scanning user code must render what it could not resolve rather than omit it.

@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>sentry-hygiene — nautilai</title>
+<meta name="description" content="Audit a repo's Sentry setup against official SDK docs and instrument capture behind a hard PII boundary. Complements the official Sentry plugin, which owns SDK setup and issue-fixing." />
+<meta property="og:title" content="sentry-hygiene — nautilai" />
+<meta property="og:description" content="Audit a repo's Sentry setup against official SDK docs and instrument capture behind a hard PII boundary. Complements the official Sentry plugin, which owns SDK setup and issue-fixing." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a141d" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/plugin.css" />
+</head>
+<body>
+<div id="copy-live" class="visually-hidden" aria-live="polite" role="status"></div>
+<div class="wrap">
+  <a class="back" href="../index.html#plugins">&larr; all plugins</a>
+
+  <header class="plugin-hero">
+    <h1 class="plugin-name">sentry-hygiene</h1>
+    <p class="tagline">Audit a repo's Sentry setup against the official SDK docs and instrument capture behind a PII boundary. Complements the official Sentry plugin.</p>
+  </header>
+
+  <section id="install">
+    <h2>Install</h2>
+    <div class="copyfield">
+      <code class="cf-code"><span class="prompt">/</span>plugin install sentry-hygiene@nautilai</code>
+      <button class="copy-btn" type="button" data-copy="/plugin install sentry-hygiene@nautilai" aria-label="Copy install command">
+        <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="cf-label" aria-hidden="true">Copy</span>
+      </button>
+    </div>
+  </section>
+
+  <section id="what">
+    <h2>What it does</h2>
+    <p>One skill with two workflows, both repo-only — they read code and docs, never a Sentry MCP server. <code>audit</code> reads the repo's actual Sentry setup — SDK and version from the lockfile, <code>Sentry.init</code> options, integrations, sourcemap upload, release and dist wiring, sampling rates, <code>beforeSend</code> scrubbing, environment gating, per-runtime DSNs — then checks it against the official Sentry docs fetched at runtime rather than against a frozen checklist. <code>instrument</code> adds or repairs capture sites behind a PII gate that covers both what you attach and what the SDK attaches on its own.</p>
+    <p>It is deliberately complementary to the first-party <a href="https://github.com/getsentry/sentry-for-ai">official Sentry plugin</a>, which owns SDK setup and fixing production issues through a bundled MCP server. <code>sentry-hygiene</code> covers the two gaps that plugin leaves: validating an <em>existing</em> setup, and the inbound-PII gate — what the SDK attaches to events on its own. For live issues, use the official plugin.</p>
+  </section>
+
+  <section id="commands">
+    <h2>Commands / skills</h2>
+    <ul class="skill-list">
+      <li><div class="sk-name">/sentry-hygiene</div><p>Runs discovery, then recommends <code>audit</code> or <code>instrument</code>.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/sentry-hygiene audit</div><p>Validate the repo's Sentry configuration against the official SDK docs for the detected platform, and report the gaps.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/sentry-hygiene instrument</div><p>Add or repair capture sites — <code>captureException</code>, messages, breadcrumbs, context — behind the PII boundary.</p><div class="sk-triggers">explicit slash form only</div></li>
+    </ul>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p>The <code>audit</code> workflow discovers before it judges. It reads the SDK and its version from the lockfile, then the <code>Sentry.init</code> call and everything around it — integrations, sourcemap upload, release and dist wiring, sampling rates, <code>beforeSend</code> scrubbing, environment gating, per-runtime DSNs. Only then does it fetch the official Sentry docs for that SDK and version through Context7 and compare. Grounding the expectations at runtime is what keeps the audit from rotting as the SDK moves.</p>
+
+    <div class="flow">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">discover setup</span><span class="fs-sub">lockfile + Sentry.init</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">ground expectations</span><span class="fs-sub">Context7</span></span></div>
+    </div>
+    <div class="flow-legend">
+      <span class="fl-item"><span class="fl-swatch" data-lane="ok"></span> docs reachable</span>
+      <span class="fl-item"><span class="fl-swatch" data-lane="degrade"></span> no docs source</span>
+    </div>
+    <div class="flow-split" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v6"/><path d="M12 10c0 4-6 2-6 7"/><path d="M12 10c0 4 6 2 6 7"/></svg></div>
+    <div class="flow-lanes">
+      <div class="flow-lane" data-lane="ok"><span class="flow-lane-label">ok</span>
+        <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">compare against docs</span></span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">report gaps</span><span class="fs-sub">auto-fix / report / ask-user</span></span></div>
+      </div>
+      <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">degrade</span>
+        <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">structural checks only</span></span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">report, and say so</span></span></div>
+      </div>
+    </div>
+
+    <p>The <code>instrument</code> workflow adds or repairs capture sites against the conventions <code>audit</code> discovered, then holds each one at the PII gate: it checks not just the tags and context you pass, but what the SDK attaches to the event on its own — the page URL, breadcrumbs, and server request data — before a capture on a token- or share-ID-bearing route can ship. Any capture touching a PII-bearing path is <code>ask-user</code>, never auto-applied.</p>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>The PII boundary covers what the SDK attaches on its own, not only what you pass it: in the browser, the page URL, referrer and headers via a default-on HTTP context integration, plus console, fetch, XHR and navigation breadcrumbs; on the server, request data including cookies, headers, query strings and bodies. Any route carrying a token or share ID in its URL becomes event data.</li>
+          <li>Which options gate that collection is version-dependent, so <code>audit</code> resolves the boundary against the docs for the SDK version the repo actually resolved rather than asserting it.</li>
+          <li>Anything touching PII handling or sampling behavior is classified <code>ask-user</code> under the repo's <a href="https://github.com/starfysh-tech/nautilai/blob/main/docs/conventions/finding-dispositions.md">finding-dispositions</a> convention, never self-resolved.</li>
+          <li>Complementary to the official Sentry plugin's PII stance: that plugin treats event data as untrusted input coming <em>out</em> of Sentry; this covers the <em>inbound</em> half — what the SDK attaches going in.</li>
+          <li>Neither workflow calls a Sentry MCP server — both read the repo and the docs only. Fixing live issues is the official plugin's job.</li>
+          <li>Without Context7, <code>audit</code> falls back to <code>WebFetch</code> against <code>docs.sentry.io</code>; if that also fails it degrades to structural-only checks and states the limitation in the report rather than implying the setup was validated against docs.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <section id="requirements">
+    <h2>Requirements</h2>
+    <p><strong>No Sentry MCP server needed</strong> — both workflows read the repo and the official docs only. The <strong>Context7 MCP server is optional</strong>: it grounds <code>audit</code> in the official SDK docs, and <code>audit</code> degrades explicitly without it. Claude Code only — this plugin is not currently ported to Hermes Agent.</p>
+  </section>
+
+  <footer>
+    <nav class="foot-links">
+      <a href="https://github.com/starfysh-tech/nautilai/tree/main/sentry-hygiene" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      <a href="../index.html#plugins">&larr; all plugins</a>
+    </nav>
+  </footer>
+</div>
+
+<script src="../assets/plugin.js"></script>
+</body>
+</html>

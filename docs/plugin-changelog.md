@@ -14,6 +14,132 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-08-18
+
+- **rbac-django — findings now know how many URLs reach the flagged view.** The
+  audit could say a viewset lacked `permission_classes` but not how exposed it
+  was, because the scanner never read the URLconf: it inventoried views,
+  permissions and querysets, and simply had no route→view edge. An unguarded view
+  behind four routes is a materially wider hole than one behind a single route,
+  and that distinction was invisible. A stdlib-AST scan of `urlpatterns` and
+  `router.register` now supplies it. Deliberately **no ast-grep twin** unlike the
+  class-body scans — these are module-level assignments and calls that `ast.walk`
+  resolves completely, so a second implementation would double the surface for
+  zero coverage; the reason is recorded in the code so nobody "restores" the
+  symmetry. The report gains a *Route Exposure* section that draws a cluster
+  **only** where a view has several routes or shares a permission class; single
+  routes are straight lines and stay prose (diagrams convention rule 1). Django
+  resolves plenty at runtime that no parser sees — `include()` chains, DRF router
+  expansion, string view references — so every route carries a `resolution` and
+  unresolved hops are **rendered with a legend rather than omitted** (rule 3),
+  since a graph that drops an edge it couldn't follow reads as the complete
+  authorization surface. First bundled Python test suite in the repo
+  (`rbac-django/tests/`), and it was proven to fail before being trusted: mutating
+  the scanner to drop unresolved routes turns it red.
+- **`include()` chains are followed, but the scan refuses to guess.** Route
+  patterns are now full paths (`api/charts/`) rather than per-file fragments, and
+  a URLconf reached through an include is no longer double-counted as its own
+  root. The constraint that shaped it: if a dotted module path matches zero or
+  several files in scope, the hop stays `unresolved` instead of picking one. A
+  wrong edge asserts that a route reaches a view when it may not — strictly worse
+  than a missing edge, which at least advertises itself. Cycles and >10-deep
+  nesting terminate the same way.
+- **Which clusters get drawn moved out of the template and into the scanner.**
+  Rule 1 ("diagram branching content only") shipped as a paragraph the report
+  author could talk itself out of. Whether a shape branches is a *data* question
+  — is this view reached by >1 route, does it share a permission class — so it is
+  now a computed `route_clusters` field, ranked widest-exposure-first and capped
+  with the remainder counted in `route_clusters_omitted`. The template's job
+  dropped from deciding to rendering. A convention enforced only by prose in the
+  first skill that uses it is a convention that erodes.
+
+## 2026-08-17
+
+- **Adopted a diagrams convention (#14), and drew the three lifecycles worth
+  drawing.** Evaluating where Mermaid would help across the marketplace turned up
+  more places it would *hurt* than help: a diagram asserts "these are all the parts
+  and all the connections" in a way prose never does, so a linear chain or a
+  role×resource matrix gets worse when you draw it, and a scan-generated graph that
+  silently drops an edge it couldn't resolve is worse than the flat list it
+  replaced. Rules 1 and 3 exist to stop those two failures; rule 2 (README, never
+  `SKILL.md`) follows from the reader — a model pays tokens for box drawing it must
+  parse back into text. Deliberately **no CI gate**: these transitions live in prose
+  and bash control flow, so a check could verify cap values while missing whether
+  the transitions are right, and a check that can't verify the part that matters
+  implies coverage it doesn't have. See
+  [`docs/conventions/diagrams.md`](conventions/diagrams.md).
+- **autodev, relay, and commitcraft READMEs each gained one state machine.** These
+  three were picked because each hides branching that costs a maintainer real time
+  to re-derive: autodev's lane loop has a review gate that sends a *passing* build
+  back around plus two independent counters (`counted_failures` cap 3,
+  `transient_retries` cap 2 — and only the consecutive ones); relay's handoff has a
+  consume-once marker, a lost-`mv` race, and a TTL that applies on `startup` but not
+  on `/clear`; commitcraft forks on auto-fixable-vs-hard-stop hook failures and
+  again on whether release-please is wired up. Every state and transition was
+  verified against the scripts, not the prose describing them.
+- **wireframe — Mermaid mode now parses every diagram before you see it.** The mode
+  emitted Mermaid the model had never executed, so a malformed block was only
+  discovered after it was pasted into a GitHub issue — and the failure is quiet,
+  because Mermaid renders a broken graph as a plausible-looking wrong one rather
+  than an error. A bundled renderer now parses each block first; a non-zero exit
+  means the diagram is fixed before it ships, and a clean parse also yields an ASCII
+  render shown inline, so the shape is visible without leaving the terminal. The
+  renderer's verdict is treated as authoritative — no cross-checking against a second
+  engine. Absent the optional dependency it **fails open**: Mermaid is emitted
+  unvalidated exactly as before, with the install mentioned once per run. This is a
+  noted exception to convention #8 (stdlib-only bundled scripts): validating Mermaid
+  requires a Mermaid parser, and reimplementing one to satisfy the rule would be a
+  worse trade than an optional dependency that degrades cleanly — recorded in
+  [wireframe's README](../wireframe/README.md#convention-notes) so it reads as a
+  choice rather than a miss.
+
+## 2026-08-05
+
+- **cc-skill-audit — fixed sweep mode never completing.** A real run's 5 batch
+  subagents finished full reports in ~3 minutes, then sat parked for 2+ hours: the
+  fallback path spawned them as *named* background agents (which wait for mailbox
+  instructions instead of returning inline), and the parent — running with
+  `context: fork` — ended its turn declaring it would "wait for notifications," which
+  for a forked skill means the fork itself completing, not pausing. The fallback now
+  spawns batches unnamed and blocks on each via `TaskOutput({block: true})`. Also
+  documented that `context: fork` makes the `Workflow` tool unreachable in Claude
+  Code, so the fallback is this skill's normal path here, not a rare one.
+
+## 2026-07-23
+
+- **sentry-ops → renamed `sentry-hygiene`, and narrowed from four workflows to two**
+  (`audit`, `instrument`). The trigger was Sentry's own first-party `sentry` plugin: it
+  bundles a Sentry MCP server and owns the two biggest jobs — SDK setup across ~20
+  languages and fixing production issues (`sentry-fix-issues`). Our `triage` and
+  `investigate` duplicated the issue-fixing half with a worse setup story (you had to
+  wire the MCP yourself), so they were dropped. What's left is the two gaps the official
+  plugin does not cover: auditing an *existing* setup against current docs, and the
+  *inbound* PII gate — what the SDK attaches to events on its own. The plugin is now
+  fully repo-only (no Sentry MCP), which also makes the two PII models cleanly
+  complementary: the official plugin guards data coming out of Sentry, this guards what
+  goes in. The rename followed the narrowing — "ops" implied the production/issue work
+  that moved to the official plugin, so the name pointed at the half we removed;
+  "hygiene" names what's left, keeping a setup correct and its capture PII-safe.
+  (Shipped once as `sentry-ops` in v2.20.0; renamed before meaningful adoption.)
+
+## 2026-07-22
+
+- **sentry-ops** — the Sentry knowledge worth keeping was trapped in one project's
+  repo-specific skill, so it was generalized into a plugin. The part that justified the
+  move is the PII boundary: the dangerous exposure is not what you pass to
+  `captureException`, it is what the SDK attaches on its own — console-call breadcrumbs
+  that survive build-time stripping of `console.log`, and server-side request data
+  (cookies, headers, query strings, bodies, URLs) collected by default, which turns any
+  route carrying a token or share ID in its URL into event data. Notably, porting that
+  section is what caught a wrong rule in the original skill: it asserted that IP-derived
+  geo could not be disabled from `Sentry.init`, and the docs say `sendDefaultPii` (which
+  defaults to `false`) gates the IP address. The plugin now verifies that boundary
+  against docs instead of asserting it. The audit half is deliberately *not* a checklist: a static list
+  of "correct" Sentry config rots as the SDK moves, so `audit` re-queries the official docs
+  at runtime (Context7, degrading to `WebFetch` and then to structural-only checks, saying
+  so in the report either way) and compares against what the repo actually has. Claude Code
+  only — it is MCP-centric and a Hermes port would have nothing to call.
+
 ## 2026-07-17
 
 - **review-plan, dep-review, pr-comment-review** — these skills now fan out on Hermes
