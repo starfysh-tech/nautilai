@@ -7,21 +7,12 @@ Tracked, non-urgent work for the nautilai marketplace and its plugins.
 Doc surfaces went stale twice in one day — `docs/plugins/wireframe.html` after the
 wireframe Mermaid work, then four surfaces (including `docs/conventions/diagrams.md`
 itself) after rbac-django's route exposure. Both were caught only because the
-maintainer asked "docs updated?", not by any check. The two items below are the
-cheap fix and the enforced fix; do them in that order.
+maintainer asked "docs updated?", not by any check.
 
-- **Couple the plugin changelog to the capability surfaces (CLAUDE.md line).**
-  Add to `CLAUDE.md`'s "Plugin changelog" section: *when you add an entry here,
-  check `docs/llms.txt` and `docs/plugins/<name>.html` in the same PR — a
-  changelog entry means the change is user-visible, which is exactly when those
-  go stale.*
-  - **Why:** `docs/plugin-changelog.md` is already the human-judgment filter for
-    "is this worth a human skim", so touching it is the author declaring the
-    change user-visible. That is the moment the other surfaces matter, and no
-    such coupling is written down anywhere today — the diagrams convention's
-    rule 4 covers diagrams only.
-  - **Cost / risk:** one sentence, no machinery. Risk is that prose alone doesn't
-    hold, which is what the next item exists for.
+The prose fix shipped: `CLAUDE.md`'s "Plugin changelog" section now couples a
+changelog entry to `docs/llms.txt` and `docs/plugins/<name>.html`. The item below
+is the enforced version, held back deliberately until we know whether the prose
+holds.
 
 - **`check-docs-sync.sh` — CI gate on the same coupling.** A ~10-line script in
   `.github/scripts/`, wired into `validate.yml`: if `docs/plugin-changelog.md`
@@ -36,9 +27,9 @@ cheap fix and the enforced fix; do them in that order.
     the flagged set. Several of those five are arguably true positives too.
   - **Cost / risk:** at a ~38% flag rate it must ship with the escape hatch or it
     becomes the check everyone bypasses — the same failure as the DeepSource
-    JavaScript analyzer we disabled. Don't build it until the CLAUDE.md line has
-    had a chance to fail; one more stale-doc incident is cheap evidence and
-    tells us whether enforcement is actually needed.
+    JavaScript analyzer we disabled. **Trigger to build it:** the next stale-doc
+    incident after the `CLAUDE.md` coupling shipped. If that doesn't happen, the
+    prose was enough and this stays unbuilt.
 
 ## CommitCraft
 
