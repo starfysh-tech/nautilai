@@ -14,6 +14,45 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-08-18
+
+- **rbac-django — findings now know how many URLs reach the flagged view.** The
+  audit could say a viewset lacked `permission_classes` but not how exposed it
+  was, because the scanner never read the URLconf: it inventoried views,
+  permissions and querysets, and simply had no route→view edge. An unguarded view
+  behind four routes is a materially wider hole than one behind a single route,
+  and that distinction was invisible. A stdlib-AST scan of `urlpatterns` and
+  `router.register` now supplies it. Deliberately **no ast-grep twin** unlike the
+  class-body scans — these are module-level assignments and calls that `ast.walk`
+  resolves completely, so a second implementation would double the surface for
+  zero coverage; the reason is recorded in the code so nobody "restores" the
+  symmetry. The report gains a *Route Exposure* section that draws a cluster
+  **only** where a view has several routes or shares a permission class; single
+  routes are straight lines and stay prose (diagrams convention rule 1). Django
+  resolves plenty at runtime that no parser sees — `include()` chains, DRF router
+  expansion, string view references — so every route carries a `resolution` and
+  unresolved hops are **rendered with a legend rather than omitted** (rule 3),
+  since a graph that drops an edge it couldn't follow reads as the complete
+  authorization surface. First bundled Python test suite in the repo
+  (`rbac-django/tests/`), and it was proven to fail before being trusted: mutating
+  the scanner to drop unresolved routes turns it red.
+- **`include()` chains are followed, but the scan refuses to guess.** Route
+  patterns are now full paths (`api/charts/`) rather than per-file fragments, and
+  a URLconf reached through an include is no longer double-counted as its own
+  root. The constraint that shaped it: if a dotted module path matches zero or
+  several files in scope, the hop stays `unresolved` instead of picking one. A
+  wrong edge asserts that a route reaches a view when it may not — strictly worse
+  than a missing edge, which at least advertises itself. Cycles and >10-deep
+  nesting terminate the same way.
+- **Which clusters get drawn moved out of the template and into the scanner.**
+  Rule 1 ("diagram branching content only") shipped as a paragraph the report
+  author could talk itself out of. Whether a shape branches is a *data* question
+  — is this view reached by >1 route, does it share a permission class — so it is
+  now a computed `route_clusters` field, ranked widest-exposure-first and capped
+  with the remainder counted in `route_clusters_omitted`. The template's job
+  dropped from deciding to rendering. A convention enforced only by prose in the
+  first skill that uses it is a convention that erodes.
+
 ## 2026-08-17
 
 - **Adopted a diagrams convention (#14), and drew the three lifecycles worth
