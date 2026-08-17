@@ -911,6 +911,30 @@ def scan_serializer_phi_coverage(scope: str, phi_mixin_name: str | None) -> list
 # ---------------------------------------------------------------------------
 
 
+def _route_summary(routes: list[dict], viewsets: list[dict], clusters: list[dict]) -> dict:
+    """Route-exposure counters for the summary block.
+
+    Kept separate from `build_summary` so the route metrics can grow without
+    pushing an already-wide aggregation function further up the complexity
+    curve.
+    """
+    by_resolution = Counter(r["resolution"] for r in routes)
+    per_view = Counter(r["view"] for r in routes if r["view"])
+    return {
+        "total_routes": len(routes),
+        # Surfaced so a report can state its own blind spots rather than
+        # presenting a partial route graph as the whole authorization surface.
+        "routes_resolved": by_resolution["resolved"],
+        "routes_router_inferred": by_resolution["router-inferred"],
+        "routes_unresolved": by_resolution["unresolved"],
+        "views_reachable_by_multiple_routes": sum(1 for n in per_view.values() if n > 1),
+        "route_clusters_drawn": len(clusters),
+        # A truncated report must say it truncated; silence would read as
+        # "these were all of them".
+        "route_clusters_omitted": count_omitted_clusters(routes, viewsets),
+    }
+
+
 def build_summary(inventory: dict) -> dict:
     viewsets = inventory["viewsets"]
     perms = inventory["permission_classes"]
@@ -946,21 +970,7 @@ def build_summary(inventory: dict) -> dict:
         "serializers_without_phi_filter": sum(1 for s in serializers if not s["has_phi_filter_mixin"]),
         "hardcoded_role_name_locations": sum(v["count"] for v in role_strings.values()),
         "unclassified_view_count": len(unclassified),
-        "total_routes": len(routes),
-        # Surfaced so a report can state its own blind spots rather than
-        # presenting a partial route graph as the whole authorization surface.
-        "routes_resolved": sum(1 for r in routes if r["resolution"] == "resolved"),
-        "routes_router_inferred": sum(1 for r in routes if r["resolution"] == "router-inferred"),
-        "routes_unresolved": sum(1 for r in routes if r["resolution"] == "unresolved"),
-        "views_reachable_by_multiple_routes": sum(
-            1 for count in Counter(
-                r["view"] for r in routes if r["view"]
-            ).values() if count > 1
-        ),
-        "route_clusters_drawn": len(inventory["route_clusters"]),
-        # A truncated report must say it truncated; silence would read as
-        # "these were all of them".
-        "route_clusters_omitted": count_omitted_clusters(routes, viewsets),
+        **_route_summary(routes, viewsets, inventory["route_clusters"]),
     }
 
 
