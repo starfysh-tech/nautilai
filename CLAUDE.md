@@ -79,14 +79,15 @@ check locally before pushing:
 claude plugin validate ./<plugin> --strict
 ```
 
-Bundled scripts that have logic worth testing carry a self-contained bash suite
-(currently `commitcraft/` and `autodev/`). Run them directly — they build
-throwaway fixtures (commitcraft stubs `gh`), so they're offline and
-side-effect-free:
+Bundled scripts that have logic worth testing carry a self-contained suite
+(currently `commitcraft/`, `autodev/`, and `rbac-django/`). Run them directly —
+they build throwaway fixtures (commitcraft stubs `gh`; rbac-django writes
+Django-shaped files under a temp dir), so they're offline and side-effect-free:
 
 ```bash
 bash commitcraft/tests/detect-rp.test.sh
 bash autodev/tests/scripts.test.sh
+python3 rbac-django/tests/test_route_scan.py
 ```
 
 ## Versioning

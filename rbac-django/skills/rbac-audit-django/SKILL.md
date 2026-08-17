@@ -101,6 +101,32 @@ From Phases 1-3, construct a matrix: rows are resources × actions, columns are
 roles (use the *discovered* role names, not example names). If role docs were
 provided, flag discrepancies between the matrix and documented intent.
 
+Keep this a **table**. Roles × resources is tabular data; drawing it as a graph
+makes it harder to read, not easier.
+
+### Phase 4b: Route exposure
+
+The scanner's `routes` array carries the route → view edge for every URLconf in
+scope, each tagged `resolution`: `resolved`, `router-inferred` (DRF expands the
+concrete URLs at runtime), or `unresolved` with a `reason` (`include()` chain,
+string view reference, computed pattern).
+
+Use it two ways:
+
+1. **Sharpen findings.** `summary.views_reachable_by_multiple_routes` is the
+   number that matters — an unguarded view reached by four routes is a wider
+   hole than the finding text implies. Name the routes when a finding's view has
+   more than one.
+2. **Draw the clusters only.** Fill the report's *Route Exposure* section per
+   its embedded instructions: one diagram per finding cluster, and only where a
+   view has multiple routes or shares a permission class. A single route to a
+   single view is a straight line — write it, don't draw it.
+
+**Never present the route graph as complete.** Render unresolved hops as marked
+nodes and keep the legend; a graph that drops an edge it could not follow reads
+as the whole authorization surface. Report any finding that depends on an
+unresolved hop at reduced confidence, and say which hop.
+
 ### Phase 5: Classify and report
 
 Group findings by severity and type. Write two outputs to `docs/rbac-audit/`

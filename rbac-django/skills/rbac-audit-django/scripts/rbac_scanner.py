@@ -23,6 +23,7 @@ import json
 import shutil
 import subprocess
 import sys
+from collections import Counter
 from datetime import date
 from pathlib import Path
 
@@ -268,6 +269,14 @@ def _view_files(scope: str) -> list[Path]:
     return [
         fp for fp in _python_files(scope)
         if fp.name in ("views.py", "api.py", "viewsets.py") or "/views/" in fp.as_posix()
+    ]
+
+
+def _url_files(scope: str) -> list[Path]:
+    """URLconf modules: `urls.py` or any file inside a `urls/` package."""
+    return [
+        fp for fp in _python_files(scope)
+        if fp.name == "urls.py" or "/urls/" in fp.as_posix()
     ]
 
 
@@ -908,6 +917,7 @@ def build_summary(inventory: dict) -> dict:
     serializers = inventory["serializer_phi_coverage"]
     role_strings = inventory["role_name_strings"]
     unclassified = inventory["unclassified_views"]
+    routes = inventory["routes"]
 
     through_viewsets = [v for v in viewsets if v["is_through_model_viewset"]]
     through_without_create = [v for v in through_viewsets if not v["has_perform_create"]]
@@ -936,7 +946,142 @@ def build_summary(inventory: dict) -> dict:
         "serializers_without_phi_filter": sum(1 for s in serializers if not s["has_phi_filter_mixin"]),
         "hardcoded_role_name_locations": sum(v["count"] for v in role_strings.values()),
         "unclassified_view_count": len(unclassified),
+        "total_routes": len(routes),
+        # Surfaced so a report can state its own blind spots rather than
+        # presenting a partial route graph as the whole authorization surface.
+        "routes_resolved": sum(1 for r in routes if r["resolution"] == "resolved"),
+        "routes_router_inferred": sum(1 for r in routes if r["resolution"] == "router-inferred"),
+        "routes_unresolved": sum(1 for r in routes if r["resolution"] == "unresolved"),
+        "views_reachable_by_multiple_routes": sum(
+            1 for count in Counter(
+                r["view"] for r in routes if r["view"]
+            ).values() if count > 1
+        ),
     }
+
+
+# ---------------------------------------------------------------------------
+# URL routing
+# ---------------------------------------------------------------------------
+#
+# Deliberately stdlib-AST only, with no ast-grep twin — unlike the class-body
+# scans above. `urlpatterns = [...]` and `router.register(...)` are module-level
+# assignments and calls that `ast.walk` resolves completely, so a second
+# implementation would double the surface for zero added coverage. Don't
+# "restore" the symmetry.
+#
+# Django resolves plenty at runtime that no parser can see: `include()` chains,
+# router-generated routes, string view references, settings-driven URLconfs.
+# Every route therefore carries a `resolution` — `resolved`, `router-inferred`,
+# or `unresolved` (with a `reason`) — and an unresolved hop is emitted, never
+# dropped. A route graph that silently omits an edge it could not follow reads
+# as complete and gets trusted as one.
+
+
+def _view_from_node(node: ast.AST) -> tuple[str | None, str, str | None]:
+    """Map a path()/re_path() view argument to (view, resolution, reason)."""
+    # `Something.as_view()` — the common case, direct or dotted.
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+        if node.func.attr == "as_view":
+            target = node.func.value
+            if isinstance(target, ast.Name):
+                return target.id, "resolved", None
+            if isinstance(target, ast.Attribute):
+                return target.attr, "resolved", None
+        if node.func.attr == "include":
+            return None, "unresolved", "include() chain — target URLconf not followed"
+
+    # `include("app.urls")`
+    if isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+        if node.func.id == "include":
+            return None, "unresolved", "include() chain — target URLconf not followed"
+
+    # A bare class/callable reference, e.g. `path("x/", MyView)`.
+    if isinstance(node, ast.Name):
+        return node.id, "resolved", None
+
+    # Legacy string view reference: `path("x/", "app.views.legacy")`.
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return None, "unresolved", f"string view reference {node.value!r} resolved at runtime"
+
+    return None, "unresolved", "view expression not statically resolvable"
+
+
+def _pattern_from_node(node: ast.AST) -> tuple[str | None, str | None]:
+    """Map a path()/re_path() pattern argument to (pattern, reason-if-unresolved)."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value, None
+    return None, "route pattern is computed at runtime"
+
+
+def scan_urlpatterns(scope: str) -> list[dict]:
+    """Extract the route -> view edge from every URLconf in scope.
+
+    Returns one record per route. Unresolved hops are included with a reason
+    rather than omitted, so a diagram built from this can show its own gaps.
+    """
+    routes: list[dict] = []
+
+    for filepath in _url_files(scope):
+        tree = parse_file(str(filepath))
+        if tree is None:
+            continue  # unparseable file — skip it, never fail the whole scan
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+
+            # path(...) / re_path(...)
+            if isinstance(node.func, ast.Name) and node.func.id in ("path", "re_path"):
+                if not node.args:
+                    continue
+                pattern, pattern_reason = _pattern_from_node(node.args[0])
+                view, resolution, view_reason = (
+                    _view_from_node(node.args[1]) if len(node.args) > 1
+                    else (None, "unresolved", "route declares no view argument")
+                )
+                # A computed pattern makes the edge unusable even when the view
+                # itself is legible, so it downgrades the whole record.
+                if pattern_reason:
+                    resolution = "unresolved"
+                reason = pattern_reason or view_reason
+                record = {
+                    "pattern": pattern,
+                    "view": view,
+                    "file": str(filepath),
+                    "line": node.lineno,
+                    "kind": node.func.id,
+                    "resolution": resolution,
+                }
+                if reason:
+                    record["reason"] = reason
+                routes.append(record)
+
+            # <router>.register(prefix, ViewSet, ...)
+            elif isinstance(node.func, ast.Attribute) and node.func.attr == "register":
+                if not node.args:
+                    continue
+                prefix, _ = _pattern_from_node(node.args[0])
+                view = None
+                if len(node.args) > 1:
+                    if isinstance(node.args[1], ast.Name):
+                        view = node.args[1].id
+                    elif isinstance(node.args[1], ast.Attribute):
+                        view = node.args[1].attr
+                routes.append({
+                    "pattern": prefix,
+                    "view": view,
+                    "file": str(filepath),
+                    "line": node.lineno,
+                    "kind": "router",
+                    "resolution": "router-inferred",
+                    "reason": (
+                        "DRF router expands this into list/detail/extra-action routes "
+                        "at runtime; the concrete URLs are not visible statically"
+                    ),
+                })
+
+    return routes
 
 
 def main():
@@ -986,6 +1131,7 @@ def main():
         },
         "viewsets": viewsets,
         "unclassified_views": unclassified,
+        "routes": scan_urlpatterns(scope),
         "permission_classes": scan_permission_classes(scope, discovered_roles),
         "queryset_managers": scan_queryset_managers(scope),
         "role_name_strings": scan_role_name_strings(scope, discovered_roles),

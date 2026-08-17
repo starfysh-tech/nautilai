@@ -14,6 +14,29 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-08-18
+
+- **rbac-django — findings now know how many URLs reach the flagged view.** The
+  audit could say a viewset lacked `permission_classes` but not how exposed it
+  was, because the scanner never read the URLconf: it inventoried views,
+  permissions and querysets, and simply had no route→view edge. An unguarded view
+  behind four routes is a materially wider hole than one behind a single route,
+  and that distinction was invisible. A stdlib-AST scan of `urlpatterns` and
+  `router.register` now supplies it. Deliberately **no ast-grep twin** unlike the
+  class-body scans — these are module-level assignments and calls that `ast.walk`
+  resolves completely, so a second implementation would double the surface for
+  zero coverage; the reason is recorded in the code so nobody "restores" the
+  symmetry. The report gains a *Route Exposure* section that draws a cluster
+  **only** where a view has several routes or shares a permission class; single
+  routes are straight lines and stay prose (diagrams convention rule 1). Django
+  resolves plenty at runtime that no parser sees — `include()` chains, DRF router
+  expansion, string view references — so every route carries a `resolution` and
+  unresolved hops are **rendered with a legend rather than omitted** (rule 3),
+  since a graph that drops an edge it couldn't follow reads as the complete
+  authorization surface. First bundled Python test suite in the repo
+  (`rbac-django/tests/`), and it was proven to fail before being trusted: mutating
+  the scanner to drop unresolved routes turns it red.
+
 ## 2026-08-17
 
 - **Adopted a diagrams convention (#14), and drew the three lifecycles worth
