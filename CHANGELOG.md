@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.24.0](https://github.com/starfysh-tech/nautilai/compare/v2.23.0...v2.24.0) (2026-08-18)
+
+
+### Features
+
+* **relay:** stop handoff provenance reporting on its own extraction ([#145](https://github.com/starfysh-tech/nautilai/issues/145)) ([2351fe1](https://github.com/starfysh-tech/nautilai/commit/2351fe1ebdb097d4309576a5616dcefd9e0b32d6))
+
 ## [2.23.0](https://github.com/starfysh-tech/nautilai/compare/v2.22.0...v2.23.0) (2026-08-17)
 
 
