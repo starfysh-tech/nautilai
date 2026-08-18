@@ -16,6 +16,24 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-08-18
 
+- **relay — handoff docs no longer report on their own extraction.** Provenance
+  was drifting into session archaeology ("narrative pack landed after the first
+  draft and was folded in", "one claim not carried over"). The cause was the
+  skill itself, not the model: three instructions *required* a Provenance note in
+  the healthy case — on a late narrative pack, and on any narrative claim that
+  failed verification. Both are invisible to the reader: a late pack that agreed
+  changes nothing, and a rejected claim is by definition not in the doc. Worse,
+  the one useful fact in that example (no decision was made to deploy to prod)
+  was buried in a footnote about extractor disagreement instead of sitting in
+  Constraints where a reader would consult it before pushing. Provenance is now
+  conditional — skipped entirely when everything ran and everything was verified,
+  present only to declare a *gap in coverage* (degraded extractor, truncated
+  transcript, a region unread). A rule at the top of step 5 states the general
+  form: nothing in a handoff describes the handoff's own production. This was
+  previously papered over with a per-project shoal, which lost to the skill's own
+  explicit "do X" instructions — every adopting project would have rediscovered
+  it. See [`relay/skills/handoff/SKILL.md`](../relay/skills/handoff/SKILL.md).
+
 - **rbac-django — findings now know how many URLs reach the flagged view.** The
   audit could say a viewset lacked `permission_classes` but not how exposed it
   was, because the scanner never read the URLconf: it inventoried views,

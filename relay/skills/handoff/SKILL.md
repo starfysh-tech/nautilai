@@ -56,8 +56,9 @@ If the narrative pack has not landed by the time you reach step 5, write the
 doc without it — never poll for it, and never chain `sleep` to wait (use
 `run_in_background` with an until-loop if you must wait at all). Note in
 Provenance that it was outstanding. If it lands afterward, read it, cross-check
-it against what you already wrote, and fold in anything material with a
-Provenance note.
+it against what you already wrote, and fold in anything material — silently.
+The reader does not need to know when each extractor landed. Add a Provenance
+line only if the late arrival left the doc with a gap you could not close.
 
 ## 4. Compute the destination
 
@@ -71,11 +72,18 @@ doc="$dir/$(date +%Y%m%d-%H%M%S).md"
 
 ## 5. Write the doc
 
-Structure it with these sections (omit any of the thirteen only if genuinely empty):
+Nothing in the doc describes the doc's own production. No extractor status, no
+"as noted above", no account of what this session tried before the extraction
+worked. The reader wants the state of the work, not the state of the
+extraction. The one exception is a **gap in coverage** the reader must account
+for — that belongs in Provenance.
+
+Structure it with these sections (omit any of the first twelve only if
+genuinely empty; Provenance is conditional — see its entry):
 
 - **Goal** — what the work is trying to achieve.
 - **Current state** — what's done, what's in progress. For each in-progress item, state its done-criterion — what "done" actually means for it — so the next session resumes against a target instead of re-deriving one.
-- **Decisions** — choices made and the reasoning, so they aren't re-litigated. Build from the narrative pack, the fact pack, and in-window knowledge together. The fact pack is mechanically extracted and wins outright. The narrative pack is an LLM summary of the transcript — treat it as a lead, not a source: it recovers reasoning nothing else can see, but it paraphrases and occasionally invents. Verify any narrative-pack claim about code, config, or a numeric constraint against the repo before it enters the doc, and note in Provenance if any claim failed that check.
+- **Decisions** — choices made and the reasoning, so they aren't re-litigated. Build from the narrative pack, the fact pack, and in-window knowledge together. The fact pack is mechanically extracted and wins outright. The narrative pack is an LLM summary of the transcript — treat it as a lead, not a source: it recovers reasoning nothing else can see, but it paraphrases and occasionally invents. Verify any narrative-pack claim about code, config, or a numeric constraint against the repo before it enters the doc. Drop what fails, silently — a claim that never entered the doc is not the reader's business. If a failed claim implies something the next session must not assume, record that as a Constraint, not as a note about the extractor.
 - **Constraints** — invariants the next session must not violate, from the narrative pack's `## Constraints`, verified against the code before inclusion.
 - **Open questions / blockers** — anything unresolved or waiting on input.
 - **Next steps** — the concrete actions the next session should take first.
@@ -85,7 +93,7 @@ Structure it with these sections (omit any of the thirteen only if genuinely emp
 - **Commands & outcomes** — notable commands and whether they succeeded, from the fact pack.
 - **User intents (verbatim)** — the user's own words for what they asked for, quoted from the fact pack's user messages.
 - **Dead ends** — approaches tried and abandoned; derive from the narrative pack and the conversation, cross-checked against the fact pack's Failures.
-- **Provenance** — which extractors ran or degraded (including the narrative pack), and transcript size, so the next session can judge how much to trust this doc.
+- **Provenance** — how much to trust this doc: what was verified against source versus recalled, and any gap in coverage (a degraded extractor, a truncated transcript, a region you could not read). Skip the section entirely when everything ran and everything was verified.
 
 Populate the new sections from the fact pack — curated, not dumped: drop noise,
 keep signal. Signal to keep verbatim when present: error messages and stack
