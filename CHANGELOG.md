@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.25.0](https://github.com/starfysh-tech/nautilai/compare/v2.24.0...v2.25.0) (2026-08-20)
+
+
+### Features
+
+* **commitcraft:** add ready subcommand for draft-first prs ([#148](https://github.com/starfysh-tech/nautilai/issues/148)) ([67dac02](https://github.com/starfysh-tech/nautilai/commit/67dac02e521b369c74b759bace78895aeed1738a))
+
 ## [2.24.0](https://github.com/starfysh-tech/nautilai/compare/v2.23.0...v2.24.0) (2026-08-18)
 
 
