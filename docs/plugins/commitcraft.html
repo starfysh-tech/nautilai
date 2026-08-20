@@ -4,9 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>commitcraft — nautilai</title>
-<meta name="description" content="AI git workflow toolkit for Claude Code: conventional commits, issue validation, PR creation, and release guidance through a single skill with six workflows." />
+<meta name="description" content="AI git workflow toolkit for Claude Code: conventional commits, issue validation, PR creation, and release guidance through a single skill with seven workflows." />
 <meta property="og:title" content="commitcraft — nautilai" />
-<meta property="og:description" content="AI git workflow toolkit for Claude Code: conventional commits, issue validation, PR creation, and release guidance through a single skill with six workflows." />
+<meta property="og:description" content="AI git workflow toolkit for Claude Code: conventional commits, issue validation, PR creation, and release guidance through a single skill with seven workflows." />
 <meta property="og:type" content="website" />
 <meta name="theme-color" content="#0a141d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -46,12 +46,12 @@
         <span class="cf-label" aria-hidden="true">Copy</span>
       </button>
     </div>
-    <p class="note">No tap and no marketplace needed in Hermes — <code>hermes skills tap add</code> does not index this repo; install by the identifier above. Hermes ships four of the six workflows: <code>commit</code>, <code>push</code>, <code>pr</code>, <code>release</code>. <strong><code>setup</code> and <code>check</code> are Claude Code only</strong> — see Requirements.</p>
+    <p class="note">No tap and no marketplace needed in Hermes — <code>hermes skills tap add</code> does not index this repo; install by the identifier above. Hermes ships five of the seven workflows: <code>commit</code>, <code>push</code>, <code>pr</code>, <code>ready</code>, <code>release</code>. <strong><code>setup</code> and <code>check</code> are Claude Code only</strong> — see Requirements.</p>
   </section>
 
   <section id="what">
     <h2>What it does</h2>
-    <p>CommitCraft handles the git workflow around a change — not just the commit message. One skill routes to six workflows: conventional commits with individually staged files, push with issue tracking, PR creation with an AI-generated description, semantic-version releases, interactive tooling setup, and a configuration check. It also triggers from plain language — "commit my changes", "open a PR", "cut a release" — without the slash form.</p>
+    <p>CommitCraft handles the git workflow around a change — not just the commit message. One skill routes to seven workflows: conventional commits with individually staged files, push with issue tracking, PR creation with an AI-generated description, promoting a draft PR and arming auto-merge, semantic-version releases, interactive tooling setup, and a configuration check. It also triggers from plain language — "commit my changes", "open a PR", "cut a release" — without the slash form.</p>
   </section>
 
   <section id="commands">
@@ -60,6 +60,7 @@
       <li><div class="sk-name">/commitcraft commit</div><p>Stages files individually, generates a conventional commit message, and handles pre-commit hooks.</p><div class="sk-triggers">"commit my changes", "commit this"</div></li>
       <li><div class="sk-name">/commitcraft push</div><p>Full commit + push with issue validation, branch tracking, and post-push issue comments.</p><div class="sk-triggers">"push my changes"</div></li>
       <li><div class="sk-name">/commitcraft pr</div><p>Creates a PR with an AI-generated description, issue linking, and draft support.</p><div class="sk-triggers">"open a PR", "create a pull request"</div></li>
+      <li><div class="sk-name">/commitcraft ready</div><p>Promotes the current branch's draft PR to ready-for-review and arms GitHub auto-merge, after preflighting failing checks, unresolved review threads, and merge conflicts.</p><div class="sk-triggers">"mark the PR ready", "enable auto-merge"</div></li>
       <li><div class="sk-name">/commitcraft release</div><p>Guides a semantic-version bump via release-please when it's functional, or a manual tag workflow when it isn't.</p><div class="sk-triggers">"cut a release", "write release notes"</div></li>
       <li><div class="sk-name">/commitcraft setup</div><p>Interactive, chat-driven setup across eight components: commitlint, gitleaks, pre-commit, signing, release-please, CI, issue tracker, and branch protection.</p><div class="sk-triggers">"set up commitcraft"</div></li>
       <li><div class="sk-name">/commitcraft check</div><p>Validates installed tooling and reports configuration status.</p><div class="sk-triggers">"check my commit tooling"</div></li>
@@ -105,7 +106,7 @@
   <section id="requirements">
     <h2>Requirements</h2>
     <p><code>git</code>, and <code>gh</code> (authenticated) for GitHub-issue validation, PR creation, and branch-protection provisioning — workflows degrade gracefully when <code>gh</code> is absent rather than blocking. The issue tracker is configurable via <code>setup</code> (github, linear, jira, or none); Linear/Jira read reference keys from the branch name and need no <code>gh</code>. Optional per-repo tooling (commitlint, gitleaks, pre-commit, release-please) is configured by the <code>setup</code> workflow.</p>
-    <p>In <strong>Hermes Agent</strong>, <code>commit</code>, <code>push</code>, <code>pr</code>, and <code>release</code> behave identically — a runtime adapter in the skill resolves bundled-script paths per runtime, so neither runtime follows the other's. Hermes strips the executable bit on install, so bundled scripts run via <code>bash</code> there. (CommitCraft has no fan-out step, so Hermes' <code>delegate_task</code> primitive is not used here.) Update with <code>hermes skills check</code> then <code>hermes skills update</code> — Hermes detects drift by <strong>content</strong>, not by version, so upstream fixes arrive with no version bump needed.</p>
+    <p>In <strong>Hermes Agent</strong>, <code>commit</code>, <code>push</code>, <code>pr</code>, <code>ready</code>, and <code>release</code> behave identically — a runtime adapter in the skill resolves bundled-script paths per runtime, so neither runtime follows the other's. Hermes strips the executable bit on install, so bundled scripts run via <code>bash</code> there. (CommitCraft has no fan-out step, so Hermes' <code>delegate_task</code> primitive is not used here.) Update with <code>hermes skills check</code> then <code>hermes skills update</code> — Hermes detects drift by <strong>content</strong>, not by version, so upstream fixes arrive with no version bump needed.</p>
     <p><strong><code>setup</code> and <code>check</code> are Claude Code only.</strong> The setup script provisions repo tooling — <code>npm install</code> commitlint/husky, <code>pip install</code> pre-commit, reading <code>~/.ssh/*.pub</code> to configure signing — which Hermes' security scanner blocks as HIGH <code>exfiltration</code> and MEDIUM <code>supply_chain</code>. That verdict is correct, so the Hermes bundle omits the script rather than asking anyone to <code>--force</code> past a security gate. Hermes users configure a repo once by hand (steps in the <a href="https://github.com/starfysh-tech/nautilai/tree/main/commitcraft#hermes-repo-setup">README</a>), or run <code>/commitcraft setup</code> from Claude Code on the same repo — both runtimes read the resulting config.</p>
   </section>
 

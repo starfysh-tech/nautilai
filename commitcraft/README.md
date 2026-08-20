@@ -68,6 +68,7 @@ flowchart TD
 | `commit` | Stages files individually, generates a conventional commit message, handles pre-commit hooks |
 | `push` | Full commit + push with issue validation, branch tracking, and post-push issue comments |
 | `pr` | Creates a PR with AI-generated description, issue linking, draft support |
+| `ready` | Promotes the branch's draft PR to ready-for-review and arms GitHub auto-merge after preflighting checks, review threads, and conflicts |
 | `release` | Guides semantic versioning via release-please (if configured) or manual tag workflow |
 | `setup` | Interactive 8-component tooling setup (commitlint, gitleaks, pre-commit, signing, release-please, CI, issue tracker, branch protection — the last can be provisioned via the GitHub API so CI checks actually gate merges) |
 | `check` | Validates installed tooling and reports configuration status |
@@ -77,6 +78,28 @@ flowchart TD
 > `--ticket <github\|linear\|jira\|none>`, `--apply-branch-protection`, `--pr-reviews <N>`
 > (`0` = no required reviews, for solo repos), and `--no-enforce-admins`. The script is
 > still fully interactive when you run it directly.
+
+### Draft-first PRs
+
+Open the PR while you're still in context, let CI and review bots run against the
+draft, then land it. To make draft the default in a repo, tell CommitCraft once —
+"always open PRs as drafts here" — and it records a [shoal](#shoals-project-corrections) that every
+later run honors. No config file, no flag.
+
+When the draft is green:
+
+```bash
+/commitcraft ready
+```
+
+`ready` promotes the draft and arms `gh pr merge --auto`. It **stops with the
+reason** on a failing check, an unresolved review thread, a merge conflict, or
+auto-merge being disabled on the repo. Checks still *in flight* never block —
+arming while CI runs is the point. The merge method comes from the repo's own
+default, never a hardcoded squash.
+
+It never uses `--admin`, `--no-verify`, or a force push. A branch behind base is
+reported with the rebase command for you to run yourself.
 
 ## Architecture
 

@@ -1,7 +1,7 @@
 ---
 name: commitcraft
-description: "Generate conventional commits, validate linked issues, create PRs, and produce release notes for this project. Use when the user runs /commitcraft, says 'commit', 'commit my changes', 'open a PR', 'cut a release', 'write release notes', or has staged changes ready to land. Always use commitcraft for commits — never raw `git commit`. Subcommands: commit | push | pr | release | setup | check."
-argument-hint: [commit|push|pr|release|setup|check]
+description: "Generate conventional commits, validate linked issues, create PRs, and produce release notes for this project. Use when the user runs /commitcraft, says 'commit', 'commit my changes', 'open a PR', 'mark the PR ready', 'enable auto-merge', 'cut a release', 'write release notes', or has staged changes ready to land. Always use commitcraft for commits — never raw `git commit`. Subcommands: commit | push | pr | ready | release | setup | check."
+argument-hint: [commit|push|pr|ready|release|setup|check]
 allowed-tools: [Bash, Read, Write, Edit, ToolSearch, AskUserQuestion]
 ---
 
@@ -22,11 +22,11 @@ Take the first whitespace-delimited token of `$ARGUMENTS` as the subcommand; any
 remaining words are context to pass into the workflow, not part of the dispatch.
 
 - If `$ARGUMENTS` is empty, read `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/commit.md`.
-- If the first token is one of `commit|push|pr|release|setup|check`, read
+- If the first token is one of `commit|push|pr|ready|release|setup|check`, read
   `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/<token>.md` and follow its
   instructions exactly, using the remaining words as context. Do not skip steps.
 - Otherwise, do not default to commit — tell the user the subcommand wasn't
-  recognized and list the valid ones: `commit, push, pr, release, setup, check`.
+  recognized and list the valid ones: `commit, push, pr, ready, release, setup, check`.
 
 Run all commands from the repo root.
 
@@ -51,7 +51,7 @@ line resolved, stop and tell the user.
 
 ### In Hermes: `setup` and `check` are unavailable
 
-`commit`, `push`, `pr`, and `release` work normally. `setup` and `check` are Claude Code
+`commit`, `push`, `pr`, `ready`, and `release` work normally. `setup` and `check` are Claude Code
 only — their script is not shipped to Hermes, so `${HERMES_SKILL_DIR}/scripts/` does not
 contain it.
 
@@ -77,6 +77,7 @@ to that file (creating `.claude/shoals/` if needed) in this format:
 ```
 
 Append-only — never edit or delete an entry; retire one with `- **Obsolete:**
-<date> — <reason>`. Dedup on **Trigger** before appending. Capture only explicit
-behavioral corrections, not passing preferences. Mention the capture in one line;
+<date> — <reason>`. Dedup on **Trigger** before appending. Capture explicit
+behavioral corrections and standing instructions for this repo ("always open PRs
+as drafts here"), not passing preferences. Mention the capture in one line;
 don't narrate it.

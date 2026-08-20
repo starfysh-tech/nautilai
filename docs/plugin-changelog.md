@@ -14,6 +14,33 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-08-20
+
+- **commitcraft — new [`ready`](../commitcraft/skills/commitcraft/workflows/ready.md)
+  subcommand for draft-first PRs.** On a repo gated by one approval, the wait is the
+  human handoff, not CI — PRs sit for days while the pipeline finishes in minutes.
+  Draft PRs run the same workflows, so opening one right after the push gets the same
+  signal without occupying a review queue. Flipping that draft to ready was the one
+  step in the flow that dropped out of commitcraft into raw `gh`. `/commitcraft ready`
+  promotes the draft and arms `gh pr merge --auto`, stopping on failing checks,
+  unresolved review threads, conflicts, or auto-merge disabled on the repo — but never
+  on checks still in flight, since arming early is the entire point. Making draft the
+  default needed no new config: a shoal already means "standing instruction for this
+  repo", so the skill's capture rule was widened to cover one rather than adding a
+  config key and a setup flag. Two facts found by probing a real draft PR and worth
+  not rediscovering: auto-merge **cannot** be armed while a PR is a draft
+  (`Pull Request is still a draft`), so promote-then-arm is a required order, not a
+  stylistic one; and on a repo with no required checks `gh pr merge --auto` merges
+  immediately via `mergePullRequest` rather than arming, so `ready` confirms before
+  running it when nothing is left to wait for. A third came from this PR's own
+  checks: a queued CheckRun carries `conclusion: ""` — an empty string, not null —
+  so the obvious `(.conclusion // .state)` fallback classifies a running check as
+  passing; classification branches on `__typename` instead. The preflight gates are not merge
+  safety — GitHub already refuses those merges — they keep a PR that cannot land
+  from consuming a review slot.
+
+---
+
 ## 2026-08-18
 
 - **relay — handoff docs no longer report on their own extraction.** Provenance
