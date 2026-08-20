@@ -181,6 +181,9 @@ Display result:
 ✓ Commits: N commits since <base branch>
 ```
 
+If the PR was created as a draft, add: `Run /commitcraft ready to promote it and
+arm auto-merge.`
+
 Or if skipped:
 
 ```

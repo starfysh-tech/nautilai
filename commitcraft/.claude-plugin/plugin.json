@@ -3,7 +3,7 @@
   "name": "commitcraft",
   "displayName": "CommitCraft",
   "version": "2.23.0",
-  "description": "AI git workflow toolkit: conventional commits, issue validation, PR creation, and release guidance through a single skill with six workflows.",
+  "description": "AI git workflow toolkit: conventional commits, issue validation, PR creation, and release guidance through a single skill with seven workflows.",
   "author": {
     "name": "Randall Noval",
     "email": "randall@starfysh.net",
