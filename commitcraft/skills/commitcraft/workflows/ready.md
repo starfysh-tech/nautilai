@@ -35,14 +35,23 @@ Report **all** failures at once, not the first.
 
 ### Classify checks
 
-`statusCheckRollup` mixes node shapes — CheckRun carries `conclusion`, legacy
-StatusContext carries `state`. Classify on `(.conclusion // .state)`.
+`statusCheckRollup` mixes node shapes. Branch on `__typename` — a queued CheckRun
+carries `conclusion: ""` (empty string, not null), so `(.conclusion // .state)`
+silently classifies it as passing.
+
+| `__typename` | Read | PENDING when |
+|---|---|---|
+| `CheckRun` | `status`, then `conclusion` | `status` != `COMPLETED` |
+| `StatusContext` | `state` | `state` is `PENDING` or `EXPECTED` |
+
+Once PENDING is excluded, classify the remaining value:
 
 | Bucket | Values | Blocks? |
 |---|---|---|
 | FAILING | `FAILURE`, `CANCELLED`, `TIMED_OUT`, `ACTION_REQUIRED`, `ERROR` | yes |
-| PENDING | `conclusion` null, `status` `QUEUED`/`IN_PROGRESS`/`WAITING`, `state` `PENDING` | **no** |
 | PASSING | `SUCCESS`, `SKIPPED`, `NEUTRAL` | no |
+
+Anything unrecognized: treat as PENDING, never as PASSING.
 
 ### Gates
 

@@ -32,7 +32,10 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   (`Pull Request is still a draft`), so promote-then-arm is a required order, not a
   stylistic one; and on a repo with no required checks `gh pr merge --auto` merges
   immediately via `mergePullRequest` rather than arming, so `ready` confirms before
-  running it when nothing is left to wait for. The preflight gates are not merge
+  running it when nothing is left to wait for. A third came from this PR's own
+  checks: a queued CheckRun carries `conclusion: ""` — an empty string, not null —
+  so the obvious `(.conclusion // .state)` fallback classifies a running check as
+  passing; classification branches on `__typename` instead. The preflight gates are not merge
   safety — GitHub already refuses those merges — they keep a PR that cannot land
   from consuming a review slot.
 
