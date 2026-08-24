@@ -100,7 +100,9 @@ git diff --cached
 generate a compliant draft and let the hook reject anything off):
 - Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`, `ci`, `revert`
 - Subject: imperative, ≤72 chars, lowercase, no emoji. Scope optional, single word.
-- Body: explain WHY not WHAT, ≤72 chars/line; skip if the change is self-evident.
+- Body: explain WHY not WHAT, ≤72 chars/line, ≤5 lines; skip if the change is
+  self-evident. The SKILL.md prose budget applies — no counterfactuals, no
+  restating the diff, link a plan doc instead of summarizing it.
 - No attribution footers (no Co-Authored-By or similar).
 - A user-facing change must be typed `feat` or `fix` even if the work felt like a refactor or chore — release-please's generated changelog only sections `feat`/`fix`, so anything else is invisible in release notes.
 

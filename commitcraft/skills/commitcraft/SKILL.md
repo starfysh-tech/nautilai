@@ -30,6 +30,22 @@ remaining words are context to pass into the workflow, not part of the dispatch.
 
 Run all commands from the repo root.
 
+## Prose budget
+
+Applies to every commit body, PR body, and release note you generate.
+
+- Write only what changes what the reader does or approves.
+- Cut counterfactuals — alternatives not taken, why a choice is safe, what you
+  did not do. Keep one only when the reviewer must act on it.
+- Reference, never restate. A plan doc, ADR, or runbook already in the diff gets
+  a path link, not a copy.
+- Never restate the diff. The reader has it.
+- One idea per bullet, at most 2 lines per bullet.
+- No table unless it has 2+ data rows and 2+ columns that vary.
+
+Before presenting any generated body, re-read it and delete every sentence that
+fails the first rule.
+
 ## Resource paths (runtime adapter)
 
 Exactly one of these two lines is resolved to an absolute path by your runtime; the

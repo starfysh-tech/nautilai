@@ -124,6 +124,8 @@ or at the config root (single-package style); prints nothing when neither exists
 ```
 - <scope>: <description> (#<PR>) (<hash>)
 ```
+- `<description>` is the commit subject, one line. Do not expand it into prose, add
+  rationale, or nest sub-bullets under an entry. The SKILL.md prose budget applies.
 - If no scope: `- <description> (#<PR>) (<hash>)`
 - If no PR number: `- <scope>: <description> (<hash>)`
 - If neither: `- <description> (<hash>)`
