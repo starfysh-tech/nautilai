@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.26.1](https://github.com/starfysh-tech/nautilai/compare/v2.26.0...v2.26.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **commitcraft:** verify ready outcome instead of assuming it ([#152](https://github.com/starfysh-tech/nautilai/issues/152)) ([95daaa3](https://github.com/starfysh-tech/nautilai/commit/95daaa3079a2a6604f9ef5b81135f7a9e38d3b67))
+
 ## [2.26.0](https://github.com/starfysh-tech/nautilai/compare/v2.25.0...v2.26.0) (2026-08-24)
 
 
