@@ -14,6 +14,19 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-08-24
+
+- **commitcraft — a prose budget now caps generated bodies.** PR descriptions were
+  growing past a thousand words, which is long enough that reviewers stop reading —
+  the opposite of what the description is for. The cause was structural: every length
+  rule lived in the generic-body path, so the repo-template path
+  ([`pr.md`](../commitcraft/skills/commitcraft/workflows/pr.md) Phase 3A) had none,
+  and a template read as space to fill. A shared budget in
+  [`SKILL.md`](../commitcraft/skills/commitcraft/SKILL.md) now governs commit bodies,
+  PR bodies, and release notes alike: cut counterfactuals, link a plan doc rather than
+  restating it, and collapse runbook-scale detail into `<details>` instead of dropping
+  it. Detail is relocated, not lost.
+
 ## 2026-08-20
 
 - **commitcraft — new [`ready`](../commitcraft/skills/commitcraft/workflows/ready.md)

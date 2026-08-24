@@ -78,7 +78,18 @@ the Phase 6 confirmation so `Edit` can override it.
 
 ## Phase 3A: Fill the repo template (STATUS `FOUND` / `MULTIPLE`)
 
-Read the chosen `PATH` and fill it — **do not** substitute the generic format:
+Read the chosen `PATH` and fill it — **do not** substitute the generic format.
+
+**The SKILL.md prose budget applies here.** A template is a set of questions to
+answer, not space to fill:
+
+- Whole body ≤400 words. Each section ≤5 bullets.
+- Long-but-needed detail (cutover runbook, rollback table, env matrix) goes inside
+  `<details><summary>…</summary>` so it collapses.
+- Test plan: results in one line (suite name, pass/fail counts, exit code), then
+  ≤4 reviewer verification bullets.
+
+Filling rules:
 
 - **Preserve every heading, in order, verbatim.** Never add, drop, reorder, or rename
   a section — the grader keys on them.
@@ -112,10 +123,10 @@ No repo template — generate this format:
 ```
 
 **Style Guidelines:**
-- Summary: 1-2 paragraphs, explain the "why" not just the "what"
-- Changes: Bold prefix for component/area, group related changes
-- Test plan: Checkbox format `- [ ]`, actionable verification steps
-- Keep concise and scannable
+- Summary: 1 paragraph, explain the "why" not just the "what"
+- Changes: Bold prefix for component/area, group related changes, ≤5 bullets
+- Test plan: Checkbox format `- [ ]`, actionable verification steps, ≤4 bullets
+- Whole body ≤400 words. The SKILL.md prose budget applies.
 
 ## Phase 4: Determine PR Title
 
@@ -150,8 +161,12 @@ Pick the default link **without prompting** — it's confirmed once in Phase 6:
 
 ## Phase 6: Confirm & Create (single prompt)
 
-Present the complete proposed PR — title, the body from Phase 3A/3B, and the issue
-link from Phase 5 — in **one** `AskUserQuestion`. When a repo template was used, name
+Before presenting, apply the SKILL.md prose-budget self-check to the Phase 3 body:
+re-read it and delete every sentence that does not change what the reviewer does or
+approves. Present the trimmed body, not the draft.
+
+Present the complete proposed PR — title, the trimmed body from Phase 3A/3B, and the
+issue link from Phase 5 — in **one** `AskUserQuestion`. When a repo template was used, name
 it (e.g. "Template: `bugfix.md` — inferred from `fix:`"):
 
 - "Create this PR?" → **Create** / **Create draft** / **Edit** / **Skip**
