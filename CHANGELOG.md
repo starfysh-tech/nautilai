@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.26.0](https://github.com/starfysh-tech/nautilai/compare/v2.25.0...v2.26.0) (2026-08-24)
+
+
+### Features
+
+* **commitcraft:** cap length of generated commit, pr, and release bodies ([#150](https://github.com/starfysh-tech/nautilai/issues/150)) ([8cff6de](https://github.com/starfysh-tech/nautilai/commit/8cff6de0f26ba8dfc9cd230664ba7c6523169eec))
+
 ## [2.25.0](https://github.com/starfysh-tech/nautilai/compare/v2.24.0...v2.25.0) (2026-08-20)
 
 
