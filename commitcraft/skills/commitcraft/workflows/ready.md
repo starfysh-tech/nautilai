@@ -85,6 +85,14 @@ Must run before Phase 4: auto-merge cannot be armed on a draft
 
 `autoMergeRequest` non-null → already armed, skip to Phase 5.
 
+Re-read the checks immediately before merging, and classify them with the Phase 2
+table. The Phase 1 snapshot goes stale — a check that finishes in between flips
+`--auto` from arming to merging on the spot:
+
+```bash
+gh pr view --json statusCheckRollup,reviewDecision
+```
+
 **No PENDING checks and `reviewDecision` not blocking** → `--auto` merges
 immediately via `mergePullRequest` instead of arming. Ask first with
 `AskUserQuestion`:
@@ -101,6 +109,15 @@ gh pr merge --auto --squash   # or --rebase / --merge
 Any `gh` error: STOP, report verbatim.
 
 ## Phase 5: Report
+
+Confirm what actually happened before reporting it — `--auto` can merge instead of
+arm, and a silent exit 0 does not say which:
+
+```bash
+gh pr view --json state,mergedAt,autoMergeRequest
+```
+
+`state: MERGED` → report the merge and its timestamp, not "auto-merge armed".
 
 ```
 ✓ PR ready: <url>

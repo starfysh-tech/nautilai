@@ -16,6 +16,13 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-08-24
 
+- **commitcraft — [`ready`](../commitcraft/skills/commitcraft/workflows/ready.md) no
+  longer reports an outcome it did not verify.** It decided "arm auto-merge" from a
+  check snapshot taken phases earlier; when the last check finished in between,
+  `gh pr merge --auto` merged on the spot and exited 0 silently, so the run reported
+  auto-merge armed on an already-merged PR. It now re-reads the checks immediately
+  before merging, and reads the PR state back before reporting.
+
 - **commitcraft — a prose budget now caps generated bodies.** PR descriptions were
   growing past a thousand words, which is long enough that reviewers stop reading —
   the opposite of what the description is for. The cause was structural: every length
