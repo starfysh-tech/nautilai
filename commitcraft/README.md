@@ -98,6 +98,10 @@ auto-merge being disabled on the repo. Checks still *in flight* never block —
 arming while CI runs is the point. The merge method comes from the repo's own
 default, never a hardcoded squash.
 
+When every check has already passed and no approval is outstanding, there is
+nothing left to queue behind — `--auto` merges the PR on the spot. CommitCraft
+asks before doing that, and reports the merge rather than an armed queue.
+
 It never uses `--admin`, `--no-verify`, or a force push. A branch behind base is
 reported with the rebase command for you to run yourself.
 
