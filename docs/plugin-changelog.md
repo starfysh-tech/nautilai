@@ -14,6 +14,19 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-09-11
+
+- **New plugin: [`create-issue`](../create-issue/README.md).** Ticket-writing had no
+  home in the marketplace: `review-plan` stops at a validated plan and
+  `github-issue-auditor` only inspects issues that already exist, so the step between —
+  turning a spec or conversation into well-shaped GitHub issues — was done by hand or by
+  a private per-repo command with an org's labels and Linear projects baked in. The skill
+  reads labels, issue types, milestones, and `.github/ISSUE_TEMPLATE` fields from the
+  target repo at runtime instead, and takes any Linear routing from the project's shoals
+  file, so one public plugin serves every repo. Every draft's claims are executed (symbols
+  grepped, verify commands run and required to fail) and a subagent audits completeness
+  before anything is created.
+
 ## 2026-08-24
 
 - **commitcraft — [`ready`](../commitcraft/skills/commitcraft/workflows/ready.md) no

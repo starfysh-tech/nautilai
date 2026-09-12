@@ -29,6 +29,7 @@ body:
         - autodev
         - sentry-hygiene
         - action-first
+        - create-issue
     validations:
       required: true
   - type: input

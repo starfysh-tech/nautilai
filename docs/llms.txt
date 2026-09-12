@@ -44,6 +44,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [cc-validate-hooks](https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html): Validates Claude Code hook configuration in `settings.json`, with an optional `--fix`.
 - [sentry-hygiene](https://starfysh-tech.github.io/nautilai/plugins/sentry-hygiene.html): Audits a repo's Sentry setup against official SDK docs fetched at runtime, and instruments capture behind a hard PII boundary. Repo-only (no Sentry MCP). Deliberately complements the official `sentry` plugin, which owns SDK setup and fixing production issues. **Not currently ported to Hermes.**
 - [action-first](https://starfysh-tech.github.io/nautilai/plugins/action-first.html): Persistent output-style skill — reshapes every response around one doable-now action (lead with the step, number/cap multi-step work at 5, restate progress each turn, cut preamble/recap). User-invoked only, stays on until "stop action-first."
+- [create-issue](https://starfysh-tech.github.io/nautilai/plugins/create-issue.html): Turns a validated change request (spec, plan, or conversation decisions) into GitHub issues shaped by the target repo's own `.github/ISSUE_TEMPLATE/*.yml` fields. Executes every claim and audits completeness before creating; epics link sub-issues with native `--parent` / `--blocked-by`. User-invoked only. **Not currently ported to Hermes.**
 
 ## Notes for agents — Hermes runtime
 
@@ -130,6 +131,17 @@ file path or `-` for stdin).
 - **ASCII mode is not this renderer.** ASCII mode draws UI layouts (nav bars, `[____]`
   inputs, `[Select ▼]`); the renderer draws node graphs. Do not route ASCII-mode layout
   work through it.
+
+## Notes for agents — create-issue
+
+- **Labels, issue types, and milestones are read from the target repo at runtime.** The skill never ships a taxonomy. A value absent from that runtime listing does not exist; `gh issue create` rejects an unknown label and fails the whole call.
+- **`gh api orgs/<owner>/issue-types` only works for organization-owned repos.** On a user-owned repo it 404s; the skill then omits `--type`.
+- **`--parent`, `--blocked-by`, and `--add-blocked-by` need `gh` ≥ 2.94.0.** Check `gh --version` before creating an epic.
+- **No `.github/ISSUE_TEMPLATE/*.yml` in the repo, or none whose required fields the work can answer, means the skill stops and asks** before using its default body outline. It does not infer a schema.
+- **`gh issue create --body` bypasses issue forms and does not apply a template's `labels:`.** The skill passes them on `--label` itself. `blank_issues_enabled: false` in `config.yml` gates only the web form.
+- **Linear routing is off unless two things hold:** the Linear MCP is reachable *and* `.claude/shoals/create-issue.create-issue.md` carries a `## Linear routing` entry mapping milestone patterns to projects. The skill ships no mapping.
+- **`--dry-run` stops after the audit and prints the drafts, the exact `--label` / `--type` / `--milestone` values, the blocking graph by title, and the audit findings.** `--parent` / `--blocked-by` take numbers that only exist after creation, so the graph is printed by title. Use it to validate the skill on a repo without creating anything.
+- **Verify commands in a draft must fail before creation.** A passing one means the work is done or the command is wrong — the skill resolves which rather than shipping it.
 
 ## Optional
 

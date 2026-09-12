@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "create-issue",
+  "displayName": "Create Issue",
+  "version": "2.26.1",
+  "description": "Turn a validated change request — a spec, plan, or conversation-captured decisions — into GitHub issues shaped by the repo's own .github/ISSUE_TEMPLATE schemas, with extraction, INVEST/EARS shaping, executed-claim and completeness gates before anything is created.",
+  "author": {
+    "name": "Randall Noval",
+    "email": "randall@starfysh.net",
+    "url": "https://github.com/starfysh-tech"
+  },
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/create-issue#readme",
+  "repository": "https://github.com/starfysh-tech/nautilai",
+  "license": "MIT",
+  "keywords": [
+    "claude-code",
+    "github",
+    "issues",
+    "tickets",
+    "epic",
+    "planning",
+    "invest"
+  ],
+  "skills": "./skills/"
+}

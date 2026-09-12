@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>create-issue — nautilai</title>
+<meta name="description" content="Turn a validated change request — a spec, plan, or conversation-captured decisions — into GitHub issues shaped by the repo's own .github/ISSUE_TEMPLATE schemas, with extraction, INVEST/EARS shaping, executed-claim and completeness gates before anything is created." />
+<meta property="og:title" content="create-issue — nautilai" />
+<meta property="og:description" content="Turn a validated change request — a spec, plan, or conversation-captured decisions — into GitHub issues shaped by the repo's own .github/ISSUE_TEMPLATE schemas, with extraction, INVEST/EARS shaping, executed-claim and completeness gates before anything is created." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a141d" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/plugin.css" />
+</head>
+<body>
+<div id="copy-live" class="visually-hidden" aria-live="polite" role="status"></div>
+<div class="wrap">
+  <a class="back" href="../index.html#plugins">&larr; all plugins</a>
+
+  <header class="plugin-hero">
+    <h1 class="plugin-name">create-issue</h1>
+    <p class="tagline">Turn a validated spec, plan, or conversation into GitHub issues shaped by the repo's own issue templates, with claims executed before creation.</p>
+  </header>
+
+  <section id="install">
+    <h2>Install</h2>
+    <div class="copyfield">
+      <code class="cf-code"><span class="prompt">/</span>plugin install create-issue@nautilai</code>
+      <button class="copy-btn" type="button" data-copy="/plugin install create-issue@nautilai" aria-label="Copy install command">
+        <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="cf-label" aria-hidden="true">Copy</span>
+      </button>
+    </div>
+  </section>
+
+  <section id="what">
+    <h2>What it does</h2>
+    <p>The skill reads every source artifact in full, then lists the target repo's real labels, issue types, milestones, and <code>.github/ISSUE_TEMPLATE</code> fields so drafting never uses a value the repo lacks. It extracts work-content into a reviewable checklist, asks only the questions the transcript did not settle, shapes each ticket with INVEST and EARS, and drafts work-content only into the template's fields. Before anything is created it greps every cited symbol, runs every verify command and requires it to fail, and dispatches a subagent to audit completeness against the source. Creation waits on explicit approval; epics link sub-issues with native parent and blocked-by edges, and every created issue is diffed back against the source.</p>
+  </section>
+
+  <section id="commands">
+    <h2>Commands / skills</h2>
+    <ul class="skill-list">
+      <li><div class="sk-name">/create-issue</div><p>Create issues from the current conversation plus any specs or plans found in the repo.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/create-issue path/to/spec.md</div><p>Create issues from a named spec, with the conversation as additional source.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/create-issue owner/repo path/to/spec.md</div><p>Target a specific repository instead of the current directory's.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/create-issue --dry-run</div><p>Run extraction, shaping, drafting, claim execution, and the audit, then stop: print the drafts, the label, type, and milestone values creation would pass, the blocking graph by title, and the audit findings. Creates nothing.</p><div class="sk-triggers">explicit slash form only</div></li>
+    </ul>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <p>Every draft is grounded in what the target repo actually has, then proven before it ships.</p>
+    <div class="flow">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">pull ground truth</span><span class="fs-sub">gh label list · issue-types · milestones · ISSUE_TEMPLATE</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">extract + question gate</span><span class="fs-sub">~/.claude/plans/ticket-extraction-&lt;slug&gt;.md</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">shape with INVEST / EARS</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">draft into template fields</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">5</span><span class="fs-body"><span class="fs-label">execute every claim</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">6</span><span class="fs-body"><span class="fs-label">subagent completeness audit</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">7</span><span class="fs-body"><span class="fs-label">approve · create · diff back</span><span class="fs-sub">gh issue create --parent --blocked-by</span></span></div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>Labels, issue types, milestones, and template fields are read from the target repo at runtime; a value not in that listing is never used. No taxonomy ships with the plugin.</li>
+          <li>Extraction lives in <code>~/.claude/plans/ticket-extraction-&lt;slug&gt;.md</code>, never in a ticket body. It records the user's answers verbatim so subagents inherit them and cannot regenerate a settled question.</li>
+          <li>Draft budget: target 200 words, hard ceiling 400. Every non-epic ticket carries a Dependencies section; every <code>Find via</code> pattern reappears in <code>Verify Success</code> as a residual check.</li>
+          <li>Claim execution: cited symbols are grepped, verify commands are run and must fail, asserted absences are searched for their negation. Unrunnable claims are marked UNVERIFIABLE.</li>
+          <li>Audit findings are <code>report</code> or <code>ask-user</code>; the audit subagent changes nothing. After creation, removing invented content is <code>auto-fix</code>; adding missed content or cutting length is <code>ask-user</code>.</li>
+          <li>Epics create the parent first, then sub-issues in dependency order with native <code>--parent</code> / <code>--blocked-by</code> edges (needs <code>gh</code> ≥ 2.94.0). Blocking edges live in the relationship graph, never in a comment.</li>
+          <li>A repo with no <code>.github/ISSUE_TEMPLATE/*.yml</code>, or none whose required fields the work can answer, stops the run and asks before a default body outline is used. The chosen template's <code>labels:</code> are passed on <code>--label</code>; <code>gh issue create --body</code> does not apply them.</li>
+          <li>Linear routing runs only when the Linear MCP is reachable and <code>.claude/shoals/create-issue.create-issue.md</code> carries a <code>## Linear routing</code> mapping; otherwise it is skipped with a reason.</li>
+          <li>Tooling: GitHub MCP preferred, <code>gh</code> CLI as baseline, stop if neither is authenticated.</li>
+        </ul>
+      </div>
+    </details>
+
+
+
+  </section>
+
+  <section id="requirements">
+    <h2>Requirements</h2>
+    <p>GitHub CLI (<code>gh</code>) authenticated, or the GitHub MCP server configured. Sub-issue and blocking relationships need <code>gh</code> ≥ 2.94.0. Linear routing is optional and needs the Linear MCP plus a project-local shoals mapping.</p>
+  </section>
+
+  <footer>
+    <nav class="foot-links">
+      <a href="https://github.com/starfysh-tech/nautilai/tree/main/create-issue" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      <a href="../index.html#plugins">&larr; all plugins</a>
+    </nav>
+  </footer>
+</div>
+
+<script src="../assets/plugin.js"></script>
+</body>
+</html>
