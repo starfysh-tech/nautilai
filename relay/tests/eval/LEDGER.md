@@ -25,6 +25,7 @@ about narrative recall must cite a row here.
 | Date | Commit | Model | Decisions (A/B) | Dead ends (A/B) | Constraint-user (A/B) | Constraint-assistant (A/B) | Gate | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-07-05 | 54f1bd5+wt | haiku | 0/6 vs 4-6/6 | 0/4 vs 4/4 | 2/2 vs 1-2/2 | 0/2 vs 2/2 | PASS 3/3 | Official series after v2 keywords + verbatim-token prompt: gate 11/12, 12/12, 11/12 (need ≥10). Prompt examples deliberately avoid fixture tokens (no teaching-to-test). Earlier single runs pre-prompt-fix: 10/12 PASS, 8/12 FAIL — variance was the finding; verbatim-token instruction removed it. |
+| 2026-09-26 | 4c9e7a2+wt | haiku | 0/6 vs 3-5/6 | 0/4 vs 4/4 | 2/2 vs 2/2 | 0/2 vs 2/2 | PASS 2/3 | Re-baseline: gate 9/12, 11/12, 11/12 (need ≥10). The July series (11, 12, 11) did not hold; a same-day separate run of the unmodified narrative scored 9, 8, 10. All misses are decisions. The only prompt-side change in this tree is keeping slash-command args in the dialogue, which this fixture does not exercise. |
 | 2026-07-05 | 54f1bd5+wt | haiku | 0/6 (baseline) | 0/4 | 2/2 | 0/2 | n/a | Baseline (fact pack only) row for comparison: 2/14 overall — assistant-turn facts structurally invisible to jq extractor, as designed. |
 
 - A = baseline (`extract-transcript.sh`), B = narrative (`haiku-narrative.sh`).

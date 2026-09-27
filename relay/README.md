@@ -164,8 +164,8 @@ remove its hook registration — the skill itself still writes the doc and the
 ## Roadmap
 
 `/handoff recover` is shipped (see Recovery, above). The Haiku narrative layer
-is also shipped: it recovers 11-12 of 12 planted assistant-turn facts across 3
-eval runs vs 0/12 for the jq fact pack alone (see
+is also shipped: it recovers 9-11 of 12 planted assistant-turn facts per run
+in the latest ledger row vs 0/12 for the jq fact pack alone (see
 `relay/tests/eval/LEDGER.md`).
 
 ## Security note
