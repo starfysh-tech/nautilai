@@ -25,6 +25,19 @@ marker_dir=$(bash "$here/handoff-dir.sh" "$cwd")
 mkdir -p "$marker_dir"
 printf '%s\n' "$transcript" > "${marker_dir}/compacted-$(date +%s)"
 
+# The Haiku narrative (decisions, dead ends) takes 20s-2.5min, too slow for
+# this hook. Build it detached (perl setsid, so it outlives the hook);
+# prompt-recovery.sh injects it at the next prompt once it is ready.
+session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
+recovery_dir="$HOME/.claude/handoffs/.recovery"
+if [ -n "$session_id" ] && command -v perl >/dev/null 2>&1; then
+  mkdir -p "$recovery_dir"
+  find "$recovery_dir" -maxdepth 1 -type f -mtime +1 -exec rm -f {} + 2>/dev/null || true
+  perl -MPOSIX -e 'POSIX::setsid(); exec @ARGV' \
+    bash "$here/recovery-narrative.sh" "$transcript" "$recovery_dir/${session_id}.md" \
+    </dev/null >/dev/null 2>&1 &
+fi
+
 msgs=$(bash "$here/extract-transcript.sh" --before-last-compact --user-messages "$transcript" 2>/dev/null)
 [ -n "$(printf '%s' "$msgs" | tr -d '[:space:]')" ] || exit 0
 
@@ -36,7 +49,7 @@ if [ "${#msgs}" -gt "$cap" ]; then
 [… truncated — /handoff recover rebuilds the full pre-compaction record]"
 fi
 
-prefix="Auto-compaction just summarized this conversation. Below are the messages the user wrote before it, verbatim from the transcript. Treat the requirements in them as still in force unless a later message changed them. /handoff recover rebuilds decisions and dead ends from the same transcript.
+prefix="Auto-compaction just summarized this conversation. Below are the messages the user wrote before it, verbatim from the transcript. Treat the requirements in them as still in force unless a later message changed them. Decisions and dead ends from the same transcript follow at a later prompt.
 
 "
 jq -n --arg ctx "${prefix}${msgs}" '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $ctx}}'

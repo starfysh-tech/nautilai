@@ -53,7 +53,8 @@ Those calls bill like any other Haiku usage; turn them off entirely with
 
 Two environment variables, both optional:
 
-- `RELAY_NARRATIVE=off` — skip the narrative step's live Haiku calls entirely.
+- `RELAY_NARRATIVE=off` — skip the narrative step's live Haiku calls entirely,
+  in `/handoff` and after auto-compaction.
   The handoff still runs on the jq fact pack alone; the doc's Provenance
   section records `narrative: degraded (disabled by RELAY_NARRATIVE=off)`.
   Default: on.
@@ -125,6 +126,11 @@ auto-compaction:
   drops a `compacted-<epoch>` marker, and injects the user's own messages from
   before the boundary (capped at 6,000 characters). Manual `/compact` is left
   alone.
+- **Next prompt:** the same hook starts the Haiku narrative (decisions, dead
+  ends, constraints) detached, because it takes 20 s to 2.5 min.
+  `scripts/prompt-recovery.sh` (`UserPromptSubmit`) injects it once, at the
+  first prompt after it is ready, labelled unverified. `RELAY_NARRATIVE=off`
+  turns this step off.
 
 For the full record, `/handoff recover` re-extracts the fact pack scoped to the
 transcript region *before* the compaction boundary and rebuilds the

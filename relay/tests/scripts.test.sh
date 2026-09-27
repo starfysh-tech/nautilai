@@ -513,7 +513,7 @@ SPC_T="$SP_TMP/compact-auto.jsonl"
     printf '%s\n' '{"type":"user","isCompactSummary":true,"message":{"content":"summary"}}'
     printf '%s\n' '{"type":"user","message":{"content":"POST-BOUNDARY-3"}}'
 } > "$SPC_T"
-outc="$(HOME="$SP_HOME1" bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SPC_T\"}")"
+outc="$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SPC_T\"}")"
 outc_ctx="$(printf '%s' "$outc" | jq -r '.hookSpecificOutput.additionalContext // empty')"
 assert_contains "compact-recover: auto injects pre-boundary user message" "$outc_ctx" "EARLY-RULE-9"
 assert_not_contains "compact-recover: auto omits post-boundary message" "$outc_ctx" "POST-BOUNDARY-3"
@@ -523,7 +523,7 @@ assert_true "compact-recover: never touches pending" "$(rc_of test -f "$SP_HOME1
 
 # 1c. source=compact after a MANUAL compaction is a no-op
 sed 's/"trigger":"auto"/"trigger":"manual"/' "$SPC_T" > "$SP_TMP/compact-manual.jsonl"
-outm="$(HOME="$SP_HOME1" bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-manual.jsonl\"}")"
+outm="$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-manual.jsonl\"}")"
 assert "compact-recover: manual compaction is a no-op" "{}" "$outm"
 
 # 1d. the injection is capped
@@ -534,7 +534,7 @@ assert "compact-recover: manual compaction is a no-op" "{}" "$outm"
     done
     printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto"}}'
 } > "$SP_TMP/compact-big.jsonl"
-outb="$(HOME="$SP_HOME1" bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-big.jsonl\"}")"
+outb="$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-big.jsonl\"}")"
 outb_len=$(printf '%s' "$outb" | jq -r '.hookSpecificOutput.additionalContext' | wc -c | tr -d ' ')
 assert_true "compact-recover: injection stays under 7000 chars" "$(rc_of test "$outb_len" -lt 7000)"
 assert_contains "compact-recover: capped injection says it was truncated" "$outb" "truncated"
@@ -941,6 +941,37 @@ assert "haiku-narrative: timed-out call exits 3 (degraded)" "3" "$hn_timeout_exi
 assert "haiku-narrative: timed-out call emits no stdout" "" "$hn_timeout_out"
 assert_contains "haiku-narrative: timeout degrade noted on stderr" "$(cat /tmp/hn-timeout-err.$$)" "degraded"
 rm -f /tmp/hn-timeout-err.$$
+
+# =============================================================================
+# compact-recover.sh narrative + prompt-recovery.sh (claude stubbed via HN_PATH)
+# =============================================================================
+
+echo ""
+echo "=== post-compaction narrative tests ==="
+
+PR_SCRIPT="$SCRIPTS_DIR/prompt-recovery.sh"
+PR_TMP="$(mktemp -d)"
+PR_T="$PR_TMP/t.jsonl"
+{
+    printf '%s\n' '{"type":"user","message":{"content":"Never raise MAX_CONN above 40."}}'
+    printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"Decided on approach A."}]}}'
+    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto"}}'
+} > "$PR_T"
+PR_FILE="$PR_TMP/.claude/handoffs/.recovery/sess-1.md"
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok HOME="$PR_TMP" bash "$COMPACT" \
+    <<< "{\"session_id\":\"sess-1\",\"cwd\":\"$PR_TMP/proj\",\"transcript_path\":\"$PR_T\"}" >/dev/null
+pr_i=0
+while [ ! -f "$PR_FILE" ] && [ "$pr_i" -lt 40 ]; do sleep 0.5; pr_i=$((pr_i + 1)); done
+assert_true "compact-recover: detached narrative lands for the session" "$(rc_of test -f "$PR_FILE")"
+pr_out1="$(HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-1"}')"
+assert_contains "prompt-recovery: injects the narrative" \
+    "$(printf '%s' "$pr_out1" | jq -r '.hookSpecificOutput.additionalContext')" "## Decisions"
+assert_true "prompt-recovery: consumes the narrative once" "$(rc_of test ! -e "$PR_FILE")"
+assert "prompt-recovery: next prompt is a no-op" "" "$(HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-1"}')"
+echo "x" > "$PR_TMP/.claude/handoffs/.recovery/sess-2.md"
+assert "prompt-recovery: RELAY_NESTED is a no-op" "" "$(RELAY_NESTED=1 HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-2"}')"
+assert "prompt-recovery: other session's narrative is untouched" "" "$(HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-3"}')"
+rm -rf "$PR_TMP"
 
 rm -rf "$HN_BIN"
 

@@ -20,7 +20,9 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   transcripts, `/handoff recover` had run 0 times: the PreCompact systemMessage that
   suggested it never reached the user. The PreCompact hook now asks the summarizer to
   keep requirements, decisions with reasons, and abandoned approaches, and
-  SessionStart(`compact`) injects the user's pre-compaction messages. See
+  SessionStart(`compact`) injects the user's pre-compaction messages. The Haiku
+  narrative (decisions, dead ends) is too slow for that hook, so it is built
+  detached and injected at the next prompt. See
   [`relay/README.md`](../relay/README.md#recovery).
 - **relay — handoff docs land where the next session reads them.** The skill built the
   handoff dir from `pwd`, which drifts when a session `cd`s; one real marker sat in a

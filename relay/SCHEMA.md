@@ -189,6 +189,16 @@ Confidence key:
 - **What breaks if wrong:** the summary loses the steering; the
   SessionStart(compact) injection still runs.
 
+### UserPromptSubmit hook: `.session_id`
+- **Where used:** `prompt-recovery.sh`, on every prompt. It injects
+  `~/.claude/handoffs/.recovery/<session_id>.md` once, then deletes it.
+  `compact-recover.sh` names that file from its own `.session_id` and starts
+  `recovery-narrative.sh` to write it; files older than a day are pruned there.
+- **Confidence:** Documented — `session_id` is a common hook input field and
+  `additionalContext` is a UserPromptSubmit output field.
+- **What breaks if wrong:** the narrative is never injected; the user messages
+  from SessionStart(`compact`) still are.
+
 ## `claude` CLI contract
 
 ### `claude -p --model haiku --system-prompt "<text>" "<prompt>"` reads stdin, writes result to stdout
