@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.28.0](https://github.com/starfysh-tech/nautilai/compare/v2.27.0...v2.28.0) (2026-09-27)
+
+
+### Features
+
+* **relay:** write a handoff on bare /clear when opted in ([#155](https://github.com/starfysh-tech/nautilai/issues/155)) ([ee58739](https://github.com/starfysh-tech/nautilai/commit/ee58739be1292589cf5a194a7e84f649b20500c5))
+
 ## [2.27.0](https://github.com/starfysh-tech/nautilai/compare/v2.26.1...v2.27.0) (2026-09-27)
 
 
