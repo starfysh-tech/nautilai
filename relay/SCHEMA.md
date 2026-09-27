@@ -199,6 +199,20 @@ Confidence key:
 - **What breaks if wrong:** the narrative is never injected; the user messages
   from SessionStart(`compact`) still are.
 
+### SessionEnd hook: `.reason`, `.cwd`, `.transcript_path`
+- **Where used:** `session-end-autohandoff.sh`, only with
+  `RELAY_AUTO_HANDOFF=on` and `reason=="clear"`.
+- **Observed (2.1.283):** `transcript_path` is the ending session's file and
+  is complete at hook time. A plugin's SessionEnd hook is killed after about
+  1.5s and its `timeout` field is ignored. Only a child started with perl
+  `POSIX::setsid` survived that kill; `&` and `nohup` children died.
+  SessionStart(`clear`) starts only after SessionEnd exits, and it carries the
+  new session's `transcript_path`, so the old path reaches the builder as an
+  argument and the pickup only needs the builder's pid (`generating-<pid>`). A slow SessionStart(`clear`) runs in the background;
+  a prompt typed meanwhile waits for it.
+- **What breaks if wrong:** no auto doc is written; the next session starts
+  without one. The hook exits 0 in every case.
+
 ## `claude` CLI contract
 
 ### `claude -p --model haiku --system-prompt "<text>" "<prompt>"` reads stdin, writes result to stdout

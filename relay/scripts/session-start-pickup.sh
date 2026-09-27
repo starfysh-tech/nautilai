@@ -9,7 +9,7 @@ set -euo pipefail
 emitted=0
 marker_dir=""
 
-# Retention sweep: deletes consumed/expired/broken/recovered/claimed/compacted
+# Retention sweep: deletes consumed/expired/broken/recovered/claimed/compacted/generating
 # markers and timestamped *.md docs older than RELAY_RETENTION_DAYS (default
 # 14; 0 disables the sweep entirely). Runs from the EXIT trap, i.e. strictly
 # after the injection payload (if any) has already been printed above — it
@@ -32,6 +32,7 @@ sweep_retention() {
   find "$dir" -maxdepth 1 -type f \( \
     -name 'consumed-*' -o -name 'expired-*' -o -name 'broken-*' \
     -o -name 'recovered-*' -o -name 'claimed-*' -o -name 'compacted-*' \
+    -o -name 'generating-*' \
   \) -mtime "+${days}" -exec rm -f {} + 2>/dev/null
 
   find "$dir" -maxdepth 1 -type f -name '*.md' -mtime "+${days}" \
@@ -71,6 +72,29 @@ cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
 
 marker_dir=$(bash "$(dirname "$0")/handoff-dir.sh" "$cwd")
 marker="${marker_dir}/pending"
+
+# With RELAY_AUTO_HANDOFF=on, auto-handoff.sh may still be writing the doc for
+# the session this /clear just ended. Wait for it, bounded. Each generating-*
+# marker holds its builder's pid; a dead builder's marker is removed.
+builder_running() {
+  for g in "$marker_dir"/generating-*; do
+    [ -e "$g" ] || continue
+    if kill -0 "$(cat "$g" 2>/dev/null)" 2>/dev/null; then
+      return 0
+    fi
+    rm -f "$g"
+  done
+  return 1
+}
+if [ "$source" = clear ] && [ "${RELAY_AUTO_HANDOFF:-}" = on ]; then
+  wait_max="${RELAY_AUTO_HANDOFF_WAIT:-60}"
+  case "$wait_max" in ''|*[!0-9]*) wait_max=60 ;; esac
+  waited=0
+  while [ "$waited" -lt "$wait_max" ] && builder_running; do
+    sleep 1
+    waited=$((waited + 1))
+  done
+fi
 
 [ -f "$marker" ] || exit 0
 
@@ -120,6 +144,12 @@ doc_contents=$(cat "$doc_path")
 prefix='A handoff document from the previous session was found and is included below. Treat it as the authoritative starting context.
 
 '
+case "$doc_path" in
+  *-auto.md)
+    prefix='Relay generated the handoff below from the previous session'"'"'s transcript when it was cleared without /handoff. Use it as starting context; verify its narrative bullets before acting on them.
+
+' ;;
+esac
 
 context=$(jq -n --arg prefix "$prefix" --arg doc "$doc_contents" '$prefix + $doc')
 output=$(jq -n --argjson ctx "$context" '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $ctx}}')

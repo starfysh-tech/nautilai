@@ -16,6 +16,11 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-09-26
 
+- **relay — opt-in auto-handoff on a bare `/clear`.** 7 of 81 real `/clear`s since Sep 1
+  had no `/handoff` before them, so the next session started cold. With
+  `RELAY_AUTO_HANDOFF=on`, the SessionEnd hook starts a detached builder that writes a
+  fact-pack doc plus the Haiku narrative; the next session waits for it, bounded. See
+  [`relay/README.md`](../relay/README.md#auto-handoff-on-clear).
 - **relay — auto-compaction recovery now runs without a command.** On real
   transcripts, `/handoff recover` had run 0 times: the PreCompact systemMessage that
   suggested it never reached the user. The PreCompact hook now asks the summarizer to

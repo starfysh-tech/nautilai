@@ -88,6 +88,8 @@ dead ends from the same transcript, labelled unverified. Neither touches the `pe
 handoff marker. Handoff docs
 live under `~/.claude/handoffs/<slug>/`, where the slug comes from the git toplevel of the
 session's cwd — compute it with `scripts/handoff-dir.sh`, not from `pwd`.
+With `RELAY_AUTO_HANDOFF=on`, a `*-auto.md` doc (heading `# Auto handoff`) was written with no
+agent in the loop: it has no Goal or Next steps and its narrative bullets are unverified.
 
 ## Notes for agents — rbac-django
 

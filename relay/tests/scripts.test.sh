@@ -973,6 +973,87 @@ assert "prompt-recovery: RELAY_NESTED is a no-op" "" "$(RELAY_NESTED=1 HOME="$PR
 assert "prompt-recovery: other session's narrative is untouched" "" "$(HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-3"}')"
 rm -rf "$PR_TMP"
 
+# session-end-autohandoff.sh + auto-handoff.sh tests (claude stubbed via HN_PATH)
+# =============================================================================
+
+echo ""
+echo "=== auto-handoff tests ==="
+
+SE_SCRIPT="$SCRIPTS_DIR/session-end-autohandoff.sh"
+AH_TMP="$(mktemp -d)"
+AH_HOME="$AH_TMP/home"
+AH_CWD="$AH_TMP/proj"
+mkdir -p "$AH_HOME" "$AH_CWD"
+AH_DIR=$(HOME="$AH_HOME" bash "$SCRIPTS_DIR/handoff-dir.sh" "$AH_CWD")
+ah_input() { printf '{"reason":"%s","cwd":"%s","transcript_path":"%s"}' "$1" "$AH_CWD" "$HN_FIXTURE"; }
+now_ms() { perl -MTime::HiRes=time -e 'printf "%d\n", time * 1000'; }
+wait_for() { # wait_for <test-expr...>: poll up to 20s
+    i=0; while [ "$i" -lt 40 ]; do "$@" && return 0; sleep 0.5; i=$((i + 1)); done; return 1
+}
+no_generating() { [ -z "$(find "$AH_DIR" -maxdepth 1 -name 'generating-*' 2>/dev/null)" ]; }
+
+ah_files() { find "$AH_HOME" -type f | wc -l | tr -d ' '; }
+
+# 1. off by default
+HOME="$AH_HOME" bash "$SE_SCRIPT" <<< "$(ah_input clear)"
+assert "auto-handoff: off by default writes nothing" "0" "$(ah_files)"
+
+# 2. a SessionEnd that is not /clear is ignored
+HOME="$AH_HOME" RELAY_AUTO_HANDOFF=on bash "$SE_SCRIPT" <<< "$(ah_input prompt_input_exit)"
+assert "auto-handoff: non-clear reason writes nothing" "0" "$(ah_files)"
+
+# 3. RELAY_NESTED is ignored
+HOME="$AH_HOME" RELAY_AUTO_HANDOFF=on RELAY_NESTED=1 bash "$SE_SCRIPT" <<< "$(ah_input clear)"
+assert "auto-handoff: RELAY_NESTED writes nothing" "0" "$(ah_files)"
+
+# 4. an existing pending marker means /handoff already ran: skip
+mkdir -p "$AH_DIR"
+echo "/some/doc.md" > "$AH_DIR/pending"
+HOME="$AH_HOME" RELAY_AUTO_HANDOFF=on bash "$SE_SCRIPT" <<< "$(ah_input clear)"
+assert "auto-handoff: existing pending is left as is" "/some/doc.md" "$(cat "$AH_DIR/pending")"
+assert_true "auto-handoff: existing pending starts no builder" "$(rc_of no_generating)"
+rm -f "$AH_DIR/pending"
+
+# 5. on + clear: the hook returns well inside the 1.5s budget, the detached
+# builder writes pending + a fact-pack doc, then the narrative, then clears
+# its generating marker.
+t0=$(now_ms)
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok HOME="$AH_HOME" RELAY_AUTO_HANDOFF=on bash "$SE_SCRIPT" <<< "$(ah_input clear)"
+t1=$(now_ms)
+assert_true "auto-handoff: SessionEnd hook returns in under 1000ms" "$(rc_of test $((t1 - t0)) -lt 1000)"
+assert_true "auto-handoff: builder writes pending" "$(rc_of wait_for test -f "$AH_DIR/pending")"
+assert_true "auto-handoff: builder clears its generating marker" "$(rc_of wait_for no_generating)"
+ah_doc="$(cat "$AH_DIR/pending" 2>/dev/null)"
+ah_body="$(cat "$ah_doc" 2>/dev/null)"
+assert_contains "auto-handoff: doc name carries the -auto suffix" "$ah_doc" "-auto.md"
+assert_contains "auto-handoff: doc carries the fact pack" "$ah_body" "## User messages (verbatim)"
+assert_contains "auto-handoff: doc carries the narrative, demoted" "$ah_body" "### Decisions"
+assert_contains "auto-handoff: provenance names the writer" "$ah_body" "writer: relay auto-handoff"
+
+# 6. pickup on clear waits while the builder in a generating marker lives,
+# then injects the auto doc with its own prefix
+sleep 2 &
+echo "$!" > "$AH_DIR/generating-live"
+p0=$(now_ms)
+ah_pick="$(RELAY_AUTO_HANDOFF=on RELAY_AUTO_HANDOFF_WAIT=10 run_pickup "$AH_HOME" "{\"source\":\"clear\",\"cwd\":\"$AH_CWD\"}")"
+p1=$(now_ms)
+wait
+assert_true "pickup: waits while the builder lives" "$(rc_of test $((p1 - p0)) -ge 1500)"
+assert_contains "pickup: auto doc gets the auto prefix" "$ah_pick" "cleared without /handoff"
+assert_contains "pickup: auto doc is injected" "$ah_pick" "Auto handoff"
+
+# 7. a marker whose builder is dead causes no wait and is removed
+sh -c 'exit 0' &
+dead=$!
+wait "$dead"
+echo "$dead" > "$AH_DIR/generating-dead"
+p0=$(now_ms)
+RELAY_AUTO_HANDOFF=on RELAY_AUTO_HANDOFF_WAIT=10 run_pickup "$AH_HOME" "{\"source\":\"clear\",\"cwd\":\"$AH_CWD\"}" >/dev/null
+p1=$(now_ms)
+assert_true "pickup: dead builder causes no wait" "$(rc_of test $((p1 - p0)) -lt 1500)"
+assert_true "pickup: dead builder marker removed" "$(rc_of test ! -e "$AH_DIR/generating-dead")"
+rm -rf "$AH_TMP"
+
 rm -rf "$HN_BIN"
 
 # =============================================================================
