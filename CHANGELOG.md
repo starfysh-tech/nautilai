@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.28.1](https://github.com/starfysh-tech/nautilai/compare/v2.28.0...v2.28.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* **relay:** update docs and doctor for compaction recovery and auto-handoff ([#158](https://github.com/starfysh-tech/nautilai/issues/158)) ([a0076de](https://github.com/starfysh-tech/nautilai/commit/a0076de7f763a81f4c2e6381b9b5abdd5a76b480))
+
 ## [2.28.0](https://github.com/starfysh-tech/nautilai/compare/v2.27.0...v2.28.0) (2026-09-27)
 
 
