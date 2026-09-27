@@ -430,6 +430,16 @@ mkdir -p "$RS_NODIR_CWD"
 )
 assert "resolve: missing project dir exits 1" "1" "$?"
 
+# Test: session id lives under another project dir (cwd drifted) -> found there
+mkdir -p "$RS_HOME/.claude/projects/-elsewhere"
+printf '{}\n' > "$RS_HOME/.claude/projects/-elsewhere/driftsession.jsonl"
+(
+    cd "$RS_NODIR_CWD" || exit 1
+    HOME="$RS_HOME" CLAUDE_CODE_SESSION_ID=driftsession bash "$SCRIPTS_DIR/resolve-session.sh"
+) > "$RS_TMP/out5.txt" 2>/dev/null
+assert "resolve: session id found in another project dir" \
+    "$RS_HOME/.claude/projects/-elsewhere/driftsession.jsonl" "$(cat "$RS_TMP/out5.txt")"
+
 # Test: env session id set but the file it points to doesn't exist -> falls
 # back to mtime guess rather than failing
 (
@@ -446,6 +456,27 @@ assert_true "resolve: dangling session id falls back to mtime guess" "$rs_stale_
 assert_contains "resolve: dangling session id warns on stderr" "$rs_stale_err" "falling back to mtime guess"
 
 rm -rf "$RS_TMP"
+
+# =============================================================================
+# handoff-dir.sh tests
+# =============================================================================
+
+echo ""
+echo "=== handoff-dir.sh tests ==="
+
+HD_TMP="$(mktemp -d)"
+HD_REPO="$(cd "$HD_TMP" && pwd -P)/repo"
+mkdir -p "$HD_REPO/sub/deeper" "$HD_TMP/plain"
+git -C "$HD_REPO" init -q
+hd_root_slug=$(printf '%s' "$HD_REPO" | tr '/.' '-')
+assert "handoff-dir: repo root" "/h/.claude/handoffs/$hd_root_slug" \
+    "$(HOME=/h bash "$SCRIPTS_DIR/handoff-dir.sh" "$HD_REPO")"
+assert "handoff-dir: subdirectory collapses to repo root" "/h/.claude/handoffs/$hd_root_slug" \
+    "$(HOME=/h bash "$SCRIPTS_DIR/handoff-dir.sh" "$HD_REPO/sub/deeper")"
+assert "handoff-dir: outside a repo uses the dir itself" \
+    "/h/.claude/handoffs/$(printf '%s' "$HD_TMP/plain" | tr '/.' '-')" \
+    "$(HOME=/h bash "$SCRIPTS_DIR/handoff-dir.sh" "$HD_TMP/plain")"
+rm -rf "$HD_TMP"
 
 # =============================================================================
 # session-start-pickup.sh tests

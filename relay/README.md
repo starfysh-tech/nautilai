@@ -129,9 +129,11 @@ in-session — no new handoff doc, no `/clear` required.
 └── <YYYYMMDD-HHMMSS>.md # the handoff doc(s)
 ```
 
-`<project-slug>` is the working directory path with every `/` and `.` replaced
-by `-`, so handoffs are scoped per project and don't collide across repos or
-worktrees. The `pending` marker is renamed (`consumed-<epoch>`) the first time
+`<project-slug>` is the git toplevel of the session's working directory (or
+the directory itself outside a repo) with every `/` and `.` replaced by `-`
+(`scripts/handoff-dir.sh`). A session that moved into a subdirectory still
+writes where the next session reads, and handoffs don't collide across repos
+or worktrees. The `pending` marker is renamed (`consumed-<epoch>`) the first time
 a session picks it up. A 30-minute TTL applies **only** on `source=startup`
 (opening Claude Code cold): there a doc not claimed within the window is left
 on disk but no longer auto-injected. On `source=clear` — a deliberate

@@ -112,7 +112,7 @@ else
 fi
 
 # --- handoffs dir writable ---------------------------------------------------
-handoff_dir="$HOME/.claude/handoffs/${slug}"
+handoff_dir=$(bash "$(dirname "$0")/handoff-dir.sh" "$PWD")
 mkdir -p "$handoff_dir" 2>/dev/null || true
 probe="${handoff_dir}/.doctor-probe-$$"
 if : > "$probe" 2>/dev/null; then

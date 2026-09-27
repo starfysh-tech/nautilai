@@ -29,9 +29,11 @@ Confidence key:
   nothing to read. This is the single point of failure for the whole plugin.
 
 ### Project slug rule: `$PWD` with every `/` and `.` replaced by `-`
-- **Where used:** `resolve-session.sh` (`project_slug()`),
-  `session-start-pickup.sh` (inline, comment says "mirrors resolve-session.sh"),
-  `hooks/precompact-notify.sh` (inline, same comment).
+- **Where used:** `resolve-session.sh` (`project_slug()`) and `doctor.sh`,
+  for the transcript project dir. The handoff dir uses the same transliteration
+  over the git toplevel of the cwd (`handoff-dir.sh`, called by the skill,
+  `session-start-pickup.sh`, and `doctor.sh`). `resolve-session.sh` also finds a
+  session id under any project dir, so a drifted `$PWD` still resolves.
 - **Confidence:** Observed, and only ever observed against **POSIX-style,
   forward-slash cwd paths on macOS**. The rule is applied identically in three
   separate files by convention, not by calling a shared function — if the real
