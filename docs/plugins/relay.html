@@ -101,7 +101,7 @@
           <li><code>session-start-pickup.sh</code>, <code>compact-recover.sh</code> / <code>precompact-notify.sh</code> / <code>prompt-recovery.sh</code> — the SessionStart (handoff pickup, post-compaction recovery), PreCompact, and UserPromptSubmit (post-compaction narrative) hooks.</li>
           <li><code>/handoff recover</code> follows <code>skills/handoff/workflows/recover.md</code>, re-extracting the fact pack scoped to the transcript region before the compaction boundary.</li>
           <li>Storage: <code>~/.claude/handoffs/&lt;project-slug&gt;/</code>, where the slug comes from the git toplevel of the session's working directory (<code>handoff-dir.sh</code>) — <code>pending</code>, <code>compacted-&lt;epoch&gt;</code>, <code>recovered-&lt;epoch&gt;</code>, and the dated doc files.</li>
-          <li>Env vars: <code>RELAY_NARRATIVE=off</code> skips the Haiku calls; <code>RELAY_RETENTION_DAYS</code> (default 14) controls the sweep, <code>0</code> disables it.</li>
+          <li>Env vars: <code>RELAY_NARRATIVE=off</code> skips the Haiku calls; <code>RELAY_RETENTION_DAYS</code> (default 14) controls the sweep, <code>0</code> disables it; <code>RELAY_AUTO_HANDOFF=on</code> writes a handoff on a bare <code>/clear</code> (needs <code>perl</code>); <code>RELAY_AUTO_HANDOFF_WAIT</code> (default 60) bounds how long the next session waits for it.</li>
         </ul>
       </div>
     </details>

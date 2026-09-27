@@ -1,5 +1,5 @@
 {
-  "description": "Auto-inject the pending relay handoff into new sessions and recover context after auto-compaction",
+  "description": "Auto-inject the pending relay handoff into new sessions, recover context after auto-compaction, and (opt-in) write a handoff on bare /clear",
   "hooks": {
     "SessionStart": [
       {
@@ -38,6 +38,16 @@
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/prompt-recovery.sh\""
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/session-end-autohandoff.sh\""
           }
         ]
       }

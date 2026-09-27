@@ -34,6 +34,15 @@ else
   line warn "claude CLI not found -- narrative pack will degrade (exit 3); fact pack still works"
 fi
 
+# --- perl present when auto-handoff is on (it detaches the builder)
+if [ "${RELAY_AUTO_HANDOFF:-}" = on ]; then
+  if command -v perl >/dev/null 2>&1; then
+    line ok "perl present -- RELAY_AUTO_HANDOFF=on can detach its builder"
+  else
+    line FAIL "perl not found -- RELAY_AUTO_HANDOFF=on does nothing without it"
+  fi
+fi
+
 # --- project slug / transcript directory ------------------------------------
 slug=$(printf '%s' "$PWD" | tr '/.' '-')
 project_dir="$HOME/.claude/projects/${slug}"

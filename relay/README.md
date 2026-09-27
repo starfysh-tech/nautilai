@@ -51,7 +51,8 @@ Those calls bill like any other Haiku usage; turn them off entirely with
 
 ## Configuration
 
-Two environment variables, both optional:
+Four environment variables, all optional. Set them in your shell or in the
+`env` block of `~/.claude/settings.json` so the hooks see them.
 
 - `RELAY_NARRATIVE=off` — skip the narrative step's live Haiku calls entirely,
   in `/handoff` and after auto-compaction.
@@ -63,6 +64,11 @@ Two environment variables, both optional:
   they're older than `<n>` days. Default: `14`. Set `0` to disable the sweep
   and keep everything forever. The `pending` marker is never swept —
   consume-once plus the startup-only TTL own its lifecycle.
+- `RELAY_AUTO_HANDOFF=on` — a bare `/clear` (no `/handoff` first) still leaves
+  a handoff for the next session. See [Auto-handoff on /clear](#auto-handoff-on-clear).
+  Needs `perl`. Default: off.
+- `RELAY_AUTO_HANDOFF_WAIT=<seconds>` — how long the next session's pickup
+  waits for an auto-handoff that is still being written. Default: `60`.
 
 Run `bash <plugin>/scripts/doctor.sh` from a project directory to self-check
 relay's environmental assumptions on your machine (see `SCHEMA.md`).
@@ -137,6 +143,21 @@ transcript region *before* the compaction boundary and rebuilds the
 compaction-lossy classes in-session — no new handoff doc, no `/clear`
 required.
 
+### Auto-handoff on /clear
+
+With `RELAY_AUTO_HANDOFF=on`, the `SessionEnd` hook handles a `/clear` that was
+not preceded by `/handoff`. Claude Code gives a plugin's SessionEnd hook about
+1.5 seconds, so the hook only starts `scripts/auto-handoff.sh` detached and
+records the builder's pid in a `generating-<pid>` marker. The builder writes a
+fact-pack doc and `pending` within seconds, then rewrites the doc with the
+Haiku narrative. The next session's pickup waits while that builder runs, up to
+`RELAY_AUTO_HANDOFF_WAIT` seconds; a prompt you type meanwhile waits too.
+
+The auto doc is named `<YYYYMMDD-HHMMSS>-auto.md` and starts with
+`# Auto handoff`. No agent wrote it, so it has no Goal
+or Next steps, and its narrative bullets are unverified. `/handoff` still
+writes the better doc when you have the chance to run it.
+
 ## Storage layout
 
 ```text
@@ -144,6 +165,8 @@ required.
 ├── pending              # absolute path to the doc awaiting pickup
 ├── compacted-<epoch>    # marker: an auto-compact happened, recovery not yet run
 ├── recovered-<epoch>    # marker: /handoff recover has already run for that compaction
+├── generating-<pid>     # marker: an auto-handoff builder is still writing
+├── auto-handoff.log     # last auto-handoff builder's output
 └── <YYYYMMDD-HHMMSS>.md # the handoff doc(s)
 ```
 
