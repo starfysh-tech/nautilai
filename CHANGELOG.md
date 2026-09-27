@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.27.0](https://github.com/starfysh-tech/nautilai/compare/v2.26.1...v2.27.0) (2026-09-27)
+
+
+### Features
+
+* **relay:** recover context automatically after auto-compaction ([#154](https://github.com/starfysh-tech/nautilai/issues/154)) ([bf81807](https://github.com/starfysh-tech/nautilai/commit/bf818077ba5ae49819c6da95bd04fbb61cef8d92))
+
 ## [2.26.1](https://github.com/starfysh-tech/nautilai/compare/v2.26.0...v2.26.1) (2026-08-24)
 
 
