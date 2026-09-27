@@ -819,6 +819,9 @@ assert "haiku-narrative: RELAY_NARRATIVE=OFF (uppercase) exits 3" "3" "$?"
 HN_BIN="$(mktemp -d)"
 cat > "$HN_BIN/claude" <<'SHIM'
 #!/usr/bin/env bash
+if [ -n "${FAKE_CLAUDE_ENV:-}" ]; then
+    printf '%s|%s\n' "$PWD" "${RELAY_NESTED:-}" > "$FAKE_CLAUDE_ENV"
+fi
 if [ -n "${FAKE_CLAUDE_CAPTURE:-}" ]; then
     cat > "$FAKE_CLAUDE_CAPTURE"
 else
@@ -869,6 +872,15 @@ assert_not_contains "haiku-narrative: dialogue excludes tool_result content" "$h
 assert_not_contains "haiku-narrative: dialogue excludes isMeta content" "$hn_dialogue" "META text should not appear"
 assert_not_contains "haiku-narrative: dialogue excludes isCompactSummary content" "$hn_dialogue" "COMPACT text should not appear"
 rm -f "$HN_CAPTURE"
+
+# 3a. the nested claude runs outside the caller's cwd with RELAY_NESTED set,
+# so relay's own SessionStart hook can't claim the project's pending marker.
+HN_ENV="$(mktemp)"
+( cd "$RELAY_ROOT" && PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_ENV="$HN_ENV" bash "$HN_SCRIPT" "$HN_FIXTURE" >/dev/null 2>&1 )
+hn_env="$(cat "$HN_ENV")"
+assert "haiku-narrative: nested claude gets RELAY_NESTED=1" "1" "${hn_env##*|}"
+assert_true "haiku-narrative: nested claude cwd is not the caller's" "$(rc_of test "${hn_env%%|*}" != "$RELAY_ROOT")"
+rm -f "$HN_ENV"
 
 # 4. claude emits empty output -> degrade (exit 3)
 PATH="$HN_PATH" FAKE_CLAUDE_MODE=empty bash "$HN_SCRIPT" "$HN_FIXTURE" >/dev/null 2>/dev/null

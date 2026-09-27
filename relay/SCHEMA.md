@@ -185,6 +185,10 @@ Confidence key:
 
 ### `claude -p --model haiku --system-prompt "<text>" "<prompt>"` reads stdin, writes result to stdout
 - **Where used:** `haiku-narrative.sh`'s `run_with_timeout()`.
+- **Observed (2.1.283):** a nested `claude -p` fires relay's own SessionStart
+  hook. Run from the project cwd, it claimed that project's `pending` marker.
+  The call therefore runs from a throwaway cwd with `RELAY_NESTED=1`, and both
+  hooks exit early when that variable is set.
 - **Confidence:** Documented CLI flags (`-p`/`--print`, `--model`,
   `--system-prompt` are all documented Claude Code CLI options), but the
   *specific combination* — piping transcript text via stdin as the subject
