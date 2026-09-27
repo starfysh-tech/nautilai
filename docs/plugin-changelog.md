@@ -14,6 +14,27 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-09-26
+
+- **relay — auto-compaction recovery now runs without a command.** On real
+  transcripts, `/handoff recover` had run 0 times: the PreCompact systemMessage that
+  suggested it never reached the user. The PreCompact hook now asks the summarizer to
+  keep requirements, decisions with reasons, and abandoned approaches, and
+  SessionStart(`compact`) injects the user's pre-compaction messages. The Haiku
+  narrative (decisions, dead ends) is too slow for that hook, so it is built
+  detached and injected at the next prompt. See
+  [`relay/README.md`](../relay/README.md#recovery).
+- **relay — handoff docs land where the next session reads them.** The skill built the
+  handoff dir from `pwd`, which drifts when a session `cd`s; one real marker sat in a
+  subdirectory slug nothing read. The slug now comes from the git toplevel of the
+  session's recorded cwd.
+- **relay — the Haiku step no longer eats a pending handoff.** Its nested `claude -p`
+  ran relay's SessionStart hook in the project cwd, which claimed any unconsumed
+  `pending` marker and fed that doc to Haiku. It now runs from a throwaway cwd with
+  `RELAY_NESTED=1`, which both SessionStart hooks skip.
+- **relay — `/handoff <focus>` arguments reach the doc.** Slash-command turns were
+  filtered as harness wrappers, dropping the user's own args in 47 of 93 sessions.
+
 ## 2026-08-24
 
 - **commitcraft — [`ready`](../commitcraft/skills/commitcraft/workflows/ready.md) no

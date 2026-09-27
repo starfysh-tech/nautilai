@@ -79,6 +79,16 @@ own from conversational cues; it activates only via explicit `/action-first`. On
 persists across turns and topics until the user says "stop action-first" or "normal mode" —
 don't let it lapse on its own after a few responses.
 
+## Notes for agents — relay
+
+Claude Code only. After an auto-compaction, relay's SessionStart hook injects the user's
+own messages from before the boundary (capped at 6,000 characters); treat them as
+requirements still in force. A later prompt may carry the Haiku narrative of decisions and
+dead ends from the same transcript, labelled unverified. Neither touches the `pending`
+handoff marker. Handoff docs
+live under `~/.claude/handoffs/<slug>/`, where the slug comes from the git toplevel of the
+session's cwd — compute it with `scripts/handoff-dir.sh`, not from `pwd`.
+
 ## Notes for agents — rbac-django
 
 Claude Code only. The audit scanner emits a `routes` array and a `route_clusters`

@@ -53,7 +53,8 @@ Those calls bill like any other Haiku usage; turn them off entirely with
 
 Two environment variables, both optional:
 
-- `RELAY_NARRATIVE=off` — skip the narrative step's live Haiku calls entirely.
+- `RELAY_NARRATIVE=off` — skip the narrative step's live Haiku calls entirely,
+  in `/handoff` and after auto-compaction.
   The handoff still runs on the jq fact pack alone; the doc's Provenance
   section records `narrative: degraded (disabled by RELAY_NARRATIVE=off)`.
   Default: on.
@@ -73,6 +74,7 @@ flowchart TD
     A["/handoff writes doc to ~/.claude/handoffs/slug/"] --> B["pending marker holds the doc path"]
     B --> C["SessionStart hook fires"]
     C -.->|"no pending marker"| M["nothing injected"]
+    C -->|"source=compact, auto trigger"| P["inject pre-boundary user messages; pending untouched"]
     C --> D["mv pending to claimed-EPOCH-PID"]
     D -->|"mv lost to a concurrent start"| E["exit quietly, nothing injected"]
     D -->|"mv won"| F{"source"}
@@ -90,7 +92,8 @@ flowchart TD
 2. `scripts/extract-transcript.sh` reads it and prints a fact pack: files
    touched, commands run, failures, user messages (verbatim, secret-scrubbed,
    with harness-injected content like skill prompts and compaction summaries
-   filtered out), and provenance.
+   filtered out; a slash command's arguments are kept as `/command args`), and
+   provenance.
 3. `scripts/haiku-narrative.sh` reads the same transcript's dialogue turns and
    prints a narrative pack — Decisions, Dead ends, Constraints — recovered
    from ASSISTANT prose via headless Haiku. The fact pack is structural (tool
@@ -112,12 +115,27 @@ flowchart TD
 
 Auto-compact loses the same kinds of things `/compact` does — early
 constraints, dead ends, and the reasoning behind decisions made many turns
-back — without you asking for a handoff. When Claude Code auto-compacts, a
-`PreCompact` hook drops a `compacted-<epoch>` marker in the project's handoff
-directory and emits a systemMessage nudging you to run `/handoff recover`.
-That subcommand re-extracts the fact pack scoped to the transcript region
-*before* the compaction boundary and rebuilds the compaction-lossy classes
-in-session — no new handoff doc, no `/clear` required.
+back — without you asking for a handoff. Relay acts at both ends of an
+auto-compaction:
+
+- **Before:** the `PreCompact` hook's systemMessage asks the summarizer to keep
+  the user's stated requirements, decisions with their reasons, and abandoned
+  approaches verbatim.
+- **After:** `scripts/compact-recover.sh` (`SessionStart`, `source=compact`) confirms from the
+  transcript's last `compact_boundary` that the compaction was automatic,
+  drops a `compacted-<epoch>` marker, and injects the user's own messages from
+  before the boundary (capped at 6,000 characters). Manual `/compact` is left
+  alone.
+- **Next prompt:** the same hook starts the Haiku narrative (decisions, dead
+  ends, constraints) detached, because it takes 20 s to 2.5 min.
+  `scripts/prompt-recovery.sh` (`UserPromptSubmit`) injects it once, at the
+  first prompt after it is ready, labelled unverified. `RELAY_NARRATIVE=off`
+  turns this step off.
+
+For the full record, `/handoff recover` re-extracts the fact pack scoped to the
+transcript region *before* the compaction boundary and rebuilds the
+compaction-lossy classes in-session — no new handoff doc, no `/clear`
+required.
 
 ## Storage layout
 
@@ -129,9 +147,11 @@ in-session — no new handoff doc, no `/clear` required.
 └── <YYYYMMDD-HHMMSS>.md # the handoff doc(s)
 ```
 
-`<project-slug>` is the working directory path with every `/` and `.` replaced
-by `-`, so handoffs are scoped per project and don't collide across repos or
-worktrees. The `pending` marker is renamed (`consumed-<epoch>`) the first time
+`<project-slug>` is the git toplevel of the session's working directory (or
+the directory itself outside a repo) with every `/` and `.` replaced by `-`
+(`scripts/handoff-dir.sh`). A session that moved into a subdirectory still
+writes where the next session reads, and handoffs don't collide across repos
+or worktrees. The `pending` marker is renamed (`consumed-<epoch>`) the first time
 a session picks it up. A 30-minute TTL applies **only** on `source=startup`
 (opening Claude Code cold): there a doc not claimed within the window is left
 on disk but no longer auto-injected. On `source=clear` — a deliberate
@@ -150,8 +170,8 @@ remove its hook registration — the skill itself still writes the doc and the
 ## Roadmap
 
 `/handoff recover` is shipped (see Recovery, above). The Haiku narrative layer
-is also shipped: it recovers 11-12 of 12 planted assistant-turn facts across 3
-eval runs vs 0/12 for the jq fact pack alone (see
+is also shipped: it recovers 9-11 of 12 planted assistant-turn facts per run
+in the latest ledger row vs 0/12 for the jq fact pack alone (see
 `relay/tests/eval/LEDGER.md`).
 
 ## Security note

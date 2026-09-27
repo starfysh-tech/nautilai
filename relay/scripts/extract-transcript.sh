@@ -14,13 +14,17 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 before_last_compact=0
-if [ "${1:-}" = "--before-last-compact" ]; then
-  before_last_compact=1
-  shift
-fi
+user_messages_only=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --before-last-compact) before_last_compact=1; shift ;;
+    --user-messages) user_messages_only=1; shift ;;
+    *) break ;;
+  esac
+done
 
 if [ $# -lt 1 ]; then
-  echo "usage: extract-transcript.sh [--before-last-compact] <transcript.jsonl>" >&2
+  echo "usage: extract-transcript.sh [--before-last-compact] [--user-messages] <transcript.jsonl>" >&2
   exit 1
 fi
 
@@ -136,6 +140,26 @@ scrub() {
   '
 }
 
+user_messages() {
+  # Numbering and the 1500-char cap happen inside this single jq pass — a
+  # per-message decode loop would spawn one jq process per message, which
+  # dominated runtime on large transcripts. Slurp keeps multi-line messages
+  # as one numbered entry with newlines preserved.
+  jq -rs -L "$(dirname "$0")" 'include "user-text";
+    [ .[] | user_text ]
+    | to_entries
+    | map(((.key + 1)|tostring) + ". "
+        + (if (.value|length) > 1500 then .value[0:1500] + "… [truncated]" else .value end))
+    | join("\n\n")
+  ' "$clean"
+}
+
+# --user-messages prints only the numbered user messages (compact-recover.sh).
+if [ "$user_messages_only" -eq 1 ]; then
+  user_messages | scrub
+  exit 0
+fi
+
 {
   echo "## Files touched"
   echo
@@ -215,50 +239,7 @@ scrub() {
 
   echo "## User messages (verbatim)"
   echo
-  # Numbering and the 1500-char cap happen inside this single jq pass — a
-  # per-message decode loop would spawn one jq process per message, which
-  # dominated runtime on large transcripts. Slurp keeps multi-line messages
-  # as one numbered entry with newlines preserved.
-  msgs_out=$(jq -rs '
-    [ .[] | select(.type=="user")
-      # Structural exclusions: isMeta flags harness-injected content (skill
-      # prompts etc.); isCompactSummary flags compaction continuations the
-      # user never typed. These are the primary defense. The filter below
-      # is a heuristic secondary defense for injections that carry no
-      # structural marker: a message opening with a hyphenated-tag XML opener
-      # (e.g. <command-message>, <local-command-stdout>, <system-reminder>,
-      # <task-notification>, <bash-stdout>, <teammate-message>) is almost
-      # certainly a harness wrapper, not user prose. The hyphen gate matters:
-      # every harness wrapper tag observed is hyphenated, while bare HTML a
-      # user might paste (<div>, <head>, <!DOCTYPE) is not — so requiring a
-      # hyphen catches the wrappers without excluding pasted markup. Accepted
-      # miss: a hyphenated custom element like <my-component> would also be
-      # excluded. The two literal string prefixes carry no tag-shaped marker,
-      # so they stay as exact-prefix checks.
-      | select(.isMeta != true)
-      | select(.isCompactSummary != true)
-      | .message.content as $c
-      | (
-          if ($c|type)=="string" then $c
-          elif ($c|type)=="object" then $c.text // null
-          elif ($c|type)=="array" then
-            ([$c[] | select(.type=="text") | .text] | join("\n")) as $joined
-            | (if ($joined|length) > 0 then $joined else null end)
-          else null
-          end
-        ) as $text
-      | select($text != null)
-      | select(
-          ($text | test("^<[a-z][a-z0-9]*-[a-z0-9-]*[ >]") | not)
-          and ($text | startswith("Base directory for this skill") | not)
-          and ($text | startswith("Another Claude session sent a message:") | not)
-        )
-      | $text ]
-    | to_entries
-    | map(((.key + 1)|tostring) + ". "
-        + (if (.value|length) > 1500 then .value[0:1500] + "… [truncated]" else .value end))
-    | join("\n\n")
-  ' "$clean")
+  msgs_out=$(user_messages)
   if [ -z "$msgs_out" ]; then
     echo "_none_"
   else

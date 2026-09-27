@@ -63,9 +63,9 @@ line only if the late arrival left the doc with a gap you could not close.
 ## 4. Compute the destination
 
 ```bash
-# Slug rule must match resolve-session.sh / session-start-pickup.sh.
-slug=$(pwd | tr '/.' '-')
-dir="$HOME/.claude/handoffs/$slug"
+# The transcript records the session's own cwd; pwd may have drifted.
+cwd=$(grep -m1 '"cwd":' <transcript> | jq -r '.cwd // empty')
+dir=$(bash ${CLAUDE_PLUGIN_ROOT}/scripts/handoff-dir.sh "${cwd:-$(pwd)}")
 mkdir -p "$dir"
 doc="$dir/$(date +%Y%m%d-%H%M%S).md"
 ```
@@ -128,7 +128,7 @@ For `/handoff recover` (after auto-compact), read and follow
 
 - If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc — especially Next steps and Suggested skills — accordingly.
 - Keep it dense and skimmable — the next agent reads this cold.
-- Never invent a `${CLAUDE_PLUGIN_ROOT}/scripts/...` path other than the three above.
+- Never invent a `${CLAUDE_PLUGIN_ROOT}/scripts/...` path other than the four above.
 
 ## Shoals (project corrections)
 

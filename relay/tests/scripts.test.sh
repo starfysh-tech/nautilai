@@ -146,6 +146,11 @@ assert_not_contains "extract: 'Another Claude session sent a message:' skipped" 
 assert_not_contains "extract: isMeta:true message skipped structurally" "$MAIN_OUT" "META-INJECTED"
 assert_not_contains "extract: isCompactSummary:true message skipped structurally" "$MAIN_OUT" "COMPACT-SUMMARY"
 
+# --- User messages: slash-command args are the user's words and are kept;
+# a command with empty args stays excluded ---
+assert_contains "extract: slash-command args kept" "$MAIN_OUT" "/relay:handoff focus on the ARGS-KEPT-7 auth work"
+assert_not_contains "extract: slash command without args skipped" "$MAIN_OUT" "/clear"
+
 # --- User messages: leading-tag heuristic (issue #56) ---
 # A genuine user message that merely mentions/contains a tag later in the
 # body (not as the very first thing) must NOT be excluded.
@@ -307,31 +312,24 @@ echo "=== precompact-notify.sh tests ==="
 
 PRECOMPACT="$SCRIPTS_DIR/precompact-notify.sh"
 
-# 1. trigger=auto -> valid JSON with systemMessage, exit 0, marker file
-# written under sandbox HOME containing the exact transcript_path.
+# 1. trigger=auto -> valid JSON whose systemMessage tells the summarizer what
+# to keep; exit 0; no marker (SessionStart(compact) writes it once compaction
+# has actually happened).
 PC_HOME1="$(mktemp -d)"
-PC_TRANSCRIPT="/proj/precompact1/transcript.jsonl"
-pc_out1=$(HOME="$PC_HOME1" bash "$PRECOMPACT" <<< '{"trigger":"auto","cwd":"/proj/precompact1","transcript_path":"'"$PC_TRANSCRIPT"'"}')
+pc_out1=$(HOME="$PC_HOME1" bash "$PRECOMPACT" <<< '{"trigger":"auto"}')
 pc_exit1=$?
 assert_true "precompact: auto trigger emits valid JSON" "$(printf '%s' "$pc_out1" | jq empty >/dev/null 2>&1; echo $?)"
-assert_contains "precompact: auto trigger output has systemMessage key" "$pc_out1" "systemMessage"
+assert_contains "precompact: auto systemMessage steers the summary" "$(printf '%s' "$pc_out1" | jq -r '.systemMessage')" "Preserved by relay"
 assert "precompact: auto trigger never exits 2 (would block compaction)" "0" "$pc_exit1"
-pc_slug1=$(printf '%s' "/proj/precompact1" | tr '/.' '-')
-pc_marker1=$(find "$PC_HOME1/.claude/handoffs/$pc_slug1" -name 'compacted-*' 2>/dev/null)
-assert_true "precompact: auto trigger writes a compacted-* marker" "$(rc_of test -n "$pc_marker1")"
-pc_marker1_content=$(cat "$pc_marker1" 2>/dev/null)
-assert "precompact: marker content is the exact transcript_path" "$PC_TRANSCRIPT" "$pc_marker1_content"
+assert_true "precompact: auto trigger writes no marker" "$(rc_of test ! -d "$PC_HOME1/.claude/handoffs")"
 rm -rf "$PC_HOME1"
 
-# 2. trigger=manual -> {} exit 0, no marker written
+# 2. trigger=manual -> {} exit 0
 PC_HOME2="$(mktemp -d)"
-pc_out2=$(HOME="$PC_HOME2" bash "$PRECOMPACT" <<< '{"trigger":"manual","cwd":"/proj/precompact1","transcript_path":"'"$PC_TRANSCRIPT"'"}')
+pc_out2=$(HOME="$PC_HOME2" bash "$PRECOMPACT" <<< '{"trigger":"manual"}')
 pc_exit2=$?
 assert "precompact: manual trigger yields {}" "{}" "$pc_out2"
 assert "precompact: manual trigger exits 0" "0" "$pc_exit2"
-pc_slug2=$(printf '%s' "/proj/precompact1" | tr '/.' '-')
-pc_marker2=$(find "$PC_HOME2/.claude/handoffs/$pc_slug2" -name 'compacted-*' 2>/dev/null)
-assert_true "precompact: manual trigger writes no marker" "$(rc_of test -z "$pc_marker2")"
 rm -rf "$PC_HOME2"
 
 # 3. malformed stdin -> {} exit 0 (fail-open via EXIT trap after jq errors
@@ -342,14 +340,6 @@ pc_exit3=$?
 assert "precompact: malformed stdin yields {}" "{}" "$pc_out3"
 assert "precompact: malformed stdin exits 0" "0" "$pc_exit3"
 rm -rf "$PC_HOME3"
-
-# 4. missing cwd (trigger=auto but no cwd key) -> {} exit 0
-PC_HOME4="$(mktemp -d)"
-pc_out4=$(HOME="$PC_HOME4" bash "$PRECOMPACT" <<< '{"trigger":"auto","transcript_path":"'"$PC_TRANSCRIPT"'"}')
-pc_exit4=$?
-assert "precompact: missing cwd yields {}" "{}" "$pc_out4"
-assert "precompact: missing cwd exits 0" "0" "$pc_exit4"
-rm -rf "$PC_HOME4"
 
 # =============================================================================
 # resolve-session.sh tests
@@ -430,6 +420,16 @@ mkdir -p "$RS_NODIR_CWD"
 )
 assert "resolve: missing project dir exits 1" "1" "$?"
 
+# Test: session id lives under another project dir (cwd drifted) -> found there
+mkdir -p "$RS_HOME/.claude/projects/-elsewhere"
+printf '{}\n' > "$RS_HOME/.claude/projects/-elsewhere/driftsession.jsonl"
+(
+    cd "$RS_NODIR_CWD" || exit 1
+    HOME="$RS_HOME" CLAUDE_CODE_SESSION_ID=driftsession bash "$SCRIPTS_DIR/resolve-session.sh"
+) > "$RS_TMP/out5.txt" 2>/dev/null
+assert "resolve: session id found in another project dir" \
+    "$RS_HOME/.claude/projects/-elsewhere/driftsession.jsonl" "$(cat "$RS_TMP/out5.txt")"
+
 # Test: env session id set but the file it points to doesn't exist -> falls
 # back to mtime guess rather than failing
 (
@@ -448,6 +448,27 @@ assert_contains "resolve: dangling session id warns on stderr" "$rs_stale_err" "
 rm -rf "$RS_TMP"
 
 # =============================================================================
+# handoff-dir.sh tests
+# =============================================================================
+
+echo ""
+echo "=== handoff-dir.sh tests ==="
+
+HD_TMP="$(mktemp -d)"
+HD_REPO="$(cd "$HD_TMP" && pwd -P)/repo"
+mkdir -p "$HD_REPO/sub/deeper" "$HD_TMP/plain"
+git -C "$HD_REPO" init -q
+hd_root_slug=$(printf '%s' "$HD_REPO" | tr '/.' '-')
+assert "handoff-dir: repo root" "/h/.claude/handoffs/$hd_root_slug" \
+    "$(HOME=/h bash "$SCRIPTS_DIR/handoff-dir.sh" "$HD_REPO")"
+assert "handoff-dir: subdirectory collapses to repo root" "/h/.claude/handoffs/$hd_root_slug" \
+    "$(HOME=/h bash "$SCRIPTS_DIR/handoff-dir.sh" "$HD_REPO/sub/deeper")"
+assert "handoff-dir: outside a repo uses the dir itself" \
+    "/h/.claude/handoffs/$(printf '%s' "$HD_TMP/plain" | tr '/.' '-')" \
+    "$(HOME=/h bash "$SCRIPTS_DIR/handoff-dir.sh" "$HD_TMP/plain")"
+rm -rf "$HD_TMP"
+
+# =============================================================================
 # session-start-pickup.sh tests
 # =============================================================================
 
@@ -455,6 +476,7 @@ echo ""
 echo "=== session-start-pickup.sh tests ==="
 
 PICKUP="$SCRIPTS_DIR/session-start-pickup.sh"
+COMPACT="$SCRIPTS_DIR/compact-recover.sh"
 
 run_pickup() {
     # run_pickup <HOME> <json-stdin>
@@ -475,6 +497,47 @@ assert "pickup: source=resume is a no-op" "{}" "$out1"
 assert_true "pickup: source=resume valid JSON" "$(printf '%s' "$out1" | jq empty >/dev/null 2>&1; echo $?)"
 # marker must be untouched by a resume no-op
 assert_true "pickup: source=resume leaves pending marker in place" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
+
+# 1a. RELAY_NESTED (a claude -p relay started itself) never claims a marker
+outn="$(RELAY_NESTED=1 run_pickup "$SP_HOME1" "{\"source\":\"startup\",\"cwd\":\"$CWD1\"}")"
+assert "pickup: RELAY_NESTED is a no-op" "{}" "$outn"
+assert_true "pickup: RELAY_NESTED leaves pending in place" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
+
+# 1b. compact-recover.sh (SessionStart source=compact) after an AUTO
+# compaction injects the pre-boundary user
+# messages, writes a compacted-* marker, and never touches `pending`.
+SPC_T="$SP_TMP/compact-auto.jsonl"
+{
+    printf '%s\n' '{"type":"user","message":{"content":"Never raise MAX_CONN above 40. EARLY-RULE-9"}}'
+    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto","preTokens":1}}'
+    printf '%s\n' '{"type":"user","isCompactSummary":true,"message":{"content":"summary"}}'
+    printf '%s\n' '{"type":"user","message":{"content":"POST-BOUNDARY-3"}}'
+} > "$SPC_T"
+outc="$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SPC_T\"}")"
+outc_ctx="$(printf '%s' "$outc" | jq -r '.hookSpecificOutput.additionalContext // empty')"
+assert_contains "compact-recover: auto injects pre-boundary user message" "$outc_ctx" "EARLY-RULE-9"
+assert_not_contains "compact-recover: auto omits post-boundary message" "$outc_ctx" "POST-BOUNDARY-3"
+assert_true "compact-recover: auto writes a compacted-* marker" \
+    "$(rc_of test -n "$(find "$SP_HOME1/.claude/handoffs/$slug1" -name 'compacted-*')")"
+assert_true "compact-recover: never touches pending" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
+
+# 1c. source=compact after a MANUAL compaction is a no-op
+sed 's/"trigger":"auto"/"trigger":"manual"/' "$SPC_T" > "$SP_TMP/compact-manual.jsonl"
+outm="$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-manual.jsonl\"}")"
+assert "compact-recover: manual compaction is a no-op" "{}" "$outm"
+
+# 1d. the injection is capped
+{
+    pad=$(printf 'x%.0s' $(seq 300))
+    for _ in $(seq 40); do
+        printf '{"type":"user","message":{"content":"%s"}}\n' "$pad"
+    done
+    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto"}}'
+} > "$SP_TMP/compact-big.jsonl"
+outb="$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-big.jsonl\"}")"
+outb_len=$(printf '%s' "$outb" | jq -r '.hookSpecificOutput.additionalContext' | wc -c | tr -d ' ')
+assert_true "compact-recover: injection stays under 7000 chars" "$(rc_of test "$outb_len" -lt 7000)"
+assert_contains "compact-recover: capped injection says it was truncated" "$outb" "truncated"
 
 # 2. source=startup + fresh marker -> additionalContext contains doc content,
 #    marker renamed consumed-*
@@ -600,8 +663,8 @@ slug8=$(printf '%s' "$CWD8" | tr '/.' '-')
 mkdir -p "$SP_HOME8/.claude/handoffs/$slug8"
 echo "$SP_TMP/doc8.md" > "$SP_HOME8/.claude/handoffs/$slug8/pending"
 echo "doc8" > "$SP_TMP/doc8.md"
-out8="$(run_pickup "$SP_HOME8" "{\"source\":\"compact\",\"cwd\":\"$CWD8\"}")"
-assert "pickup: unrecognized source (e.g. compact) yields {}" "{}" "$out8"
+out8="$(run_pickup "$SP_HOME8" "{\"source\":\"fork\",\"cwd\":\"$CWD8\"}")"
+assert "pickup: unrecognized source (e.g. fork) yields {}" "{}" "$out8"
 assert_true "pickup: unrecognized source leaves marker untouched" "$(rc_of test -f "$SP_HOME8/.claude/handoffs/$slug8/pending")"
 
 # 9. missing cwd key in stdin -> {}
@@ -783,6 +846,9 @@ assert "haiku-narrative: RELAY_NARRATIVE=OFF (uppercase) exits 3" "3" "$?"
 HN_BIN="$(mktemp -d)"
 cat > "$HN_BIN/claude" <<'SHIM'
 #!/usr/bin/env bash
+if [ -n "${FAKE_CLAUDE_ENV:-}" ]; then
+    printf '%s|%s\n' "$PWD" "${RELAY_NESTED:-}" > "$FAKE_CLAUDE_ENV"
+fi
 if [ -n "${FAKE_CLAUDE_CAPTURE:-}" ]; then
     cat > "$FAKE_CLAUDE_CAPTURE"
 else
@@ -834,6 +900,21 @@ assert_not_contains "haiku-narrative: dialogue excludes isMeta content" "$hn_dia
 assert_not_contains "haiku-narrative: dialogue excludes isCompactSummary content" "$hn_dialogue" "COMPACT text should not appear"
 rm -f "$HN_CAPTURE"
 
+# 3a. the nested claude runs outside the caller's cwd with RELAY_NESTED set,
+# so relay's own SessionStart hook can't claim the project's pending marker.
+HN_ENV="$(mktemp)"
+( cd "$RELAY_ROOT" && PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_ENV="$HN_ENV" bash "$HN_SCRIPT" "$HN_FIXTURE" >/dev/null 2>&1 )
+hn_env="$(cat "$HN_ENV")"
+assert "haiku-narrative: nested claude gets RELAY_NESTED=1" "1" "${hn_env##*|}"
+assert_true "haiku-narrative: nested claude cwd is not the caller's" "$(rc_of test "${hn_env%%|*}" != "$RELAY_ROOT")"
+rm -f "$HN_ENV"
+
+# 3b. slash-command args reach the Haiku dialogue too (shared user-text.jq)
+HN_CAPTURE="$(mktemp)"
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_CAPTURE="$HN_CAPTURE" bash "$HN_SCRIPT" "$MAIN_FIXTURE" >/dev/null 2>&1
+assert_contains "haiku-narrative: dialogue keeps slash-command args" "$(cat "$HN_CAPTURE")" "USER: /relay:handoff focus on the ARGS-KEPT-7 auth work"
+rm -f "$HN_CAPTURE"
+
 # 4. claude emits empty output -> degrade (exit 3)
 PATH="$HN_PATH" FAKE_CLAUDE_MODE=empty bash "$HN_SCRIPT" "$HN_FIXTURE" >/dev/null 2>/dev/null
 assert "haiku-narrative: empty claude output degrades (exit 3)" "3" "$?"
@@ -860,6 +941,37 @@ assert "haiku-narrative: timed-out call exits 3 (degraded)" "3" "$hn_timeout_exi
 assert "haiku-narrative: timed-out call emits no stdout" "" "$hn_timeout_out"
 assert_contains "haiku-narrative: timeout degrade noted on stderr" "$(cat /tmp/hn-timeout-err.$$)" "degraded"
 rm -f /tmp/hn-timeout-err.$$
+
+# =============================================================================
+# compact-recover.sh narrative + prompt-recovery.sh (claude stubbed via HN_PATH)
+# =============================================================================
+
+echo ""
+echo "=== post-compaction narrative tests ==="
+
+PR_SCRIPT="$SCRIPTS_DIR/prompt-recovery.sh"
+PR_TMP="$(mktemp -d)"
+PR_T="$PR_TMP/t.jsonl"
+{
+    printf '%s\n' '{"type":"user","message":{"content":"Never raise MAX_CONN above 40."}}'
+    printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"Decided on approach A."}]}}'
+    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto"}}'
+} > "$PR_T"
+PR_FILE="$PR_TMP/.claude/handoffs/.recovery/sess-1.md"
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok HOME="$PR_TMP" bash "$COMPACT" \
+    <<< "{\"session_id\":\"sess-1\",\"cwd\":\"$PR_TMP/proj\",\"transcript_path\":\"$PR_T\"}" >/dev/null
+pr_i=0
+while [ ! -f "$PR_FILE" ] && [ "$pr_i" -lt 40 ]; do sleep 0.5; pr_i=$((pr_i + 1)); done
+assert_true "compact-recover: detached narrative lands for the session" "$(rc_of test -f "$PR_FILE")"
+pr_out1="$(HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-1"}')"
+assert_contains "prompt-recovery: injects the narrative" \
+    "$(printf '%s' "$pr_out1" | jq -r '.hookSpecificOutput.additionalContext')" "## Decisions"
+assert_true "prompt-recovery: consumes the narrative once" "$(rc_of test ! -e "$PR_FILE")"
+assert "prompt-recovery: next prompt is a no-op" "" "$(HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-1"}')"
+echo "x" > "$PR_TMP/.claude/handoffs/.recovery/sess-2.md"
+assert "prompt-recovery: RELAY_NESTED is a no-op" "" "$(RELAY_NESTED=1 HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-2"}')"
+assert "prompt-recovery: other session's narrative is untouched" "" "$(HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-3"}')"
+rm -rf "$PR_TMP"
 
 rm -rf "$HN_BIN"
 

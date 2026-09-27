@@ -1,5 +1,5 @@
 {
-  "description": "Auto-inject the pending relay handoff into new sessions",
+  "description": "Auto-inject the pending relay handoff into new sessions and recover context after auto-compaction",
   "hooks": {
     "SessionStart": [
       {
@@ -7,7 +7,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/session-start-pickup.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/session-start-pickup.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/compact-recover.sh\""
           }
         ]
       }
@@ -18,7 +27,17 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/precompact-notify.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/precompact-notify.sh\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/prompt-recovery.sh\""
           }
         ]
       }

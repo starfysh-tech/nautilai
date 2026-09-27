@@ -1,8 +1,9 @@
 # Recover mode (`/handoff recover`)
 
-Use this after an auto-compact — the `PreCompact` hook posts a systemMessage
-suggesting it — or whenever the session feels like it lost earlier context,
-even without that prompt.
+Use this after an auto-compact, or whenever the session feels like it lost
+earlier context. After an auto-compact the `SessionStart` hook has already
+injected the user's pre-compaction messages; this adds decisions, dead ends,
+and the rest of the record.
 
 1. Resolve the transcript: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-session.sh`
 2. Extract the pre-compaction region:
@@ -22,6 +23,7 @@ even without that prompt.
    fact pack and narrative pack rather than dumping them.
 5. Where the fact pack or narrative pack contradicts your post-compaction
    memory, the transcript-grounded pack wins.
-6. If a `compacted-<epoch>` marker exists in `~/.claude/handoffs/<slug>/`,
+6. If a `compacted-<epoch>` marker exists in the directory printed by
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/handoff-dir.sh "<cwd>"`,
    rename it to `recovered-<epoch>` (`mv`, not delete) now that recovery is
    done.

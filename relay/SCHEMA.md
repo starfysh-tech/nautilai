@@ -29,9 +29,11 @@ Confidence key:
   nothing to read. This is the single point of failure for the whole plugin.
 
 ### Project slug rule: `$PWD` with every `/` and `.` replaced by `-`
-- **Where used:** `resolve-session.sh` (`project_slug()`),
-  `session-start-pickup.sh` (inline, comment says "mirrors resolve-session.sh"),
-  `hooks/precompact-notify.sh` (inline, same comment).
+- **Where used:** `resolve-session.sh` (`project_slug()`) and `doctor.sh`,
+  for the transcript project dir. The handoff dir uses the same transliteration
+  over the git toplevel of the cwd (`handoff-dir.sh`, called by the skill,
+  both SessionStart hooks, and `doctor.sh`). `resolve-session.sh` also finds a
+  session id under any project dir, so a drifted `$PWD` still resolves.
 - **Confidence:** Observed, and only ever observed against **POSIX-style,
   forward-slash cwd paths on macOS**. The rule is applied identically in three
   separate files by convention, not by calling a shared function — if the real
@@ -158,31 +160,53 @@ Confidence key:
 
 ## Hook input fields
 
-### SessionStart hook: `.source`, `.cwd`
-- **Where used:** `session-start-pickup.sh` — `source` gated to
-  `startup|clear` (any other value exits quietly, e.g. `resume` is
-  deliberately excluded), `cwd` used to compute the slug.
+### SessionStart hook: `.source`, `.cwd`, `.transcript_path`
+- **Where used:** `session-start-pickup.sh` (matcher `startup|clear`; e.g.
+  `resume` is deliberately excluded), `cwd` used to compute the slug.
+  `compact-recover.sh` (matcher `compact`): `transcript_path` is the same
+  session's file; it reads the last `compact_boundary` line's
+  `compactMetadata.trigger` and acts on `auto` only.
+- **Observed (2.1.283):** SessionStart fires with `source=compact` after both
+  manual and auto compaction, in the same session, and its
+  `additionalContext` reaches the model.
 - **Confidence:** Documented — `source` and `cwd` are part of Claude Code's
   published SessionStart hook payload.
 - **What breaks if wrong:** if `cwd` is ever absent or empty, the hook exits
   0 with no injection (fail-open by design) rather than erroring — so a
   missing field degrades to "no handoff picked up," silently.
 
-### PreCompact hook: `.trigger`, `.cwd`, `.transcript_path`
+### PreCompact hook: `.trigger`
 - **Where used:** `precompact-notify.sh` — gated to `trigger=="auto"` (manual
-  `/compact` is intentionally excluded since nothing needs recovering), `cwd`
-  for the slug, `transcript_path` written into the `compacted-<epoch>`
-  marker for `/handoff recover` to read later.
-- **Confidence:** Documented — all three are part of the published PreCompact
-  hook payload.
-- **What breaks if wrong:** same fail-open pattern as above; a missing field
-  means the marker is never dropped and `/handoff recover` has nothing to
-  find, not a hook error.
+  `/compact` is intentionally excluded; the user typed their own
+  instructions). Its `systemMessage` asks the summarizer to keep requirements,
+  decisions with reasons, and abandoned approaches.
+- **Observed (2.1.283):** PreCompact plain stdout and `{"systemMessage": …}`
+  reach the summarization prompt; a planted nonce appeared in the summary.
+  `hookSpecificOutput` for PreCompact fails validation and the whole output is
+  dropped. In forced tests, PreCompact(auto) sometimes fired with no
+  compaction after it, which is why the `compacted-<epoch>` marker is written
+  from SessionStart(compact) instead.
+- **What breaks if wrong:** the summary loses the steering; the
+  SessionStart(compact) injection still runs.
+
+### UserPromptSubmit hook: `.session_id`
+- **Where used:** `prompt-recovery.sh`, on every prompt. It injects
+  `~/.claude/handoffs/.recovery/<session_id>.md` once, then deletes it.
+  `compact-recover.sh` names that file from its own `.session_id` and starts
+  `recovery-narrative.sh` to write it; files older than a day are pruned there.
+- **Confidence:** Documented — `session_id` is a common hook input field and
+  `additionalContext` is a UserPromptSubmit output field.
+- **What breaks if wrong:** the narrative is never injected; the user messages
+  from SessionStart(`compact`) still are.
 
 ## `claude` CLI contract
 
 ### `claude -p --model haiku --system-prompt "<text>" "<prompt>"` reads stdin, writes result to stdout
 - **Where used:** `haiku-narrative.sh`'s `run_with_timeout()`.
+- **Observed (2.1.283):** a nested `claude -p` fires relay's own SessionStart
+  hook. Run from the project cwd, it claimed that project's `pending` marker.
+  The call therefore runs from a throwaway cwd with `RELAY_NESTED=1`, and both
+  SessionStart hooks exit early when that variable is set.
 - **Confidence:** Documented CLI flags (`-p`/`--print`, `--model`,
   `--system-prompt` are all documented Claude Code CLI options), but the
   *specific combination* — piping transcript text via stdin as the subject

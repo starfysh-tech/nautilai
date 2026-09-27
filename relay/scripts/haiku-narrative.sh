@@ -121,8 +121,10 @@ chunk_c=""
 out_a=""
 out_b=""
 out_c=""
+nested_cwd=""
 cleanup() {
   rm -f "$clean" "$dialogue" "$chunk_a" "$chunk_b" "$chunk_c" "$out_a" "$out_b" "$out_c"
+  if [ -n "$nested_cwd" ]; then rm -rf "$nested_cwd"; fi
   if [ -n "$dialogue" ]; then
     rm -f "${dialogue}.part."* 2>/dev/null || true
   fi
@@ -136,44 +138,23 @@ chunk_c=$(mktemp)
 out_a=$(mktemp)
 out_b=$(mktemp)
 out_c=$(mktemp)
+nested_cwd=$(mktemp -d)
 
 # Same pre-filter pattern as extract-transcript.sh: transcripts can contain
 # interrupted/garbage lines, and a raw parse error inside jq would kill the
 # whole run under set -e.
 jq -cR 'fromjson? | select(type=="object")' "$transcript" > "$clean"
 
-# Dialogue stream: user text (same structural + prefix exclusions as
+# Dialogue stream: user text (user-text.jq, shared with
 # extract-transcript.sh) and assistant text blocks only — no tool_use inputs,
 # no tool_results, no thinking. Those carry the decisions/dead-ends/reasoning
 # prose that the jq fact-pack structurally cannot get. Each turn is truncated
 # to 2000 chars and prefixed so Haiku can attribute speaker.
-jq -r '
+jq -r -L "$(dirname "$0")" 'include "user-text";
   select(.type=="user" or .type=="assistant") as $m
   | if $m.type=="user" then
-      # Structural exclusions (isMeta/isCompactSummary) are the primary
-      # defense; the filter below is a heuristic secondary defense — see
-      # extract-transcript.sh, which carries the same block, for the
-      # hyphen-gated leading-tag rationale (harness wrapper tags are
-      # hyphenated; bare pasted HTML like <div> is not).
-      select($m.isMeta != true)
-      | select($m.isCompactSummary != true)
-      | $m.message.content as $c
-      | (
-          if ($c|type)=="string" then $c
-          elif ($c|type)=="object" then $c.text // null
-          elif ($c|type)=="array" then
-            ([$c[] | select(.type=="text") | .text] | join("\n")) as $joined
-            | (if ($joined|length) > 0 then $joined else null end)
-          else null
-          end
-        ) as $text
-      | select($text != null)
-      | select(
-          ($text | test("^<[a-z][a-z0-9]*-[a-z0-9-]*[ >]") | not)
-          and ($text | startswith("Base directory for this skill") | not)
-          and ($text | startswith("Another Claude session sent a message:") | not)
-        )
-      | "USER: " + (if ($text|length) > 2000 then $text[0:2000] else $text end)
+      $m | user_text
+      | "USER: " + (if (length) > 2000 then .[0:2000] else . end)
     else
       $m.message.content[]? | select(.type=="text") | .text
       | select(. != null and . != "")
@@ -245,8 +226,11 @@ run_with_timeout() {
   out_file="$2"
   # Delimiters mark where inert data starts/ends, reinforcing the
   # system-prompt instruction that content inside is data, not commands.
+  # The nested session runs relay's own SessionStart hook: from the project
+  # cwd it would claim the project's `pending` marker and feed that doc to
+  # Haiku. A throwaway cwd plus RELAY_NESTED keeps it out of relay's state.
   { echo "=== TRANSCRIPT START ==="; cat "$chunk_file"; echo "=== TRANSCRIPT END ==="; } \
-    | claude -p --model haiku --system-prompt "$system_prompt" "$prompt" > "$out_file" 2>/dev/null &
+    | ( cd "$nested_cwd" && RELAY_NESTED=1 exec claude -p --model haiku --system-prompt "$system_prompt" "$prompt" ) > "$out_file" 2>/dev/null &
   pid=$!
   waited=0
   while kill -0 "$pid" 2>/dev/null; do
@@ -271,10 +255,6 @@ run_with_retry() {
   sleep 2
   run_with_timeout "$1" "$2"
 }
-
-# Nested `claude -p` invoked from inside a Claude Code session (this script
-# may itself run as a tool call in one) is validated working; no recursion
-# guard needed beyond what the CLI already enforces.
 
 # Short-circuit on the first failed chunk: the run degrades either way, so
 # later chunks would only burn API calls and up to 2 more timeout windows.

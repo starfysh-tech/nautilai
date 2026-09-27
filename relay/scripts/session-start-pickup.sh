@@ -52,6 +52,9 @@ on_exit() {
 }
 trap on_exit EXIT
 
+# A `claude -p` that relay itself started (haiku-narrative.sh) must not
+# claim markers or steer anything.
+[ -z "${RELAY_NESTED:-}" ] || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 
 input=$(cat)
@@ -66,10 +69,7 @@ esac
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
 [ -n "$cwd" ] || exit 0
 
-# Same slug rule used by resolve-session.sh: cwd with '/' and '.' -> '-'.
-slug=$(printf '%s' "$cwd" | tr '/.' '-')
-
-marker_dir="$HOME/.claude/handoffs/${slug}"
+marker_dir=$(bash "$(dirname "$0")/handoff-dir.sh" "$cwd")
 marker="${marker_dir}/pending"
 
 [ -f "$marker" ] || exit 0
