@@ -6,7 +6,10 @@ transcript, extracts a fact pack of what actually happened (files touched,
 commands run, failures, verbatim user messages), and writes a handoff doc that
 blends that ground truth with the running conversation's own understanding of
 goals and decisions. A `SessionStart` hook then injects the pending doc into
-the next session with no manual step.
+the next session with no manual step. After an auto-compaction, relay restores
+what the summary tends to drop (see [Recovery](#recovery)); with
+`RELAY_AUTO_HANDOFF=on`, a bare `/clear` still leaves a handoff (see
+[Auto-handoff on /clear](#auto-handoff-on-clear)).
 
 Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
 Relay ships the `handoff` skill — the plugin was renamed to Relay, but the
@@ -80,11 +83,12 @@ flowchart TD
     A["/handoff writes doc to ~/.claude/handoffs/slug/"] --> B["pending marker holds the doc path"]
     B --> C["SessionStart hook fires"]
     C -.->|"no pending marker"| M["nothing injected"]
-    C -->|"source=compact, auto trigger"| P["inject pre-boundary user messages; pending untouched"]
+    C -->|"source=compact, auto trigger (compact-recover.sh)"| P["inject pre-boundary user messages; start narrative for the next prompt; pending untouched"]
     C --> D["mv pending to claimed-EPOCH-PID"]
     D -->|"mv lost to a concurrent start"| E["exit quietly, nothing injected"]
     D -->|"mv won"| F{"source"}
-    F -->|"clear"| H{"doc path exists"}
+    F -->|"clear"| W["RELAY_AUTO_HANDOFF=on: wait while an auto-handoff builder runs"]
+    W --> H{"doc path exists"}
     F -->|"startup"| G{"marker older than 30 min"}
     G -->|"yes"| I["expired-EPOCH, nothing injected"]
     G -->|"no"| H
@@ -167,7 +171,11 @@ writes the better doc when you have the chance to run it.
 ├── recovered-<epoch>    # marker: /handoff recover has already run for that compaction
 ├── generating-<pid>     # marker: an auto-handoff builder is still writing
 ├── auto-handoff.log     # last auto-handoff builder's output
-└── <YYYYMMDD-HHMMSS>.md # the handoff doc(s)
+├── <YYYYMMDD-HHMMSS>.md # the handoff doc(s) written by /handoff
+└── <YYYYMMDD-HHMMSS>-auto.md # a doc written by auto-handoff at /clear
+
+~/.claude/handoffs/.recovery/
+└── <session-id>.md      # post-compaction narrative, injected once at the next prompt
 ```
 
 `<project-slug>` is the git toplevel of the session's working directory (or
@@ -189,10 +197,13 @@ The `SessionStart` hook is what makes pickup automatic. To go back to writing
 handoff docs without the auto-inject behavior, either uninstall the plugin or
 remove its hook registration — the skill itself still writes the doc and the
 `pending` marker either way, it just won't be read back automatically.
+`RELAY_NARRATIVE=off` stops the post-compaction narrative; auto-handoff is off
+unless `RELAY_AUTO_HANDOFF=on`.
 
 ## Roadmap
 
-`/handoff recover` is shipped (see Recovery, above). The Haiku narrative layer
+`/handoff recover`, automatic post-compaction recovery, and opt-in
+auto-handoff on `/clear` are shipped (see Recovery and Auto-handoff, above). The Haiku narrative layer
 is also shipped: it recovers 9-11 of 12 planted assistant-turn facts per run
 in the latest ledger row vs 0/12 for the jq fact pack alone (see
 `relay/tests/eval/LEDGER.md`).

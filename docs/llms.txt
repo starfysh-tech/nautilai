@@ -33,7 +33,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 ## Plugins — Claude Code only
 
 - [autodev](https://starfysh-tech.github.io/nautilai/plugins/autodev.html): Bounded autonomous development loop — worktree lanes, worker subagents, script-based verification, hard 3-failure escalation. **Not portable to Hermes**: Hermes has a subagent primitive (`delegate_task`) but no git-worktree isolation, and autodev's parallel lanes need an isolated worktree each for clean per-attempt rollback.
-- [relay](https://starfysh-tech.github.io/nautilai/plugins/relay.html): Transcript-grounded handoff documents a fresh session picks up automatically.
+- [relay](https://starfysh-tech.github.io/nautilai/plugins/relay.html): Transcript-grounded handoff documents a fresh session picks up automatically, plus context recovery after auto-compaction.
 - [github-issue-auditor](https://starfysh-tech.github.io/nautilai/plugins/github-issue-auditor.html): Audits a repo's issues for duplicates, orphaned sub-issues, stale items, inconsistent labels. Read-only by default.
 - [rbac-django](https://starfysh-tech.github.io/nautilai/plugins/rbac-django.html): Audits a Django/DRF + React codebase for RBAC gaps, threat-models them into attacker abuse cases, generates remediation playbooks. The audit also maps route→view exposure, so a finding says how many URLs reach the flagged view (see Notes).
 - [phi-scan](https://starfysh-tech.github.io/nautilai/plugins/phi-scan.html): Scans a repo for PHI under HIPAA Safe Harbor, then AI-triages findings to filter false positives.
