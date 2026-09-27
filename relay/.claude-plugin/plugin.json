@@ -3,7 +3,7 @@
   "name": "relay",
   "displayName": "Relay",
   "version": "2.28.0",
-  "description": "Session continuity for Claude Code: transcript-grounded handoff documents that a fresh session picks up automatically. Ships the handoff skill.",
+  "description": "Session continuity for Claude Code: transcript-grounded handoff documents that a fresh session picks up automatically, plus context recovery after auto-compaction. Ships the handoff skill.",
   "author": {
     "name": "Randall Noval",
     "email": "randall@starfysh.net",

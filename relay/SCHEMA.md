@@ -284,6 +284,10 @@ Confidence key:
   marker expiry check), but **not verified on an actual Linux machine** as
   part of this review — "expected compatible" is an inference from the
   fallback code existing, not a test result.
+- **`perl` and `git`:** `perl` (`POSIX::setsid`) detaches the auto-handoff
+  builder and the post-compaction narrative; without it both are skipped.
+  `git` is optional: `handoff-dir.sh` falls back to the cwd itself outside a
+  repo or without git.
 - **Windows (native, not WSL):** **UNVERIFIED.** Beyond the slug rule already
   flagged above as untested against a Windows-style path, the scripts
   themselves are bash — they assume a POSIX shell is available at all

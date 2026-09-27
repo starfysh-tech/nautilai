@@ -34,13 +34,14 @@ else
   line warn "claude CLI not found -- narrative pack will degrade (exit 3); fact pack still works"
 fi
 
-# --- perl present when auto-handoff is on (it detaches the builder)
-if [ "${RELAY_AUTO_HANDOFF:-}" = on ]; then
-  if command -v perl >/dev/null 2>&1; then
-    line ok "perl present -- RELAY_AUTO_HANDOFF=on can detach its builder"
-  else
-    line FAIL "perl not found -- RELAY_AUTO_HANDOFF=on does nothing without it"
-  fi
+# --- perl present (it detaches the auto-handoff builder and the
+# post-compaction narrative)
+if command -v perl >/dev/null 2>&1; then
+  line ok "perl present -- auto-handoff and the post-compaction narrative can run detached"
+elif [ "${RELAY_AUTO_HANDOFF:-}" = on ]; then
+  line FAIL "perl not found -- RELAY_AUTO_HANDOFF=on does nothing without it"
+else
+  line warn "perl not found -- the post-compaction narrative is skipped"
 fi
 
 # --- project slug / transcript directory ------------------------------------
