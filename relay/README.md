@@ -90,7 +90,8 @@ flowchart TD
 2. `scripts/extract-transcript.sh` reads it and prints a fact pack: files
    touched, commands run, failures, user messages (verbatim, secret-scrubbed,
    with harness-injected content like skill prompts and compaction summaries
-   filtered out), and provenance.
+   filtered out; a slash command's arguments are kept as `/command args`), and
+   provenance.
 3. `scripts/haiku-narrative.sh` reads the same transcript's dialogue turns and
    prints a narrative pack — Decisions, Dead ends, Constraints — recovered
    from ASSISTANT prose via headless Haiku. The fact pack is structural (tool

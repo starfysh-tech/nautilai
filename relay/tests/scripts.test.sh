@@ -146,6 +146,11 @@ assert_not_contains "extract: 'Another Claude session sent a message:' skipped" 
 assert_not_contains "extract: isMeta:true message skipped structurally" "$MAIN_OUT" "META-INJECTED"
 assert_not_contains "extract: isCompactSummary:true message skipped structurally" "$MAIN_OUT" "COMPACT-SUMMARY"
 
+# --- User messages: slash-command args are the user's words and are kept;
+# a command with empty args stays excluded ---
+assert_contains "extract: slash-command args kept" "$MAIN_OUT" "/relay:handoff focus on the ARGS-KEPT-7 auth work"
+assert_not_contains "extract: slash command without args skipped" "$MAIN_OUT" "/clear"
+
 # --- User messages: leading-tag heuristic (issue #56) ---
 # A genuine user message that merely mentions/contains a tag later in the
 # body (not as the very first thing) must NOT be excluded.

@@ -166,7 +166,15 @@ jq -r '
             | (if ($joined|length) > 0 then $joined else null end)
           else null
           end
-        ) as $text
+        ) as $raw
+      # A slash command arrives as <command-name>/<command-args> tags; keep
+      # the command and its args (the user wrote them) when args are present.
+      | (if $raw != null and ($raw | startswith("<command-")) then
+           ([$raw | capture("<command-args>(?<a>[\\s\\S]*?)</command-args>") | .a] | first // "") as $a
+           | if ($a | test("\\S")) then
+               ([$raw | capture("<command-name>(?<n>[^<]*)</command-name>") | .n] | first // "") + " " + $a
+             else $raw end
+         else $raw end) as $text
       | select($text != null)
       | select(
           ($text | test("^<[a-z][a-z0-9]*-[a-z0-9-]*[ >]") | not)

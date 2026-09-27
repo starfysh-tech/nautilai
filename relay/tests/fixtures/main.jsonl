@@ -29,3 +29,5 @@
 {"type": "user", "message": {"content": "<harness-wrapper-tag>this message itself opens with a lowercase-hyphen tag and should be excluded</harness-wrapper-tag>"}}
 {"type": "user", "isMeta": true, "message": {"content": "META-INJECTED harness content with no skip prefix"}}
 {"type": "user", "isCompactSummary": true, "message": {"content": "COMPACT-SUMMARY continuation the user never typed"}}
+{"type": "user", "message": {"content": "<command-message>relay:handoff</command-message>\n<command-name>/relay:handoff</command-name>\n<command-args>focus on the ARGS-KEPT-7 auth work</command-args>"}}
+{"type": "user", "message": {"content": "<command-message>clear</command-message>\n<command-name>/clear</command-name>\n<command-args></command-args>"}}
