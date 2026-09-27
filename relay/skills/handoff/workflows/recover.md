@@ -23,6 +23,7 @@ and the rest of the record.
    fact pack and narrative pack rather than dumping them.
 5. Where the fact pack or narrative pack contradicts your post-compaction
    memory, the transcript-grounded pack wins.
-6. If a `compacted-<epoch>` marker exists in `~/.claude/handoffs/<slug>/`,
+6. If a `compacted-<epoch>` marker exists in the directory printed by
+   `bash ${CLAUDE_PLUGIN_ROOT}/scripts/handoff-dir.sh "<cwd>"`,
    rename it to `recovered-<epoch>` (`mv`, not delete) now that recovery is
    done.

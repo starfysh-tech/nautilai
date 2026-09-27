@@ -145,46 +145,16 @@ nested_cwd=$(mktemp -d)
 # whole run under set -e.
 jq -cR 'fromjson? | select(type=="object")' "$transcript" > "$clean"
 
-# Dialogue stream: user text (same structural + prefix exclusions as
+# Dialogue stream: user text (user-text.jq, shared with
 # extract-transcript.sh) and assistant text blocks only — no tool_use inputs,
 # no tool_results, no thinking. Those carry the decisions/dead-ends/reasoning
 # prose that the jq fact-pack structurally cannot get. Each turn is truncated
 # to 2000 chars and prefixed so Haiku can attribute speaker.
-jq -r '
+jq -r -L "$(dirname "$0")" 'include "user-text";
   select(.type=="user" or .type=="assistant") as $m
   | if $m.type=="user" then
-      # Structural exclusions (isMeta/isCompactSummary) are the primary
-      # defense; the filter below is a heuristic secondary defense — see
-      # extract-transcript.sh, which carries the same block, for the
-      # hyphen-gated leading-tag rationale (harness wrapper tags are
-      # hyphenated; bare pasted HTML like <div> is not).
-      select($m.isMeta != true)
-      | select($m.isCompactSummary != true)
-      | $m.message.content as $c
-      | (
-          if ($c|type)=="string" then $c
-          elif ($c|type)=="object" then $c.text // null
-          elif ($c|type)=="array" then
-            ([$c[] | select(.type=="text") | .text] | join("\n")) as $joined
-            | (if ($joined|length) > 0 then $joined else null end)
-          else null
-          end
-        ) as $raw
-      # A slash command arrives as <command-name>/<command-args> tags; keep
-      # the command and its args (the user wrote them) when args are present.
-      | (if $raw != null and ($raw | startswith("<command-")) then
-           ([$raw | capture("<command-args>(?<a>[\\s\\S]*?)</command-args>") | .a] | first // "") as $a
-           | if ($a | test("\\S")) then
-               ([$raw | capture("<command-name>(?<n>[^<]*)</command-name>") | .n] | first // "") + " " + $a
-             else $raw end
-         else $raw end) as $text
-      | select($text != null)
-      | select(
-          ($text | test("^<[a-z][a-z0-9]*-[a-z0-9-]*[ >]") | not)
-          and ($text | startswith("Base directory for this skill") | not)
-          and ($text | startswith("Another Claude session sent a message:") | not)
-        )
-      | "USER: " + (if ($text|length) > 2000 then $text[0:2000] else $text end)
+      $m | user_text
+      | "USER: " + (if (length) > 2000 then .[0:2000] else . end)
     else
       $m.message.content[]? | select(.type=="text") | .text
       | select(. != null and . != "")

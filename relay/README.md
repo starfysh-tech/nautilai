@@ -120,7 +120,7 @@ auto-compaction:
 - **Before:** the `PreCompact` hook's systemMessage asks the summarizer to keep
   the user's stated requirements, decisions with their reasons, and abandoned
   approaches verbatim.
-- **After:** the `SessionStart` hook (`source=compact`) confirms from the
+- **After:** `scripts/compact-recover.sh` (`SessionStart`, `source=compact`) confirms from the
   transcript's last `compact_boundary` that the compaction was automatic,
   drops a `compacted-<epoch>` marker, and injects the user's own messages from
   before the boundary (capped at 6,000 characters). Manual `/compact` is left

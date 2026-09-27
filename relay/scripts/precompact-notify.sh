@@ -16,9 +16,6 @@ on_exit() {
 }
 trap on_exit EXIT
 
-# A `claude -p` that relay itself started (haiku-narrative.sh) must not
-# claim markers or steer anything.
-[ -z "${RELAY_NESTED:-}" ] || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 
 input=$(cat)
@@ -27,7 +24,5 @@ input=$(cat)
 trigger=$(printf '%s' "$input" | jq -r '.trigger // empty')
 [ "$trigger" = "auto" ] || exit 0
 
-output=$(jq -n '{systemMessage: "When you write the summary, keep these verbatim in a section titled \"Preserved by relay\": every requirement or limit the user stated, with its exact numbers and names; each decision with the reason given for it; and each approach that was tried and abandoned, with why."}')
-
-printf '%s\n' "$output"
+printf '%s\n' '{"systemMessage": "When you write the summary, keep these verbatim in a section titled \"Preserved by relay\": every requirement or limit the user stated, with its exact numbers and names; each decision with the reason given for it; and each approach that was tried and abandoned, with why."}'
 emitted=1

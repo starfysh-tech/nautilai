@@ -316,8 +316,7 @@ PRECOMPACT="$SCRIPTS_DIR/precompact-notify.sh"
 # to keep; exit 0; no marker (SessionStart(compact) writes it once compaction
 # has actually happened).
 PC_HOME1="$(mktemp -d)"
-PC_TRANSCRIPT="/proj/precompact1/transcript.jsonl"
-pc_out1=$(HOME="$PC_HOME1" bash "$PRECOMPACT" <<< '{"trigger":"auto","cwd":"/proj/precompact1","transcript_path":"'"$PC_TRANSCRIPT"'"}')
+pc_out1=$(HOME="$PC_HOME1" bash "$PRECOMPACT" <<< '{"trigger":"auto"}')
 pc_exit1=$?
 assert_true "precompact: auto trigger emits valid JSON" "$(printf '%s' "$pc_out1" | jq empty >/dev/null 2>&1; echo $?)"
 assert_contains "precompact: auto systemMessage steers the summary" "$(printf '%s' "$pc_out1" | jq -r '.systemMessage')" "Preserved by relay"
@@ -327,7 +326,7 @@ rm -rf "$PC_HOME1"
 
 # 2. trigger=manual -> {} exit 0
 PC_HOME2="$(mktemp -d)"
-pc_out2=$(HOME="$PC_HOME2" bash "$PRECOMPACT" <<< '{"trigger":"manual","cwd":"/proj/precompact1","transcript_path":"'"$PC_TRANSCRIPT"'"}')
+pc_out2=$(HOME="$PC_HOME2" bash "$PRECOMPACT" <<< '{"trigger":"manual"}')
 pc_exit2=$?
 assert "precompact: manual trigger yields {}" "{}" "$pc_out2"
 assert "precompact: manual trigger exits 0" "0" "$pc_exit2"
@@ -477,6 +476,7 @@ echo ""
 echo "=== session-start-pickup.sh tests ==="
 
 PICKUP="$SCRIPTS_DIR/session-start-pickup.sh"
+COMPACT="$SCRIPTS_DIR/compact-recover.sh"
 
 run_pickup() {
     # run_pickup <HOME> <json-stdin>
@@ -503,7 +503,8 @@ outn="$(RELAY_NESTED=1 run_pickup "$SP_HOME1" "{\"source\":\"startup\",\"cwd\":\
 assert "pickup: RELAY_NESTED is a no-op" "{}" "$outn"
 assert_true "pickup: RELAY_NESTED leaves pending in place" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
 
-# 1b. source=compact after an AUTO compaction injects the pre-boundary user
+# 1b. compact-recover.sh (SessionStart source=compact) after an AUTO
+# compaction injects the pre-boundary user
 # messages, writes a compacted-* marker, and never touches `pending`.
 SPC_T="$SP_TMP/compact-auto.jsonl"
 {
@@ -512,32 +513,31 @@ SPC_T="$SP_TMP/compact-auto.jsonl"
     printf '%s\n' '{"type":"user","isCompactSummary":true,"message":{"content":"summary"}}'
     printf '%s\n' '{"type":"user","message":{"content":"POST-BOUNDARY-3"}}'
 } > "$SPC_T"
-outc="$(run_pickup "$SP_HOME1" "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SPC_T\"}")"
+outc="$(HOME="$SP_HOME1" bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SPC_T\"}")"
 outc_ctx="$(printf '%s' "$outc" | jq -r '.hookSpecificOutput.additionalContext // empty')"
-assert_contains "pickup: compact(auto) injects pre-boundary user message" "$outc_ctx" "EARLY-RULE-9"
-assert_not_contains "pickup: compact(auto) omits post-boundary message" "$outc_ctx" "POST-BOUNDARY-3"
-assert_true "pickup: compact(auto) writes a compacted-* marker" \
+assert_contains "compact-recover: auto injects pre-boundary user message" "$outc_ctx" "EARLY-RULE-9"
+assert_not_contains "compact-recover: auto omits post-boundary message" "$outc_ctx" "POST-BOUNDARY-3"
+assert_true "compact-recover: auto writes a compacted-* marker" \
     "$(rc_of test -n "$(find "$SP_HOME1/.claude/handoffs/$slug1" -name 'compacted-*')")"
-assert_true "pickup: compact never touches pending" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
+assert_true "compact-recover: never touches pending" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
 
 # 1c. source=compact after a MANUAL compaction is a no-op
 sed 's/"trigger":"auto"/"trigger":"manual"/' "$SPC_T" > "$SP_TMP/compact-manual.jsonl"
-outm="$(run_pickup "$SP_HOME1" "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-manual.jsonl\"}")"
-assert "pickup: compact(manual) is a no-op" "{}" "$outm"
+outm="$(HOME="$SP_HOME1" bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-manual.jsonl\"}")"
+assert "compact-recover: manual compaction is a no-op" "{}" "$outm"
 
 # 1d. the injection is capped
 {
-    i=0
-    while [ "$i" -lt 40 ]; do
-        printf '{"type":"user","message":{"content":"%s"}}\n' "$(printf 'x%.0s' $(seq 1 300))"
-        i=$((i + 1))
+    pad=$(printf 'x%.0s' $(seq 300))
+    for _ in $(seq 40); do
+        printf '{"type":"user","message":{"content":"%s"}}\n' "$pad"
     done
     printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto"}}'
 } > "$SP_TMP/compact-big.jsonl"
-outb="$(run_pickup "$SP_HOME1" "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-big.jsonl\"}")"
+outb="$(HOME="$SP_HOME1" bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-big.jsonl\"}")"
 outb_len=$(printf '%s' "$outb" | jq -r '.hookSpecificOutput.additionalContext' | wc -c | tr -d ' ')
-assert_true "pickup: compact injection stays under 7000 chars" "$(rc_of test "$outb_len" -lt 7000)"
-assert_contains "pickup: capped injection says it was truncated" "$outb" "truncated"
+assert_true "compact-recover: injection stays under 7000 chars" "$(rc_of test "$outb_len" -lt 7000)"
+assert_contains "compact-recover: capped injection says it was truncated" "$outb" "truncated"
 
 # 2. source=startup + fresh marker -> additionalContext contains doc content,
 #    marker renamed consumed-*
@@ -908,6 +908,12 @@ hn_env="$(cat "$HN_ENV")"
 assert "haiku-narrative: nested claude gets RELAY_NESTED=1" "1" "${hn_env##*|}"
 assert_true "haiku-narrative: nested claude cwd is not the caller's" "$(rc_of test "${hn_env%%|*}" != "$RELAY_ROOT")"
 rm -f "$HN_ENV"
+
+# 3b. slash-command args reach the Haiku dialogue too (shared user-text.jq)
+HN_CAPTURE="$(mktemp)"
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_CAPTURE="$HN_CAPTURE" bash "$HN_SCRIPT" "$MAIN_FIXTURE" >/dev/null 2>&1
+assert_contains "haiku-narrative: dialogue keeps slash-command args" "$(cat "$HN_CAPTURE")" "USER: /relay:handoff focus on the ARGS-KEPT-7 auth work"
+rm -f "$HN_CAPTURE"
 
 # 4. claude emits empty output -> degrade (exit 3)
 PATH="$HN_PATH" FAKE_CLAUDE_MODE=empty bash "$HN_SCRIPT" "$HN_FIXTURE" >/dev/null 2>/dev/null

@@ -3,7 +3,7 @@
 #
 # Resolution order:
 #   1. $CLAUDE_CODE_SESSION_ID or $CLAUDE_SESSION_ID -> exact transcript file,
-#      in $PWD's project dir or, failing that, any project dir.
+#      in any project dir.
 #   2. Fallback: newest-mtime *.jsonl in the project's transcript directory
 #      (a guess — printed as a warning to stderr).
 set -euo pipefail
@@ -25,21 +25,15 @@ project_dir="$HOME/.claude/projects/${slug}"
 session_id="${CLAUDE_CODE_SESSION_ID:-${CLAUDE_SESSION_ID:-}}"
 
 if [ -n "$session_id" ]; then
-  candidate="${project_dir}/${session_id}.jsonl"
-  if [ -f "$candidate" ]; then
-    printf '%s\n' "$candidate"
-    exit 0
-  fi
-  # The Bash tool's cwd can drift from the directory the session started in,
-  # so $PWD's project dir may be the wrong one; the session id is unique
-  # across project dirs.
+  # Search every project dir: the Bash tool's cwd can drift from the
+  # directory the session started in, and the session id is unique.
   for candidate in "$HOME"/.claude/projects/*/"${session_id}.jsonl"; do
     if [ -f "$candidate" ]; then
       printf '%s\n' "$candidate"
       exit 0
     fi
   done
-  echo "resolve-session.sh: session id set (${session_id}) but ${candidate} does not exist; falling back to mtime guess" >&2
+  echo "resolve-session.sh: session id set (${session_id}) but no ${session_id}.jsonl exists; falling back to mtime guess" >&2
 fi
 
 if [ ! -d "$project_dir" ]; then

@@ -29,7 +29,7 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 - **relay — the Haiku step no longer eats a pending handoff.** Its nested `claude -p`
   ran relay's SessionStart hook in the project cwd, which claimed any unconsumed
   `pending` marker and fed that doc to Haiku. It now runs from a throwaway cwd with
-  `RELAY_NESTED=1`, which both hooks skip.
+  `RELAY_NESTED=1`, which both SessionStart hooks skip.
 - **relay — `/handoff <focus>` arguments reach the doc.** Slash-command turns were
   filtered as harness wrappers, dropping the user's own args in 47 of 93 sessions.
 

@@ -32,7 +32,7 @@ Confidence key:
 - **Where used:** `resolve-session.sh` (`project_slug()`) and `doctor.sh`,
   for the transcript project dir. The handoff dir uses the same transliteration
   over the git toplevel of the cwd (`handoff-dir.sh`, called by the skill,
-  `session-start-pickup.sh`, and `doctor.sh`). `resolve-session.sh` also finds a
+  both SessionStart hooks, and `doctor.sh`). `resolve-session.sh` also finds a
   session id under any project dir, so a drifted `$PWD` still resolves.
 - **Confidence:** Observed, and only ever observed against **POSIX-style,
   forward-slash cwd paths on macOS**. The rule is applied identically in three
@@ -161,11 +161,11 @@ Confidence key:
 ## Hook input fields
 
 ### SessionStart hook: `.source`, `.cwd`, `.transcript_path`
-- **Where used:** `session-start-pickup.sh` — `source` gated to
-  `startup|clear|compact` (any other value exits quietly, e.g. `resume` is
-  deliberately excluded), `cwd` used to compute the slug. On `compact`,
-  `transcript_path` is the same session's file; the hook reads the last
-  `compact_boundary` line's `compactMetadata.trigger` and acts on `auto` only.
+- **Where used:** `session-start-pickup.sh` (matcher `startup|clear`; e.g.
+  `resume` is deliberately excluded), `cwd` used to compute the slug.
+  `compact-recover.sh` (matcher `compact`): `transcript_path` is the same
+  session's file; it reads the last `compact_boundary` line's
+  `compactMetadata.trigger` and acts on `auto` only.
 - **Observed (2.1.283):** SessionStart fires with `source=compact` after both
   manual and auto compaction, in the same session, and its
   `additionalContext` reaches the model.
@@ -196,7 +196,7 @@ Confidence key:
 - **Observed (2.1.283):** a nested `claude -p` fires relay's own SessionStart
   hook. Run from the project cwd, it claimed that project's `pending` marker.
   The call therefore runs from a throwaway cwd with `RELAY_NESTED=1`, and both
-  hooks exit early when that variable is set.
+  SessionStart hooks exit early when that variable is set.
 - **Confidence:** Documented CLI flags (`-p`/`--print`, `--model`,
   `--system-prompt` are all documented Claude Code CLI options), but the
   *specific combination* — piping transcript text via stdin as the subject

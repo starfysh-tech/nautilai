@@ -1,13 +1,22 @@
 {
-  "description": "Auto-inject the pending relay handoff into new sessions",
+  "description": "Auto-inject the pending relay handoff into new sessions and recover context after auto-compaction",
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|clear|compact",
+        "matcher": "startup|clear",
         "hooks": [
           {
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/session-start-pickup.sh\""
+          }
+        ]
+      },
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/compact-recover.sh\""
           }
         ]
       }
