@@ -52,6 +52,9 @@ on_exit() {
 }
 trap on_exit EXIT
 
+# A `claude -p` that relay itself started (haiku-narrative.sh) must not
+# claim markers or steer anything.
+[ -z "${RELAY_NESTED:-}" ] || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 
 input=$(cat)
@@ -59,18 +62,48 @@ input=$(cat)
 
 source=$(printf '%s' "$input" | jq -r '.source // empty')
 case "$source" in
-  startup|clear) ;;
+  startup|clear|compact) ;;
   *) exit 0 ;;
 esac
 
 cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
 [ -n "$cwd" ] || exit 0
 
-# Same slug rule used by resolve-session.sh: cwd with '/' and '.' -> '-'.
-slug=$(printf '%s' "$cwd" | tr '/.' '-')
-
-marker_dir="$HOME/.claude/handoffs/${slug}"
+marker_dir=$(bash "$(dirname "$0")/handoff-dir.sh" "$cwd")
 marker="${marker_dir}/pending"
+
+# After an auto-compaction, re-inject the user's own messages from before the
+# boundary: the summary is the step that drops early requirements. This
+# branch never touches `pending`, which belongs to the /clear handoff flow.
+if [ "$source" = compact ]; then
+  transcript=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
+  [ -f "$transcript" ] || exit 0
+  trigger=$(grep '"compact_boundary"' "$transcript" | tail -n 1 \
+    | jq -r '.compactMetadata.trigger // empty' 2>/dev/null || true)
+  [ "$trigger" = auto ] || exit 0
+
+  mkdir -p "$marker_dir"
+  epoch=$(date +%s)
+  printf '%s\n' "$transcript" > "${marker_dir}/compacted-${epoch}"
+
+  msgs=$(bash "$(dirname "$0")/extract-transcript.sh" --before-last-compact "$transcript" 2>/dev/null \
+    | awk '/^## User messages/ {f=1; next} /^## / {f=0} f')
+  [ -n "$(printf '%s' "$msgs" | tr -d '[:space:]')" ] || exit 0
+  # Auto-compaction fired because the context was full; a large injection
+  # would push it straight back toward the threshold.
+  if [ "${#msgs}" -gt 6000 ]; then
+    msgs="${msgs:0:6000}
+[… truncated — /handoff recover rebuilds the full pre-compaction record]"
+  fi
+
+  prefix='Auto-compaction just summarized this conversation. Below are the user'"'"'s own messages from before it, verbatim from the transcript. Treat the requirements in them as still in force unless a later message changed them. /handoff recover rebuilds decisions and dead ends from the same transcript.
+
+'
+  output=$(jq -n --arg ctx "${prefix}${msgs}" '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $ctx}}')
+  printf '%s\n' "$output"
+  emitted=1
+  exit 0
+fi
 
 [ -f "$marker" ] || exit 0
 

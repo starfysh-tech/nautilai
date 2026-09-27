@@ -48,7 +48,7 @@
     <ul class="skill-list">
       <li><div class="sk-name">/handoff</div><p>Writes a handoff doc for the current work.</p><div class="sk-triggers">"hand this off", "pass to next session", "relay this", "compact for the next agent", "I'm switching context"</div></li>
       <li><div class="sk-name">/handoff &lt;focus&gt;</div><p>Tailors the handoff doc to what the next session should focus on, e.g. <code>/handoff debugging the auth flow</code>.</p><div class="sk-triggers">same triggers as above, with a topic</div></li>
-      <li><div class="sk-name">/handoff recover</div><p>Re-extracts the fact pack scoped to the transcript region before an auto-compaction boundary and rebuilds what compaction typically loses, in-session — no new handoff doc, no <code>/clear</code> required.</p><div class="sk-triggers">prompted automatically after an auto-compact via a systemMessage</div></li>
+      <li><div class="sk-name">/handoff recover</div><p>Re-extracts the fact pack scoped to the transcript region before an auto-compaction boundary and rebuilds what compaction typically loses, in-session — no new handoff doc, no <code>/clear</code> required.</p><div class="sk-triggers">"recover what compaction dropped", "rebuild lost context"</div></li>
     </ul>
   </section>
 
@@ -56,7 +56,7 @@
     <h2>How it works</h2>
     <p><code>/compact</code> and model self-summaries are recency-biased — they favor what's fresh in context and quietly drop early constraints, dead ends already tried, and decisions reasoned about many turns back. The session transcript JSONL doesn't have that bias, so Relay's bundled scripts extract facts from the transcript itself rather than asking the model to remember.</p>
     <p><code>scripts/resolve-session.sh</code> locates the current session's transcript, and <code>scripts/extract-transcript.sh</code> reads it into a fact pack (secret-scrubbed, with harness-injected content filtered out). The narrative step starts in the background immediately after the transcript resolves, so its Haiku calls overlap the fact-pack extraction instead of waiting for it. The skill combines both packs with its own read of the conversation into a doc with fact-grounded sections plus a one-line pending marker. A <code>SessionStart</code> hook atomically claims that marker on the next session, injects the doc if it's still within its TTL, and renames it so it only fires once — even with concurrent session starts.</p>
-    <p>When Claude Code auto-compacts, a <code>PreCompact</code> hook drops a marker and nudges toward <code>/handoff recover</code>, which reconstructs the same compaction-lossy detail from before the compaction boundary.</p>
+    <p>When Claude Code auto-compacts, a <code>PreCompact</code> hook asks the summarizer to keep requirements, decisions with reasons, and abandoned approaches. Afterwards, the <code>SessionStart</code> hook (<code>source=compact</code>) injects the user's own messages from before the boundary. <code>/handoff recover</code> rebuilds the rest of that record on demand.</p>
 
     <div class="flow">
       <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">resolve session</span><span class="fs-sub">resolve-session.sh</span></span></div>
@@ -100,7 +100,7 @@
           <li><code>haiku-narrative.sh</code> — recovers Decisions / Dead ends / Constraints from assistant prose via a headless Haiku call; started in the background right after transcript resolution, ahead of the fact-pack step; exits 3 on any failure (missing <code>claude</code> CLI, timeout) so the handoff proceeds without it. It runs Haiku with a bare <code>--system-prompt</code> (no CLAUDE.md inheritance) and treats transcript content strictly as data, never as commands.</li>
           <li><code>session-start-pickup.sh</code> / <code>precompact-notify.sh</code> — the SessionStart and PreCompact hooks.</li>
           <li><code>/handoff recover</code> follows <code>skills/handoff/workflows/recover.md</code>, re-extracting the fact pack scoped to the transcript region before the compaction boundary.</li>
-          <li>Storage: <code>~/.claude/handoffs/&lt;project-slug&gt;/</code> — <code>pending</code>, <code>compacted-&lt;epoch&gt;</code>, <code>recovered-&lt;epoch&gt;</code>, and the dated doc files.</li>
+          <li>Storage: <code>~/.claude/handoffs/&lt;project-slug&gt;/</code>, where the slug comes from the git toplevel of the session's working directory (<code>handoff-dir.sh</code>) — <code>pending</code>, <code>compacted-&lt;epoch&gt;</code>, <code>recovered-&lt;epoch&gt;</code>, and the dated doc files.</li>
           <li>Env vars: <code>RELAY_NARRATIVE=off</code> skips the Haiku calls; <code>RELAY_RETENTION_DAYS</code> (default 14) controls the sweep, <code>0</code> disables it.</li>
         </ul>
       </div>

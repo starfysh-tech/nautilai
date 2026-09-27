@@ -3,11 +3,11 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "startup|clear",
+        "matcher": "startup|clear|compact",
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/session-start-pickup.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/session-start-pickup.sh\""
           }
         ]
       }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "${CLAUDE_PLUGIN_ROOT}/scripts/precompact-notify.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/precompact-notify.sh\""
           }
         ]
       }

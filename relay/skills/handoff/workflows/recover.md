@@ -1,8 +1,9 @@
 # Recover mode (`/handoff recover`)
 
-Use this after an auto-compact — the `PreCompact` hook posts a systemMessage
-suggesting it — or whenever the session feels like it lost earlier context,
-even without that prompt.
+Use this after an auto-compact, or whenever the session feels like it lost
+earlier context. After an auto-compact the `SessionStart` hook has already
+injected the user's pre-compaction messages; this adds decisions, dead ends,
+and the rest of the record.
 
 1. Resolve the transcript: `bash ${CLAUDE_PLUGIN_ROOT}/scripts/resolve-session.sh`
 2. Extract the pre-compaction region:

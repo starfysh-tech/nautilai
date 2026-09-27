@@ -312,31 +312,25 @@ echo "=== precompact-notify.sh tests ==="
 
 PRECOMPACT="$SCRIPTS_DIR/precompact-notify.sh"
 
-# 1. trigger=auto -> valid JSON with systemMessage, exit 0, marker file
-# written under sandbox HOME containing the exact transcript_path.
+# 1. trigger=auto -> valid JSON whose systemMessage tells the summarizer what
+# to keep; exit 0; no marker (SessionStart(compact) writes it once compaction
+# has actually happened).
 PC_HOME1="$(mktemp -d)"
 PC_TRANSCRIPT="/proj/precompact1/transcript.jsonl"
 pc_out1=$(HOME="$PC_HOME1" bash "$PRECOMPACT" <<< '{"trigger":"auto","cwd":"/proj/precompact1","transcript_path":"'"$PC_TRANSCRIPT"'"}')
 pc_exit1=$?
 assert_true "precompact: auto trigger emits valid JSON" "$(printf '%s' "$pc_out1" | jq empty >/dev/null 2>&1; echo $?)"
-assert_contains "precompact: auto trigger output has systemMessage key" "$pc_out1" "systemMessage"
+assert_contains "precompact: auto systemMessage steers the summary" "$(printf '%s' "$pc_out1" | jq -r '.systemMessage')" "Preserved by relay"
 assert "precompact: auto trigger never exits 2 (would block compaction)" "0" "$pc_exit1"
-pc_slug1=$(printf '%s' "/proj/precompact1" | tr '/.' '-')
-pc_marker1=$(find "$PC_HOME1/.claude/handoffs/$pc_slug1" -name 'compacted-*' 2>/dev/null)
-assert_true "precompact: auto trigger writes a compacted-* marker" "$(rc_of test -n "$pc_marker1")"
-pc_marker1_content=$(cat "$pc_marker1" 2>/dev/null)
-assert "precompact: marker content is the exact transcript_path" "$PC_TRANSCRIPT" "$pc_marker1_content"
+assert_true "precompact: auto trigger writes no marker" "$(rc_of test ! -d "$PC_HOME1/.claude/handoffs")"
 rm -rf "$PC_HOME1"
 
-# 2. trigger=manual -> {} exit 0, no marker written
+# 2. trigger=manual -> {} exit 0
 PC_HOME2="$(mktemp -d)"
 pc_out2=$(HOME="$PC_HOME2" bash "$PRECOMPACT" <<< '{"trigger":"manual","cwd":"/proj/precompact1","transcript_path":"'"$PC_TRANSCRIPT"'"}')
 pc_exit2=$?
 assert "precompact: manual trigger yields {}" "{}" "$pc_out2"
 assert "precompact: manual trigger exits 0" "0" "$pc_exit2"
-pc_slug2=$(printf '%s' "/proj/precompact1" | tr '/.' '-')
-pc_marker2=$(find "$PC_HOME2/.claude/handoffs/$pc_slug2" -name 'compacted-*' 2>/dev/null)
-assert_true "precompact: manual trigger writes no marker" "$(rc_of test -z "$pc_marker2")"
 rm -rf "$PC_HOME2"
 
 # 3. malformed stdin -> {} exit 0 (fail-open via EXIT trap after jq errors
@@ -347,14 +341,6 @@ pc_exit3=$?
 assert "precompact: malformed stdin yields {}" "{}" "$pc_out3"
 assert "precompact: malformed stdin exits 0" "0" "$pc_exit3"
 rm -rf "$PC_HOME3"
-
-# 4. missing cwd (trigger=auto but no cwd key) -> {} exit 0
-PC_HOME4="$(mktemp -d)"
-pc_out4=$(HOME="$PC_HOME4" bash "$PRECOMPACT" <<< '{"trigger":"auto","transcript_path":"'"$PC_TRANSCRIPT"'"}')
-pc_exit4=$?
-assert "precompact: missing cwd yields {}" "{}" "$pc_out4"
-assert "precompact: missing cwd exits 0" "0" "$pc_exit4"
-rm -rf "$PC_HOME4"
 
 # =============================================================================
 # resolve-session.sh tests
@@ -512,6 +498,47 @@ assert_true "pickup: source=resume valid JSON" "$(printf '%s' "$out1" | jq empty
 # marker must be untouched by a resume no-op
 assert_true "pickup: source=resume leaves pending marker in place" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
 
+# 1a. RELAY_NESTED (a claude -p relay started itself) never claims a marker
+outn="$(RELAY_NESTED=1 run_pickup "$SP_HOME1" "{\"source\":\"startup\",\"cwd\":\"$CWD1\"}")"
+assert "pickup: RELAY_NESTED is a no-op" "{}" "$outn"
+assert_true "pickup: RELAY_NESTED leaves pending in place" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
+
+# 1b. source=compact after an AUTO compaction injects the pre-boundary user
+# messages, writes a compacted-* marker, and never touches `pending`.
+SPC_T="$SP_TMP/compact-auto.jsonl"
+{
+    printf '%s\n' '{"type":"user","message":{"content":"Never raise MAX_CONN above 40. EARLY-RULE-9"}}'
+    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto","preTokens":1}}'
+    printf '%s\n' '{"type":"user","isCompactSummary":true,"message":{"content":"summary"}}'
+    printf '%s\n' '{"type":"user","message":{"content":"POST-BOUNDARY-3"}}'
+} > "$SPC_T"
+outc="$(run_pickup "$SP_HOME1" "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SPC_T\"}")"
+outc_ctx="$(printf '%s' "$outc" | jq -r '.hookSpecificOutput.additionalContext // empty')"
+assert_contains "pickup: compact(auto) injects pre-boundary user message" "$outc_ctx" "EARLY-RULE-9"
+assert_not_contains "pickup: compact(auto) omits post-boundary message" "$outc_ctx" "POST-BOUNDARY-3"
+assert_true "pickup: compact(auto) writes a compacted-* marker" \
+    "$(rc_of test -n "$(find "$SP_HOME1/.claude/handoffs/$slug1" -name 'compacted-*')")"
+assert_true "pickup: compact never touches pending" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
+
+# 1c. source=compact after a MANUAL compaction is a no-op
+sed 's/"trigger":"auto"/"trigger":"manual"/' "$SPC_T" > "$SP_TMP/compact-manual.jsonl"
+outm="$(run_pickup "$SP_HOME1" "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-manual.jsonl\"}")"
+assert "pickup: compact(manual) is a no-op" "{}" "$outm"
+
+# 1d. the injection is capped
+{
+    i=0
+    while [ "$i" -lt 40 ]; do
+        printf '{"type":"user","message":{"content":"%s"}}\n' "$(printf 'x%.0s' $(seq 1 300))"
+        i=$((i + 1))
+    done
+    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto"}}'
+} > "$SP_TMP/compact-big.jsonl"
+outb="$(run_pickup "$SP_HOME1" "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-big.jsonl\"}")"
+outb_len=$(printf '%s' "$outb" | jq -r '.hookSpecificOutput.additionalContext' | wc -c | tr -d ' ')
+assert_true "pickup: compact injection stays under 7000 chars" "$(rc_of test "$outb_len" -lt 7000)"
+assert_contains "pickup: capped injection says it was truncated" "$outb" "truncated"
+
 # 2. source=startup + fresh marker -> additionalContext contains doc content,
 #    marker renamed consumed-*
 SP_HOME2="$SP_TMP/home2"
@@ -636,8 +663,8 @@ slug8=$(printf '%s' "$CWD8" | tr '/.' '-')
 mkdir -p "$SP_HOME8/.claude/handoffs/$slug8"
 echo "$SP_TMP/doc8.md" > "$SP_HOME8/.claude/handoffs/$slug8/pending"
 echo "doc8" > "$SP_TMP/doc8.md"
-out8="$(run_pickup "$SP_HOME8" "{\"source\":\"compact\",\"cwd\":\"$CWD8\"}")"
-assert "pickup: unrecognized source (e.g. compact) yields {}" "{}" "$out8"
+out8="$(run_pickup "$SP_HOME8" "{\"source\":\"fork\",\"cwd\":\"$CWD8\"}")"
+assert "pickup: unrecognized source (e.g. fork) yields {}" "{}" "$out8"
 assert_true "pickup: unrecognized source leaves marker untouched" "$(rc_of test -f "$SP_HOME8/.claude/handoffs/$slug8/pending")"
 
 # 9. missing cwd key in stdin -> {}

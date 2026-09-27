@@ -160,26 +160,34 @@ Confidence key:
 
 ## Hook input fields
 
-### SessionStart hook: `.source`, `.cwd`
+### SessionStart hook: `.source`, `.cwd`, `.transcript_path`
 - **Where used:** `session-start-pickup.sh` — `source` gated to
-  `startup|clear` (any other value exits quietly, e.g. `resume` is
-  deliberately excluded), `cwd` used to compute the slug.
+  `startup|clear|compact` (any other value exits quietly, e.g. `resume` is
+  deliberately excluded), `cwd` used to compute the slug. On `compact`,
+  `transcript_path` is the same session's file; the hook reads the last
+  `compact_boundary` line's `compactMetadata.trigger` and acts on `auto` only.
+- **Observed (2.1.283):** SessionStart fires with `source=compact` after both
+  manual and auto compaction, in the same session, and its
+  `additionalContext` reaches the model.
 - **Confidence:** Documented — `source` and `cwd` are part of Claude Code's
   published SessionStart hook payload.
 - **What breaks if wrong:** if `cwd` is ever absent or empty, the hook exits
   0 with no injection (fail-open by design) rather than erroring — so a
   missing field degrades to "no handoff picked up," silently.
 
-### PreCompact hook: `.trigger`, `.cwd`, `.transcript_path`
+### PreCompact hook: `.trigger`
 - **Where used:** `precompact-notify.sh` — gated to `trigger=="auto"` (manual
-  `/compact` is intentionally excluded since nothing needs recovering), `cwd`
-  for the slug, `transcript_path` written into the `compacted-<epoch>`
-  marker for `/handoff recover` to read later.
-- **Confidence:** Documented — all three are part of the published PreCompact
-  hook payload.
-- **What breaks if wrong:** same fail-open pattern as above; a missing field
-  means the marker is never dropped and `/handoff recover` has nothing to
-  find, not a hook error.
+  `/compact` is intentionally excluded; the user typed their own
+  instructions). Its `systemMessage` asks the summarizer to keep requirements,
+  decisions with reasons, and abandoned approaches.
+- **Observed (2.1.283):** PreCompact plain stdout and `{"systemMessage": …}`
+  reach the summarization prompt; a planted nonce appeared in the summary.
+  `hookSpecificOutput` for PreCompact fails validation and the whole output is
+  dropped. In forced tests, PreCompact(auto) sometimes fired with no
+  compaction after it, which is why the `compacted-<epoch>` marker is written
+  from SessionStart(compact) instead.
+- **What breaks if wrong:** the summary loses the steering; the
+  SessionStart(compact) injection still runs.
 
 ## `claude` CLI contract
 

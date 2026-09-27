@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# PreCompact hook: when auto-compaction is about to run, surface a warning
-# and drop a marker so the user can later run '/handoff recover' to rebuild
-# the pre-compaction detail from the transcript before it's summarized away.
-# Only fires for trigger=="auto" — manual compaction was the user's own
-# choice, so there's nothing lost that needs recovering.
+# PreCompact hook: before auto-compaction, tell the summarizer to keep what
+# compaction usually drops. PreCompact's systemMessage reaches the summary
+# prompt; the recovery itself runs from SessionStart(source=compact), once
+# compaction has actually happened.
 set -euo pipefail
 
 emitted=0
@@ -17,6 +16,9 @@ on_exit() {
 }
 trap on_exit EXIT
 
+# A `claude -p` that relay itself started (haiku-narrative.sh) must not
+# claim markers or steer anything.
+[ -z "${RELAY_NESTED:-}" ] || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 
 input=$(cat)
@@ -25,22 +27,7 @@ input=$(cat)
 trigger=$(printf '%s' "$input" | jq -r '.trigger // empty')
 [ "$trigger" = "auto" ] || exit 0
 
-cwd=$(printf '%s' "$input" | jq -r '.cwd // empty')
-[ -n "$cwd" ] || exit 0
-
-transcript_path=$(printf '%s' "$input" | jq -r '.transcript_path // empty')
-[ -n "$transcript_path" ] || exit 0
-
-# Same slug rule used by session-start-pickup.sh: cwd with '/' and '.' -> '-'.
-slug=$(printf '%s' "$cwd" | tr '/.' '-')
-
-marker_dir="$HOME/.claude/handoffs/${slug}"
-mkdir -p "$marker_dir"
-
-epoch=$(date +%s)
-printf '%s\n' "$transcript_path" > "${marker_dir}/compacted-${epoch}"
-
-output=$(jq -n '{systemMessage: "Auto-compact ran — pre-compaction detail was summarized away. Run '\''/handoff recover'\'' to rebuild decisions, dead ends, and early constraints from the transcript."}')
+output=$(jq -n '{systemMessage: "When you write the summary, keep these verbatim in a section titled \"Preserved by relay\": every requirement or limit the user stated, with its exact numbers and names; each decision with the reason given for it; and each approach that was tried and abandoned, with why."}')
 
 printf '%s\n' "$output"
 emitted=1

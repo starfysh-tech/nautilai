@@ -73,6 +73,7 @@ flowchart TD
     A["/handoff writes doc to ~/.claude/handoffs/slug/"] --> B["pending marker holds the doc path"]
     B --> C["SessionStart hook fires"]
     C -.->|"no pending marker"| M["nothing injected"]
+    C -->|"source=compact, auto trigger"| P["inject pre-boundary user messages; pending untouched"]
     C --> D["mv pending to claimed-EPOCH-PID"]
     D -->|"mv lost to a concurrent start"| E["exit quietly, nothing injected"]
     D -->|"mv won"| F{"source"}
@@ -113,12 +114,22 @@ flowchart TD
 
 Auto-compact loses the same kinds of things `/compact` does — early
 constraints, dead ends, and the reasoning behind decisions made many turns
-back — without you asking for a handoff. When Claude Code auto-compacts, a
-`PreCompact` hook drops a `compacted-<epoch>` marker in the project's handoff
-directory and emits a systemMessage nudging you to run `/handoff recover`.
-That subcommand re-extracts the fact pack scoped to the transcript region
-*before* the compaction boundary and rebuilds the compaction-lossy classes
-in-session — no new handoff doc, no `/clear` required.
+back — without you asking for a handoff. Relay acts at both ends of an
+auto-compaction:
+
+- **Before:** the `PreCompact` hook's systemMessage asks the summarizer to keep
+  the user's stated requirements, decisions with their reasons, and abandoned
+  approaches verbatim.
+- **After:** the `SessionStart` hook (`source=compact`) confirms from the
+  transcript's last `compact_boundary` that the compaction was automatic,
+  drops a `compacted-<epoch>` marker, and injects the user's own messages from
+  before the boundary (capped at 6,000 characters). Manual `/compact` is left
+  alone.
+
+For the full record, `/handoff recover` re-extracts the fact pack scoped to the
+transcript region *before* the compaction boundary and rebuilds the
+compaction-lossy classes in-session — no new handoff doc, no `/clear`
+required.
 
 ## Storage layout
 
