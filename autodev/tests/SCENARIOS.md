@@ -339,8 +339,8 @@ committed, `test-review.md` written, checkpoint confirmed. One headless
 | Finding | Fix | Confirmed by |
 | --- | --- | --- |
 | Step 3 test review skipped with nothing to catch it (run #10) | step 3 writes `.autodev/<slug>/test-review.md`; `controller.sh set … checkpoint confirmed` refuses a TDD lane without it | `tdd.test.sh` checkpoint cases, run #12 |
-| A drop at the launch checkpoint writes no `dropped.md` (runs #10, #12); run #8 wrote one. Nothing in the flow reads `dropped.md` | open | — |
-| The worker returned `spec_gap` without a pinning test; `drop_slice.sh` runs `git clean`, so an uncommitted pinning test would be deleted anyway | open | — |
+| A drop at the launch checkpoint writes no `dropped.md` (runs #10, #12); run #8 wrote one | `drop_slice.sh --checkpoint <lane> "<reason>"` logs it; run.md step 6 calls it | `tdd.test.sh` drop --checkpoint cases |
+| The worker returned `spec_gap` without a pinning test; `drop_slice.sh` runs `git clean`, so an uncommitted pinning test would be deleted anyway | the orchestrator passes `unattended: true` to the worker, which then skips the pin; the advisor gets the existing test that holds the rule | not re-run live (instruction change) |
 
 ## Run #12 — 2026-09-28 — throwaway repo (test-review gate, plan-only)
 

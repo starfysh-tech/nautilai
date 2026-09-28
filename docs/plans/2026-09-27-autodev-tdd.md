@@ -47,6 +47,7 @@ Advisor, Guard, TDD profile). Delivery: one PR.
 | 38 | Unattended spec gap: the advisor keeps the current rule and `drop_slice.sh` drops the slice (reverts its red commits, prunes red tests, logs `dropped.md`); the user validates the drop at the end. Avoids the retry loop on an unsatisfiable red test. |
 | 39 | Setup is always a user stop: Claude Code treats `.claude/autodev.md` as a sensitive file, so an unattended run with no profile writes `.autodev/profile-draft.md`, reports `awaiting_setup`, and stops before any lane. The advisor never answers setup (revises 30). Found in the headless validation run. |
 | 40 | Step 3 writes `.autodev/<slug>/test-review.md`, and `controller.sh set <slug> checkpoint confirmed` refuses a TDD lane without it. Found in run #10, where the test review was skipped. |
+| 41 | A scenario dropped at the launch checkpoint is logged by `drop_slice.sh --checkpoint`, so `dropped.md` records every drop. In an unattended run the worker skips the spec-gap pinning test, since `drop_slice.sh` cleans the worktree; the existing test that holds the rule is the evidence. Found in runs #10–#12. |
 | 33 | Design rationale goes in the PR body and a `docs/plugin-changelog.md` entry. No ADR. This plan is committed with the PR. |
 
 ## Components

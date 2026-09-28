@@ -24,8 +24,11 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   are written and committed one slice at a time by the orchestrator, because a
   worker that writes its own tests grades its own homework; `verify.sh` fails the
   attempt when a red test or test config changes. A launch checkpoint confirms seams
-  and scenarios before any attempt; `--unattended` hands those stops to an
-  `advisor` agent whose decisions you validate at the end. Project facts (test
+  and scenarios before any attempt; `--unattended` hands the checkpoint and
+  spec gaps to an `advisor` agent whose decisions you validate at the end. Setup
+  stays yours: Claude Code treats `.claude/autodev.md` as a sensitive file. An
+  unattended spec gap drops the slice instead of retrying a red test that can
+  never pass. Project facts (test
   commands, DB isolation, stack) live in a committed TDD profile,
   `.claude/autodev.md`, written by `/autodev --setup`. See
   [`autodev/README.md`](../autodev/README.md).

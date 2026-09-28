@@ -86,6 +86,11 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh set <slug> checkpoint confirmed
 ```
 
 Apply edits the user asked for first (re-run step 5 for a changed red test).
+For each scenario the checkpoint drops, remove it from TASK.md and log it:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/drop_slice.sh --checkpoint <lane> "<decision summary>"
+```
 
 ## 7. Slice loop
 
@@ -96,14 +101,15 @@ a. Gate (exit 1 = stop the lane, go to step 11):
    bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh check <slug>
    ```
 b. Spawn a `haiku-worker` agent with: the lane dir, `<wt>`, the task text, and
-   the current slice's scenario and red test path. If you are yourself a
+   the current slice's scenario and red test path, and `unattended: true` when
+   `controller.sh run-get unattended` is `true`. If you are yourself a
    subagent or teammate, poll `<wt>` and `RUNSTATE.md` for the handoff instead
    of waiting, and omit the Agent `name` parameter. If the `haiku-worker` type
    does not resolve, use `general-purpose` with `model: "haiku"` and paste
    `${CLAUDE_PLUGIN_ROOT}/agents/haiku-worker.md` into the prompt.
 c. Worker returned `status: blocked` with `failure_signature: spec_gap: …`:
    - unattended (`controller.sh run-get unattended` is `true`): spawn the
-     advisor with the gap and the worker's pinning test. On a decision to keep
+     advisor with the gap and the existing test that holds the current rule. On a decision to keep
      the current rule, log it to `<lane>/decisions.md` and drop the slice:
      ```bash
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/drop_slice.sh <wt> <lane> "<decision summary>"

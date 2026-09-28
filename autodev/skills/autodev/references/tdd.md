@@ -138,7 +138,8 @@ After the last slice: the guard check, then one refactor attempt.
 - You may add tests for boundaries and error cases, only at the seams TASK.md
   lists, in new test files.
 - A red test that exposes a spec gap is a finding. Pin the current rule with a
-  test that documents it, do not widen the implementation, and return
+  test that documents it (skip the pin when your prompt says
+  `unattended: true`), do not widen the implementation, and return
   `status: blocked` with `failure_signature: spec_gap: <what the spec does not
   say>`.
 - Before you return, run the TDD profile's `format` command on the files you

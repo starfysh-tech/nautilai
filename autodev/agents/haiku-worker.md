@@ -19,7 +19,8 @@ Rules:
 - Make the smallest useful change toward completion.
 - Never edit, move, skip, or delete a red test (listed in the lane's
   `red_tests.txt`).
-- A spec gap: pin the current rule with a test, do not widen the code, and
+- A spec gap: pin the current rule with a test (skip the pin when your prompt
+  says `unattended: true`), do not widen the code, and
   return `status: blocked` with `failure_signature: spec_gap: <what the spec
   does not say>`.
 - Prefer tests, linters, and narrow verification commands over broad changes.

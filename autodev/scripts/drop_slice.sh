@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # Drop the current slice after the advisor keeps the current rule on a spec gap.
 #   drop_slice.sh <worktree> <lane-dir> "<reason>"
-# Discards the worker's uncommitted attempt, restores every file the slice's red
+#   drop_slice.sh --checkpoint <lane-dir> "<reason>"
+# --checkpoint: a scenario dropped at the launch checkpoint; logs the reason to
+# <lane-dir>/dropped.md and changes nothing else.
+# Otherwise: discards the worker's uncommitted attempt, restores every file the slice's red
 # commits changed to the last green commit (base_sha before any green), commits
 # that as a revert through commit_lane.sh (which moves red_sha), prunes vanished
 # red tests from red_tests.txt, resets the slice cap and status, and appends the
@@ -9,6 +12,14 @@
 # Exit 0: dropped. Exit 1: the revert commit failed. Exit 2: nothing to drop.
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ "${1:-}" == "--checkpoint" ]]; then
+  LANE_DIR="$(cd "${2:?lane dir required}" && pwd)"
+  {
+    echo "## $(date -u +%Y-%m-%dT%H:%M:%SZ) — scenario dropped at the launch checkpoint"
+    echo "- reason: ${3:?reason required}"
+  } >> "$LANE_DIR/dropped.md"
+  exit 0
+fi
 WORKTREE="$(cd "${1:?worktree required}" && pwd)"
 LANE_DIR="$(cd "${2:?lane dir required}" && pwd)"
 REASON="${3:?reason required}"

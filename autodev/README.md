@@ -118,6 +118,7 @@ All invoked by the skill via `${CLAUDE_PLUGIN_ROOT}/scripts/`:
 | `commit_lane.sh <wt> <lane> <kind> "<subject>" <file>…` | Allowlisted Conventional Commit on the lane branch |
 | `commit_path.sh <repo-root>` | Pick CommitCraft or `commit_lane.sh` |
 | `drop_slice.sh <wt> <lane> "<reason>"` | Drop a slice after an unattended spec gap |
+| `drop_slice.sh --checkpoint <lane> "<reason>"` | Log a scenario dropped at the launch checkpoint |
 | `profile.py get\|cut …` | Read the TDD profile; cut TDD rules per role |
 | `classify_failure.sh <log>` | Bucket a failure log |
 | `fingerprint_failure.sh <log>` | Digit/hex-stripped failure hash |

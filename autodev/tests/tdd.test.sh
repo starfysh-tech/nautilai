@@ -549,6 +549,15 @@ grep -q 'advisor kept the current rule' "$DL/dropped.md"; assert "drop: reason l
 (cd "$D" && bash "$SCRIPTS_DIR/verify.sh" "$DW" "$DL" >/dev/null 2>&1)
 assert "drop: earlier slices still verify" "0" "$?"
 
+# A drop at the launch checkpoint logs to dropped.md and touches nothing else.
+head_before="$(git -C "$DW" rev-parse HEAD)"; red_before="$(dctl get dl red_sha)"
+(cd "$D" && bash "$SCRIPTS_DIR/drop_slice.sh" --checkpoint "$DL" "advisor dropped scenario 3" >/dev/null 2>&1)
+assert "drop --checkpoint: exits 0" "0" "$?"
+grep -q 'advisor dropped scenario 3' "$DL/dropped.md"; assert "drop --checkpoint: reason logged" "0" "$?"
+grep -q 'launch checkpoint' "$DL/dropped.md"; assert "drop --checkpoint: stage logged" "0" "$?"
+assert "drop --checkpoint: no commit" "$head_before" "$(git -C "$DW" rev-parse HEAD)"
+assert "drop --checkpoint: red_sha unchanged" "$red_before" "$(dctl get dl red_sha)"
+
 # =============================================================================
 echo "=== commit_path.sh ==="
 # =============================================================================
