@@ -43,6 +43,23 @@ lane_env() {
   printf '%s' "${db//\{slug\}/$(basename "$2")}"
 }
 
+# is_test_path (needs PROFILE and LANE_DIR): filter stdin to paths that are tests, red tests, or test config.
+# The name patterns cover pytest, jest/vitest, go and rspec layouts.
+is_test_path() {
+  local cfg frozen
+  # `|| true`: an absent test_config (exit 3) must not end a `set -e` caller.
+  cfg="$(python3 "$SCRIPT_DIR/profile.py" get "$PROFILE" test_config 2>/dev/null | tr ', ' '\n\n' || true)"
+  frozen="$(cat "$LANE_DIR/red_tests.txt" 2>/dev/null; printf '%s\n' "$cfg")"
+  while IFS= read -r p; do
+    [[ -z "$p" ]] && continue
+    if printf '%s\n' "$frozen" | grep -qxF -- "$p"; then echo "$p"; continue; fi
+    case "$p" in
+      */tests/*|tests/*|*/test/*|test/*|*/__tests__/*|__tests__/*|*/spec/*|spec/*) echo "$p" ;;
+      test_*|*/test_*|*_test.*|*.test.*|*.spec.*|conftest.py|*/conftest.py) echo "$p" ;;
+    esac
+  done
+}
+
 # run_lane_cmd <env> <cmd>: run a profile command with the lane env, under the
 # timeout, in the current directory.
 run_lane_cmd() {

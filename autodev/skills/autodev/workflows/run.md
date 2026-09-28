@@ -41,7 +41,8 @@ test -f path/to/deliverable
 
 Follow `${CLAUDE_PLUGIN_ROOT}/skills/autodev/workflows/review-tests.md` on the existing tests at the seams the lanes
 touch. For each blocking-class finding, propose a test-fix lane (its own slug and
-TASK.md) for the checkpoint. Keep the report for the completion report.
+TASK.md, with the test files it may change under `## Test edits authorized`)
+for the checkpoint. Keep the report for the completion report.
 
 ## 4. Worktree and baseline
 
@@ -114,7 +115,8 @@ c. Worker returned `status: blocked` with `failure_signature: spec_gap: …`:
 d. Verify passed: spawn a `review-gate` agent (fresh context; fallback
    `general-purpose` with `model: "sonnet"` and
    `${CLAUDE_PLUGIN_ROOT}/agents/review-gate.md`) with
-   `<wt>`, the lane dir, and the base branch.
+   `<wt>`, the lane dir, the base branch, and the current slice as "N of M"
+   (M = scenarios in TASK.md).
    - `verdict: pass` → green commit of the files the worker changed (section 9,
      kind `green`). Then, if scenarios remain, write the next red test, run
      `expect_run.sh red`, and commit it (kind `red`). The next red test uses the

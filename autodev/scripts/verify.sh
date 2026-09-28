@@ -6,7 +6,9 @@
 # Lane without a frozen TDD profile (<lane-dir>/profile.md): one verifier,
 #   <lane-dir>/VERIFY.sh > <dir>/VERIFY.sh > stack auto-detect.
 # TDD lane: a pipeline that stops at the first failure —
-#   1. frozen check: red tests and profile test_config unchanged since red_sha
+#   1. frozen check: red tests and profile test_config unchanged since red_sha;
+#      test files that existed at base_sha unchanged unless TASK.md lists them
+#      under "## Test edits authorized"
 #   2. red tests via the profile's test_file
 #   3. lint and format_check on files changed since the lane's base_sha
 #   4. <lane-dir>/VERIFY.sh, when present
@@ -107,6 +109,19 @@ if [[ "$AUTODEV_PHASE" == "attempt" ]]; then
   if ! git diff --quiet "$red_sha" -- "${frozen[@]}"; then
     git diff --stat "$red_sha" -- "${frozen[@]}" >&2
     fail "red tests or test config changed since $red_sha"
+  fi
+  # Existing tests are the spec too: a changed one must be authorized in
+  # TASK.md "## Test edits authorized" (test-fix lanes), never silently edited.
+  base_sha="$(lane_get base_sha)"
+  if [[ -n "$base_sha" ]]; then
+    authorized="$(awk '/^## Test edits authorized/{on=1;next} /^## /{on=0} on && /^- /{print substr($0,3)}' "$LANE_DIR/TASK.md")"
+    edited=""
+    while IFS= read -r f; do
+      [[ -z "$f" ]] && continue
+      printf '%s\n' "$authorized" | grep -qxF -- "$f" && continue
+      git cat-file -e "$base_sha:$f" 2>/dev/null && edited="$edited $f"
+    done < <(git diff --name-only "$base_sha" | is_test_path)
+    [[ -z "$edited" ]] || fail "existing tests changed without authorization in TASK.md:$edited"
   fi
   profile_value test_file test_file || fail "red tests exist but the TDD profile has no test_file"
   for f in "${RED_TESTS[@]}"; do

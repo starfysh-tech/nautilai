@@ -71,7 +71,8 @@ flowchart TD
   `expect_run.sh red` proves it fails for a real reason (not a timeout, missing
   command, or empty collection), and it is committed before the worker starts.
   The worker cannot change it: `verify.sh` fails the attempt if any red test or
-  profile `test_config` file differs from the red commit.
+  profile `test_config` file differs from the red commit, or if a test file
+  that existed before the lane changed without TASK.md authorizing it.
 - **One task lane per independent task** — state in `.autodev/<slug>/`
   (`TASK.md`, `RUNSTATE.md`, `DONE.md`, TDD files, optional `VERIFY.sh`), all
   self-gitignored.

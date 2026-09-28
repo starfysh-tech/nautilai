@@ -132,8 +132,11 @@ After the last slice: the guard check, then one refactor attempt.
 - Write only enough code to pass it. No speculative features.
 - Never edit, move, skip, or delete a red test or the test config the TDD
   profile lists under `test_config`.
+- Never edit a test file that existed before the lane started, unless TASK.md
+  lists it under `## Test edits authorized`. A red test that contradicts an
+  existing test is a spec gap.
 - You may add tests for boundaries and error cases, only at the seams TASK.md
-  lists.
+  lists, in new test files.
 - A red test that exposes a spec gap is a finding. Pin the current rule with a
   test that documents it, do not widen the implementation, and return
   `status: blocked` with `failure_signature: spec_gap: <what the spec does not

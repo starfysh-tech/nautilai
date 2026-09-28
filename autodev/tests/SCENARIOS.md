@@ -218,3 +218,49 @@ deserved it.
 | Gitignored env files don't survive worktree creation; symptom is a misleading wrong-credential test failure | SKILL.md worktree step: generate lane-scoped dummy credentials, never copy secrets; same rule added to haiku-worker.md | doc-level |
 | Escalation buried the live blocker under 3 rounds of superseded history | escalate_summary.sh foregrounds a "Current blocker" section (tail of RUNSTATE.md) before history | `scripts.test.sh` ordering case |
 | First live proof fingerprints discriminate review blocks by content | none needed | `scripts.test.sh` distinct-review-fingerprints case |
+
+## Run #6 — 2026-09-28 — deltax-connectome-entity (first TDD-flow run)
+
+First end-to-end run of the TDD flow: setup, plan, test review, baseline, red
+test, launch checkpoint, two slices, guard checks, refactor. Venue: a Node
+`node:test` repo under a research freeze (no artifact or seed changes). Plugin
+run from the `feat/autodev-tdd` checkout with `${CLAUDE_PLUGIN_ROOT}`
+hand-substituted; agents via the `general-purpose` fallback.
+
+Lane `contract-input-guards`: reject a non-object input packet (slice 1, G1)
+and a non-object candidate (slice 2, G2) with contract errors instead of a raw
+`TypeError`.
+
+- [x] setup detected `test_file` and `full_suite` with sources; 7 keys
+  `unknown`, logged as skips by `verify.sh`
+- [x] both red tests failed for the right reason (`TypeError` reading
+  `timestamp` / `candidate_id`), shown at the checkpoint
+- [x] each haiku worker one-shotted its slice; `verify.sh` pipeline and the
+  review gate passed both; 4 commits (red, green, red, green)
+- [x] per-slice cap reset observed (a synthetic failure went 1 → 0 at the green
+  commit)
+- [x] guard check: removing G1 or G2 turned the test red; throwaway worktree
+  removed
+- [x] refactor attempt made no change; `expect_run.sh green --no-test-changes`
+  passed; HEAD = last green commit
+- [ ] refactor drop path not exercised
+
+## Run #7 — 2026-09-28 — deltax-connectome-entity (TDD failure path)
+
+Lane `empty-candidates-escalate`, built to fail: the red test requires an empty
+candidate list to return `ESCALATE`, contradicting an existing test that
+requires a throw; TASK.md forbids editing existing tests.
+
+- [x] attempt 1 edited the existing test to fit; `verify.sh` passed (gap);
+  the review gate blocked on the TASK.md constraint (counted failure 1 of 3)
+- [x] attempt 2 reverted, returned `spec_gap`, saved attempt 1 as a patch;
+  `escalate_summary.sh` led with the spec gap as the current blocker
+- [x] a worker-reported unrelated suite failure did not reproduce (machine load)
+
+| Finding | Fix | Confirmed by |
+| --- | --- | --- |
+| `commit_path.sh` picked an installed CommitCraft (2.28.1) that has no `commit --files` | picks CommitCraft only when its installed `commit.md` documents `--files` | `tdd.test.sh` capability cases; run #7 picked `script` live |
+| Review gate's "scenario or guard with no test is blocking" would block slice 1 of 2 | gate gets the current slice as "N of M" and judges only up to it | doc-level; run #6 prompts carried it by hand |
+| `record-failure … specification` left the gate at `continue`; escalation depended on the orchestrator | `specification` and `environment` set `needs_guidance` | `tdd.test.sh` controller cases |
+| A worker could rewrite an existing test and pass `verify.sh` | test files present at `base_sha` are frozen unless TASK.md authorizes them | `tdd.test.sh` existing-test cases |
+| `is_test_path` died under `verify.sh`'s `set -e` when `test_config` was absent, so no path was ever classified | `\|\| true` on the lookup | `tdd.test.sh` existing-test cases |

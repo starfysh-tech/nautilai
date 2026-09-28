@@ -67,6 +67,10 @@ elif cmd == 'record-failure':
     lane_state['updated_at'] = now
     if int(lane_state.get('counted_failures', 0)) >= MAX_COUNTED_FAILURES:
         lane_state['status'] = 'needs_guidance'
+    # Retrying cannot fix a spec gap or a broken environment; stop the lane
+    # here so escalation never depends on the orchestrator reading the class.
+    if klass in ('specification', 'environment'):
+        lane_state['status'] = 'needs_guidance'
 elif cmd == 'record-transient':
     # A `transient` classification (see classify_failure.sh) retries once
     # immediately without counting toward MAX_COUNTED_FAILURES — but nothing

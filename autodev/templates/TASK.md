@@ -24,6 +24,9 @@
 ## Authorized extractions
 - none
 
+## Test edits authorized
+- none
+
 ## Red tests
 red_tests: pending
 - slice 1: path/to/test — scenario name

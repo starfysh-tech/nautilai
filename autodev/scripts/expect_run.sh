@@ -40,22 +40,6 @@ run_one() {
   (cd "$WORKTREE" && run_lane_cmd "$DB_ENV" "$cmd") >> "$2" 2>&1
 }
 
-# is_test_path: filter stdin to paths that are tests, red tests, or test config.
-# The name patterns cover pytest, jest/vitest, go and rspec layouts.
-is_test_path() {
-  local cfg frozen
-  cfg="$(python3 "$SCRIPT_DIR/profile.py" get "$PROFILE" test_config 2>/dev/null | tr ', ' '\n\n')"
-  frozen="$(cat "$LANE_DIR/red_tests.txt" 2>/dev/null; printf '%s\n' "$cfg")"
-  while IFS= read -r p; do
-    [[ -z "$p" ]] && continue
-    if printf '%s\n' "$frozen" | grep -qxF -- "$p"; then echo "$p"; continue; fi
-    case "$p" in
-      */tests/*|tests/*|*/test/*|test/*|*/__tests__/*|__tests__/*|*/spec/*|spec/*) echo "$p" ;;
-      test_*|*/test_*|*_test.*|*.test.*|*.spec.*|conftest.py|*/conftest.py) echo "$p" ;;
-    esac
-  done
-}
-
 case "$MODE" in
   red)
     : > "$LANE_DIR/red.log"

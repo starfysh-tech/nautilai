@@ -173,6 +173,19 @@ ctl record-failure s implementation fp2 >/dev/null
 ctl record-failure s implementation fp3 >/dev/null
 assert "controller: next slice gets its own cap" "continue" "$(ctl check s)"
 
+# Specification and environment failures escalate by script: the gate stops
+# at once, without waiting for the counted-failure cap.
+ctl init-lane sp >/dev/null
+ctl record-failure sp specification "spec_gap: x" >/dev/null
+ctl check sp >/dev/null; assert "controller: specification failure stops the lane" "1" "$?"
+assert "controller: specification failure -> needs_guidance" "needs_guidance" "$(ctl get sp status)"
+ctl init-lane en >/dev/null
+ctl record-failure en environment "command not found" >/dev/null
+ctl check en >/dev/null; assert "controller: environment failure stops the lane" "1" "$?"
+ctl init-lane im >/dev/null
+ctl record-failure im implementation fp1 >/dev/null
+assert "controller: one implementation failure continues" "continue" "$(ctl check im)"
+
 # Checkpoint gate: a lane from init_task_lane.sh cannot attempt until confirmed.
 (cd "$C" && bash "$SCRIPTS_DIR/init_task_lane.sh" gated "Task." >/dev/null)
 ctl check gated >/dev/null; assert "controller: new lane blocked before checkpoint" "1" "$?"
@@ -416,6 +429,27 @@ vctl set v red_sha "$(git -C "$V" rev-parse HEAD)"
 vrun baseline
 assert "verify: profile full_suite beats repo VERIFY.sh" "lane_verify full_suite" "$(stages)"
 
+# Existing tests (present at base_sha) are frozen unless TASK.md authorizes them.
+X="$TMP/old_tests_repo"
+make_repo "$X"
+mkdir -p "$X/.claude" "$X/tests"
+printf -- '---\ntest_file: sh {file}\nfull_suite: true\n---\n' > "$X/.claude/autodev.md"
+printf 'exit 0\n' > "$X/tests/old_test.sh"
+git -C "$X" add tests; git -C "$X" commit -q -m "test: existing"
+(cd "$X" && bash "$SCRIPTS_DIR/init_task_lane.sh" o "Task." >/dev/null && bash "$SCRIPTS_DIR/create_worktree.sh" o main >/dev/null)
+XW="$X/.autodev-worktrees/o"; XL="$X/.autodev/o"
+printf 'exit 0\n' > "$XW/tests/red_test.sh"
+git -C "$XW" add tests/red_test.sh; git -C "$XW" commit -q -m "test: red"
+(cd "$X" && bash "$SCRIPTS_DIR/controller.sh" set o red_sha "$(git -C "$XW" rev-parse HEAD)" >/dev/null)
+printf 'tests/red_test.sh\n' > "$XL/red_tests.txt"
+xv() { (cd "$X" && bash "$SCRIPTS_DIR/verify.sh" "$XW" "$XL" >/dev/null 2>&1); }
+printf 'exit 0\n' > "$XW/tests/new_test.sh"
+xv; assert "verify: a new test file is allowed" "0" "$?"
+printf '# rewritten\nexit 0\n' > "$XW/tests/old_test.sh"
+xv; assert "verify: edited existing test fails" "1" "$?"
+printf '\n## Test edits authorized\n- tests/old_test.sh\n' >> "$XL/TASK.md"
+xv; assert "verify: authorized existing test edit passes" "0" "$?"
+
 # Renaming a red test is caught like a delete.
 git -C "$V" mv tests/slice1_test.sh tests/renamed_test.sh
 vrun attempt; assert "verify: renamed red test fails" "1" "$?"
@@ -470,11 +504,20 @@ mkdir -p "$FH/.claude/plugins"
 IP="$FH/.claude/plugins/installed_plugins.json"
 cp_path() { HOME="$FH" bash "$SCRIPTS_DIR/commit_path.sh" "$1" 2>/dev/null; }
 
-printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"user"}]}}' > "$IP"
+# Fake installs: NEW documents `commit --files`, OLD predates it.
+NEW="$FH/cache/commitcraft/new"; OLD="$FH/cache/commitcraft/old"
+mkdir -p "$NEW/skills/commitcraft/workflows" "$OLD/skills/commitcraft/workflows"
+printf -- '- With `--files <path>...` in the context: stage only those paths\n' > "$NEW/skills/commitcraft/workflows/commit.md"
+printf -- '3. Auto-stage all changes\n' > "$OLD/skills/commitcraft/workflows/commit.md"
+printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"user","installPath":"%s"}]}}' "$NEW" > "$IP"
 assert "path: user-scoped install -> commitcraft" "commitcraft" "$(cp_path /repo/a)"
-printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"project","projectPath":"/repo/a"}]}}' > "$IP"
+printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"project","projectPath":"/repo/a","installPath":"%s"}]}}' "$NEW" > "$IP"
 assert "path: this project's install -> commitcraft" "commitcraft" "$(cp_path /repo/a)"
 assert "path: other project's install -> script" "script" "$(cp_path /repo/b)"
+printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"user","installPath":"%s"}]}}' "$OLD" > "$IP"
+assert "path: install without --files -> script" "script" "$(cp_path /repo/a)"
+printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"user","installPath":"%s/missing"}]}}' "$FH" > "$IP"
+assert "path: installPath gone -> script" "script" "$(cp_path /repo/a)"
 printf '{"version":2,"plugins":{"relay@nautilai":[{"scope":"user"}]}}' > "$IP"
 assert "path: not installed -> script" "script" "$(cp_path /repo/a)"
 printf '{not json' > "$IP"

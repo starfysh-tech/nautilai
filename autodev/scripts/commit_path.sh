@@ -10,6 +10,14 @@ ROOT="${1:?repo root required}"
 python3 - "$HOME/.claude/plugins/installed_plugins.json" "$ROOT" <<'PY'
 import json, os, sys
 path, root = sys.argv[1], os.path.realpath(sys.argv[2])
+# Capability, not version: an older CommitCraft stages every changed file.
+def supports_files(entry):
+    try:
+        with open(os.path.join(entry["installPath"], "skills/commitcraft/workflows/commit.md")) as f:
+            return "--files" in f.read()
+    except (OSError, KeyError, TypeError):
+        return False
+
 def installed(data):
     for name, entries in data["plugins"].items():
         if not name.startswith("commitcraft@"):
@@ -17,7 +25,9 @@ def installed(data):
         for e in entries if isinstance(entries, list) else [entries]:
             scope = e["scope"]
             if scope == "user" or (scope == "project" and os.path.realpath(e["projectPath"]) == root):
-                return f"{name} installed ({scope} scope)"
+                if supports_files(e):
+                    return f"{name} installed ({scope} scope, {e.get('version', '?')}) with commit --files"
+                print(f"commit_path: {name} ({scope} scope, {e.get('version', '?')}) has no commit --files", file=sys.stderr)
     return None
 
 try:
@@ -31,6 +41,6 @@ if found:
     print(f"commit_path: {found}; using /commitcraft commit", file=sys.stderr)
     print("commitcraft")
 else:
-    print("commit_path: CommitCraft not installed for this repo; using commit_lane.sh", file=sys.stderr)
+    print("commit_path: no CommitCraft with commit --files for this repo; using commit_lane.sh", file=sys.stderr)
     print("script")
 PY
