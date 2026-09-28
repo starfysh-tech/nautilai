@@ -264,3 +264,91 @@ requires a throw; TASK.md forbids editing existing tests.
 | `record-failure … specification` left the gate at `continue`; escalation depended on the orchestrator | `specification` and `environment` set `needs_guidance` | `tdd.test.sh` controller cases |
 | A worker could rewrite an existing test and pass `verify.sh` | test files present at `base_sha` are frozen unless TASK.md authorizes them | `tdd.test.sh` existing-test cases |
 | `is_test_path` died under `verify.sh`'s `set -e` when `test_config` was absent, so no path was ever classified | `\|\| true` on the lookup | `tdd.test.sh` existing-test cases |
+
+## Run #8 — 2026-09-28 — deltax-connectome-entity (installed-plugin headless run)
+
+First run by a fresh orchestrator: two nested `claude -p` sessions with
+`--plugin-dir autodev`, so `${CLAUDE_PLUGIN_ROOT}` and agent types resolved
+natively; graded only from `.autodev/`, commits, and transcripts. Plan: 3
+tickets — JSONL newline bug (`adapter.mjs`), unknown `candidate_id` guard, and
+an empty-list ESCALATE ticket that contradicts an existing test.
+
+- [x] session 1 `--plan-only --unattended`: 2 lanes (tickets 2 and 3 share
+  `decide`), baselines green, red tests committed, `autodev:advisor` answered
+  both checkpoints (3 native calls), decisions logged, stopped before slices
+- [x] the orchestrator caught the ticket-3 contradiction while planning; the
+  advisor dropped it before any red commit, logged in `dropped.md`
+  (`drop_slice.sh` correctly not used — nothing to revert)
+- [x] session 2 plain run resumed at the slice loop with no stops; both lanes'
+  workers overlapped (spawned 5 s apart); `autodev:haiku-worker` ×4 and
+  `autodev:review-gate` ×3 resolved natively
+- [x] both lanes: verify pipeline, review gate pass, green commit, guard check
+  caught its guard, refactor (ledger: no change; decide: committed after gate)
+- [x] independent re-run on each branch: 83 and 82 pass, 0 fail; worktrees and
+  main clean
+- [ ] test review file written after the red commits (run.md step 3 comes
+  first); findings were advisory only
+- [ ] `drop_slice.sh` live path and the CommitCraft commit path: not exercised
+  (offline tests only; CommitCraft path by decision)
+
+## Run #9 — 2026-09-28 — throwaway repo (unattended with no profile)
+
+- [x] `--plan-only --unattended` with no `.claude/autodev.md`: wrote
+  `.autodev/profile-draft.md`, reported `awaiting_setup` with the copy command,
+  created no lane, worktree, or commit, never tried to write the profile
+
+Refactor-drop fixture (throwaway repo): a seeded refactor that edits a test
+file is rejected by `expect_run.sh green --no-test-changes` (exit 1, names the
+file); run.md's reset commands restore HEAD to `green_sha` with a clean tree.
+
+| Finding | Fix | Confirmed by |
+| --- | --- | --- |
+| Setup could not write `.claude/autodev.md` headless (Claude Code sensitive file); the session copied a draft into lanes by hand | setup is always a user stop; unattended without a profile reports `awaiting_setup` and stops before any lane | run #9 |
+| Unattended spec gap would loop to the cap: the kept rule leaves the red test unsatisfiable | advisor keeping the rule drops the slice via `drop_slice.sh` | `tdd.test.sh` drop cases, run #11 |
+| Live eval graded one worked answer's placements and wording | checks grade the quadrant rule (OAuth has many deps) and scenario meaning | `tests/eval/LIVE-LEDGER.md` |
+
+## Run #10 — 2026-09-28 — throwaway repo (spec gap, cold run)
+
+Fixture: a billing module with 3 scenarios. Scenario 2 (round half up in
+`toCents`) contradicts a golden invoice fixture at another seam
+(`test/fixtures/acme-march.json`, "truncated to the cent, never rounded").
+
+- [x] the orchestrator read the fixture while planning; the advisor dropped
+  scenario 2 at the launch checkpoint and kept the rule, logged in
+  `decisions.md`; scenarios 1 and 3 green, full suite and golden test pass
+- [ ] `drop_slice.sh` not reached (second cold run where planning caught the
+  contradiction; see run #11)
+- [ ] step 3 test review skipped: `review-tests.md` read at 21:34:37, worktree
+  created 1 s later, no FIRST-U scores or report
+
+## Run #11 — 2026-09-28 — throwaway repo (spec gap, seeded resume)
+
+Same fixture, lane seeded with the real scripts: slice 1 green, slice 2 red
+committed, `test-review.md` written, checkpoint confirmed. One headless
+`--unattended` run resumed at the slice loop.
+
+- [x] `autodev:haiku-worker` returned `status: blocked`,
+  `spec_gap: … acme-march.json fixture requires truncation`
+- [x] `autodev:advisor` chose "keep current rule", logged in `decisions.md`
+- [x] `drop_slice.sh` ran: `dropped.md` written, restored to `green_sha`
+  (slice 1), revert commit `revert(autodev): drop slice after spec gap`,
+  `red_tests.txt` pruned to slices 1 and 3
+- [x] the lane continued: slice 3 red, worker, review gate pass, green commit;
+  full suite 4 pass, 0 fail; worktree clean
+
+| Finding | Fix | Confirmed by |
+| --- | --- | --- |
+| Step 3 test review skipped with nothing to catch it (run #10) | step 3 writes `.autodev/<slug>/test-review.md`; `controller.sh set … checkpoint confirmed` refuses a TDD lane without it | `tdd.test.sh` checkpoint cases, run #12 |
+| A drop at the launch checkpoint writes no `dropped.md` (runs #10, #12); run #8 wrote one. Nothing in the flow reads `dropped.md` | open | — |
+| The worker returned `spec_gap` without a pinning test; `drop_slice.sh` runs `git clean`, so an uncommitted pinning test would be deleted anyway | open | — |
+
+## Run #12 — 2026-09-28 — throwaway repo (test-review gate, plan-only)
+
+Same fixture, fresh clone, one headless `--plan-only --unattended` run with
+the step 3 wording from run #11's finding.
+
+- [x] `test-review.md` written at 18:49:47 with FIRST-U scores per test file,
+  before the first red commit (18:50:05); the gate never had to refuse
+- [x] the advisor confirmed the checkpoint; `checkpoint: confirmed`
+- [x] planning caught the scenario 2 contradiction again and dropped it at
+  the checkpoint (no `dropped.md`, see the open finding in run #11)

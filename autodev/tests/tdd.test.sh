@@ -194,6 +194,17 @@ ctl check gated >/dev/null; assert "controller: awaiting checkpoint blocks" "1" 
 ctl set gated checkpoint confirmed >/dev/null
 assert "controller: confirmed lane continues" "continue" "$(ctl check gated)"
 
+# A TDD lane (frozen profile.md) cannot be confirmed before its test review exists.
+(cd "$C" && bash "$SCRIPTS_DIR/init_task_lane.sh" reviewed "Task." >/dev/null)
+printf -- '---\ntest_file: sh {file}\n---\n' > "$C/.autodev/reviewed/profile.md"
+ctl set reviewed checkpoint confirmed >/dev/null 2>&1
+assert "controller: confirm refused without test-review.md" "1" "$?"
+assert "controller: refused confirm leaves checkpoint" "pending" "$(ctl get reviewed checkpoint)"
+printf '# Test review\n' > "$C/.autodev/reviewed/test-review.md"
+ctl set reviewed checkpoint confirmed >/dev/null 2>&1
+assert "controller: confirm allowed with test-review.md" "0" "$?"
+assert "controller: TDD lane confirmed" "confirmed" "$(ctl get reviewed checkpoint)"
+
 # A green baseline clears needs_guidance only; it never resets other statuses
 # or the checkpoint (a settled plan must stay settled across re-runs).
 printf 'exit 0\n' > "$C/.autodev/gated/VERIFY.sh"
@@ -494,6 +505,49 @@ printf 'y\n' > "$K/b.txt"
 cl green "feat(widget): more" b.txt; assert "commit: hook failure fails" "1" "$?"
 assert "commit: hook failure leaves HEAD" "$before" "$(git -C "$K" rev-parse HEAD)"
 /bin/rm -f "$K/.git/hooks/pre-commit"
+
+# =============================================================================
+echo "=== drop_slice.sh ==="
+# =============================================================================
+
+# Lane with a green slice 1 and a committed slice 2 red test (appended to the
+# same file), plus the worker's uncommitted attempt at slice 2.
+D="$TMP/drop_repo"
+make_repo "$D"
+mkdir -p "$D/.claude"
+printf -- '---\ntest_file: sh {file}\nfull_suite: true\n---\n' > "$D/.claude/autodev.md"
+(cd "$D" && bash "$SCRIPTS_DIR/init_task_lane.sh" dl "Task." >/dev/null && bash "$SCRIPTS_DIR/create_worktree.sh" dl main >/dev/null)
+DW="$D/.autodev-worktrees/dl"; DL="$D/.autodev/dl"
+dctl() { (cd "$D" && bash "$SCRIPTS_DIR/controller.sh" "$@"); }
+dcl() { (cd "$D" && bash "$SCRIPTS_DIR/commit_lane.sh" "$DW" "$DL" "$@" >/dev/null 2>&1); }
+mkdir -p "$DW/tests" "$DW/src"
+printf 'true\n' > "$DW/tests/s_test.sh"
+dcl red "test(x): slice 1 red" tests/s_test.sh
+printf '# Test review\n' > "$DL/test-review.md"
+dctl set dl checkpoint confirmed >/dev/null
+printf 'tests/s_test.sh\n' > "$DL/red_tests.txt"
+printf 'ok\n' > "$DW/src/a.txt"; dcl green "feat(x): slice 1" src/a.txt
+slice1="$(cat "$DW/tests/s_test.sh")"
+printf 'exit 1\n' >> "$DW/tests/s_test.sh"; dcl red "test(x): slice 2 red" tests/s_test.sh
+printf 'exit 0\n' > "$DW/tests/n_test.sh"; dcl red "test(x): slice 2 second red" tests/n_test.sh
+printf 'tests/n_test.sh\n' >> "$DL/red_tests.txt"
+printf 'attempt\n' > "$DW/src/a.txt"
+dctl record-failure dl specification "spec_gap: y" >/dev/null
+(cd "$D" && bash "$SCRIPTS_DIR/verify.sh" "$DW" "$DL" >/dev/null 2>&1)
+assert "drop: slice 2 red fails verify before the drop (control)" "1" "$?"
+
+(cd "$D" && bash "$SCRIPTS_DIR/drop_slice.sh" "$DW" "$DL" "advisor kept the current rule" >/dev/null 2>&1)
+assert "drop: exits 0" "0" "$?"
+assert "drop: worktree clean" "" "$(git -C "$DW" status --porcelain)"
+assert "drop: shared red file back to slice 1" "$slice1" "$(cat "$DW/tests/s_test.sh")"
+[ -e "$DW/tests/n_test.sh" ] && gone=0 || gone=1; assert "drop: slice-only red file removed" "1" "$gone"
+grep -qx 'tests/n_test.sh' "$DL/red_tests.txt"; assert "drop: removed file leaves red_tests.txt" "1" "$?"
+git -C "$DW" log -1 --format=%s | grep -q '^revert(autodev): drop slice'; assert "drop: revert commit subject" "0" "$?"
+assert "drop: red_sha moves to the revert" "$(git -C "$DW" rev-parse HEAD)" "$(dctl get dl red_sha)"
+assert "drop: lane continues" "continue" "$(dctl check dl)"
+grep -q 'advisor kept the current rule' "$DL/dropped.md"; assert "drop: reason logged" "0" "$?"
+(cd "$D" && bash "$SCRIPTS_DIR/verify.sh" "$DW" "$DL" >/dev/null 2>&1)
+assert "drop: earlier slices still verify" "0" "$?"
 
 # =============================================================================
 echo "=== commit_path.sh ==="

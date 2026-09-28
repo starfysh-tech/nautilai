@@ -66,7 +66,7 @@ is recoverable; a wrong silent edit is not.
 a user-facing review — it returns `pass`/`block` with blocking/advisory findings.
 `block` maps to `ask-user` (the orchestrator decides), `advisory` maps to `report`,
 and there is no `auto-fix` (the reviewer is read-only). In `--unattended` runs,
-autodev's `advisor` agent may decide an `ask-user` item (setup values, seams, red
+autodev's `advisor` agent may decide an `ask-user` item (seams, red
 tests, test-fix lanes, in-lane hook fixes, spec gaps); every decision is logged
 and the user validates the log at the end of the run. Changes outside the lane
 branch, secret-scanner hits, and anything irreversible stay strict `ask-user`.

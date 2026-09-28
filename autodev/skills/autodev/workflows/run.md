@@ -6,6 +6,7 @@
 
 If `.claude/autodev.md` does not exist at the repo root, follow
 `${CLAUDE_PLUGIN_ROOT}/skills/autodev/workflows/setup.md` and finish it before step 2.
+Setup is a user stop even with `--unattended` (see "Stops and the advisor").
 
 ## 2. Plan the lanes
 
@@ -42,7 +43,10 @@ test -f path/to/deliverable
 Follow `${CLAUDE_PLUGIN_ROOT}/skills/autodev/workflows/review-tests.md` on the existing tests at the seams the lanes
 touch. For each blocking-class finding, propose a test-fix lane (its own slug and
 TASK.md, with the test files it may change under `## Test edits authorized`)
-for the checkpoint. Keep the report for the completion report.
+for the checkpoint. Write the report for each lane's seams to
+`.autodev/<slug>/test-review.md`, or one line naming the seams when no tests
+exist there. `controller.sh set <slug> checkpoint confirmed` refuses a TDD lane
+without it.
 
 ## 4. Worktree and baseline
 
@@ -100,8 +104,12 @@ b. Spawn a `haiku-worker` agent with: the lane dir, `<wt>`, the task text, and
 c. Worker returned `status: blocked` with `failure_signature: spec_gap: …`:
    - unattended (`controller.sh run-get unattended` is `true`): spawn the
      advisor with the gap and the worker's pinning test. On a decision to keep
-     the current rule, log it to `<lane>/decisions.md` and continue from (c)'s
-     verify below. On `decision: escalate`, record and escalate as below.
+     the current rule, log it to `<lane>/decisions.md` and drop the slice:
+     ```bash
+     bash ${CLAUDE_PLUGIN_ROOT}/scripts/drop_slice.sh <wt> <lane> "<decision summary>"
+     ```
+     then continue with the next scenario's red test, or step 8 when none is
+     left. On `decision: escalate`, record and escalate as below.
    - otherwise:
      ```bash
      bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh record-failure <slug> specification "<spec_gap text>"

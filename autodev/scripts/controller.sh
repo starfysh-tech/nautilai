@@ -45,6 +45,11 @@ if cmd == 'init-lane':
     })
 elif cmd == 'set':
     lane, key, value = args[1], args[2], args[3]
+    lane_dir = os.path.join(os.path.dirname(state_file), lane)
+    if (key, value) == ('checkpoint', 'confirmed') \
+            and os.path.isfile(os.path.join(lane_dir, 'profile.md')) \
+            and not os.path.isfile(os.path.join(lane_dir, 'test-review.md')):
+        sys.exit(f"controller: {lane}: write {lane_dir}/test-review.md (run.md step 3) before confirming the checkpoint")
     lanes.setdefault(lane, {})[key] = value
     lanes[lane]['updated_at'] = now
 elif cmd == 'record-failure':

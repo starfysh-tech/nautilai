@@ -18,7 +18,7 @@ homework.
 /autodev --setup                                  # write the TDD profile
 /autodev --plan-only <plan or ticket(s)>          # stop at the launch checkpoint
 /autodev --review-tests <path>                    # FIRST-U review of existing tests
-/autodev --unattended <plan or ticket(s)>         # advisor answers the stops
+/autodev --unattended <plan or ticket(s)>         # advisor answers the checkpoint
 ```
 
 The first run in a repo writes a **TDD profile** at `.claude/autodev.md`: the
@@ -96,7 +96,8 @@ flowchart TD
   implementation failures count, 3 per slice. A repeated identical failure
   stops the lane at once.
 - **Unattended runs** — with `--unattended`, the `advisor` agent (staff-engineer
-  role, fresh context) answers the stops, each decision logged for your
+  role, fresh context) answers the launch checkpoint and spec gaps (setup
+  stays a user stop), each decision logged for your
   validation at the end. It never decides changes outside the lane branch,
   secret-scanner hits, or anything irreversible.
 - **Bounded parallelism** — up to 5 lanes at once, only when marked
@@ -116,6 +117,7 @@ All invoked by the skill via `${CLAUDE_PLUGIN_ROOT}/scripts/`:
 | `expect_run.sh red\|green\|guard …` | Red check, refactor check, guard mutation check |
 | `commit_lane.sh <wt> <lane> <kind> "<subject>" <file>…` | Allowlisted Conventional Commit on the lane branch |
 | `commit_path.sh <repo-root>` | Pick CommitCraft or `commit_lane.sh` |
+| `drop_slice.sh <wt> <lane> "<reason>"` | Drop a slice after an unattended spec gap |
 | `profile.py get\|cut …` | Read the TDD profile; cut TDD rules per role |
 | `classify_failure.sh <log>` | Bucket a failure log |
 | `fingerprint_failure.sh <log>` | Digit/hex-stripped failure hash |
@@ -154,8 +156,7 @@ orchestrator decides whether to loop or escalate), `advisory` maps to
 `report`, and there is no `auto-fix` because the reviewer is read-only
 (`Read, Bash, Grep, Glob`, no `Edit`/`Write`).
 
-In `--unattended` runs, the `advisor` decides `ask-user` items (setup values,
-seams, red tests, test-fix lanes, in-lane hook fixes, spec gaps) and logs each
+In `--unattended` runs, the `advisor` decides `ask-user` items (seams, red tests, test-fix lanes, in-lane hook fixes, spec gaps) and logs each
 decision; the user validates the log at the end. Changes outside the lane
 branch, secret-scanner hits, and anything irreversible stay strict `ask-user`.
 `--review-tests` follows the convention as written: no `auto-fix`, scores and

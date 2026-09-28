@@ -59,6 +59,15 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh run-set unattended <true|false>
 The run has two stops: setup confirmation (only when the repo has no
 `.claude/autodev.md`) and the launch checkpoint.
 
+Setup is always a user stop. Claude Code treats `.claude/autodev.md` as a
+sensitive file, so only a user can approve writing it; never write the profile
+anywhere else or copy it into lanes by hand. With no user to answer, write the
+draft to `.autodev/profile-draft.md`, report `awaiting_setup` with the command
+`mkdir -p .claude && cp .autodev/profile-draft.md .claude/autodev.md`, and stop
+before creating any lane.
+
+The rules below apply to the launch checkpoint and later decisions:
+
 - `controller.sh run-get unattended` prints `true`: do not stop. Spawn the
   `advisor` agent with the stop's package and the path
   `${CLAUDE_PLUGIN_ROOT}/skills/autodev/references/tdd.md`; it decides; append its decision to

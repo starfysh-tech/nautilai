@@ -62,12 +62,14 @@ Do not use tools. Feature:
 $(cat "$INPUT")"
 
 # Run outside the repo so project instructions and hooks cannot shape the output.
+# AUTODEV_EVAL_KEEP=<dir>: keep each run's output there for inspection.
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 all_ok=1; sum_p=0; sum_t=0
 for i in $(seq 1 "$RUNS"); do
   echo "=== run $i ==="
   ( cd "$WORK" && claude -p --system-prompt "$(cat "$RULES")" "$PROMPT" ) > "$WORK/out-$i.md" 2>/dev/null
+  [[ -n "${AUTODEV_EVAL_KEEP:-}" ]] && mkdir -p "$AUTODEV_EVAL_KEEP" && cp "$WORK/out-$i.md" "$AUTODEV_EVAL_KEEP/"
   out="$(grade "$WORK/out-$i.md")"
   printf '%s\n' "$out" | sed '$d'
   read -r p t <<< "$(printf '%s\n' "$out" | tail -1)"

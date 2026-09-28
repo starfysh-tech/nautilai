@@ -44,6 +44,9 @@ Advisor, Guard, TDD profile). Delivery: one PR.
 | 35 | The review gate gets the current slice as "N of M" and judges scenarios and guards only up to it. Found in the first dogfood run. |
 | 36 | A `specification` or `environment` failure sets `needs_guidance`, so `controller.sh check` stops the lane by script. Found in the failure-path dogfood run. |
 | 37 | Test files that existed at `base_sha` are frozen in `verify.sh` unless TASK.md lists them under `## Test edits authorized` (test-fix lanes). Workers add tests in new files. Found in the failure-path dogfood run. |
+| 38 | Unattended spec gap: the advisor keeps the current rule and `drop_slice.sh` drops the slice (reverts its red commits, prunes red tests, logs `dropped.md`); the user validates the drop at the end. Avoids the retry loop on an unsatisfiable red test. |
+| 39 | Setup is always a user stop: Claude Code treats `.claude/autodev.md` as a sensitive file, so an unattended run with no profile writes `.autodev/profile-draft.md`, reports `awaiting_setup`, and stops before any lane. The advisor never answers setup (revises 30). Found in the headless validation run. |
+| 40 | Step 3 writes `.autodev/<slug>/test-review.md`, and `controller.sh set <slug> checkpoint confirmed` refuses a TDD lane without it. Found in run #10, where the test review was skipped. |
 | 33 | Design rationale goes in the PR body and a `docs/plugin-changelog.md` entry. No ADR. This plan is committed with the PR. |
 
 ## Components

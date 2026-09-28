@@ -29,8 +29,12 @@ in `CLAUDE.md` about testing.
 
 ## 2. Confirm
 
-Show every value with its source file. Follow "Stops and the advisor" in
-SKILL.md. Apply the user's fixes.
+Show every value with its source file and ask the user with
+`AskUserQuestion`. The advisor never answers setup. With no user to answer,
+write the draft (section 3 format) to `.autodev/profile-draft.md`, report
+`awaiting_setup` with
+`mkdir -p .claude && cp .autodev/profile-draft.md .claude/autodev.md`, and stop.
+Apply the user's fixes.
 
 ## 3. Write
 
