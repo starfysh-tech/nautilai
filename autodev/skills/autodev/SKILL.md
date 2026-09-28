@@ -1,6 +1,6 @@
 ---
 name: autodev
-description: Run a plan or ticket(s) through a bounded, test-driven development loop — a launch checkpoint to confirm seams and acceptance scenarios, red tests written and committed one slice at a time, scripted worktree lanes, a fast haiku-worker subagent per attempt, objective script-based verification, a review gate, guard mutation checks, and a hard stop with a guidance handoff after 3 counted failures per slice. Use when the user runs /autodev, or asks to "run this ticket to completion", "work this plan test-first", or "keep trying until it's done or blocked". Flags: --setup | --plan-only | --review-tests | --unattended.
+description: Run a plan or ticket(s) through a bounded, test-driven development loop — a launch checkpoint to confirm seams and acceptance scenarios, red tests written and committed one slice at a time, scripted worktree lanes, a fast haiku-worker subagent per attempt, objective script-based verification, a review gate, guard mutation checks, and a hard stop with a guidance handoff after 3 counted failures per slice. Use when the user runs /autodev, or asks to "run this ticket to completion", "work this plan test-first", or "keep trying until it's done or blocked". Flags --setup, --plan-only, --review-tests, --unattended.
 argument-hint: "[--setup | --plan-only | --review-tests <path> | --unattended] <plan or ticket(s) | path or URL>"
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, Skill, AskUserQuestion]
 ---
