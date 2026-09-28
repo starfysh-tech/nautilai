@@ -1,0 +1,15 @@
+# id	section	extended regex (case-insensitive) the section must match
+# Facts taken from fixtures/auth-system.expected.json (the source skill's
+# expected output): structure only, not wording.
+scenario_lockout	Scenarios	lock.*(5|five)|(5|five).*lock
+scenario_password	Scenarios	password.*(complex|requirement|weak|strength)
+scenario_reset_expiry	Scenarios	reset.*(expir|1 hour|one hour|61 min)
+gwt_given	Scenarios	^[[:space:]]*(given|-[[:space:]]*given)
+gwt_then	Scenarios	^[[:space:]]*(then|-[[:space:]]*then)
+first_u_password	First-U	password
+q1_password	Quadrant	q1.*password|password.*q1
+q2_oauth	Quadrant	q2.*oauth|oauth.*q2
+q3_email_send	Quadrant	q3.*(sendgrid|email)|(sendgrid|reset email).*q3
+q4_email_format	Quadrant	q4.*(email (format|valid)|bcrypt|hash)|(email format|bcrypt).*q4
+review_shared_state	Existing test review	(shared|previous test|depends on|interdepend|isolat)
+review_weak_assertion	Existing test review	(== ?true|vague|weak|assert.*too little|truthy)

@@ -3,7 +3,7 @@
   "name": "autodev",
   "displayName": "AutoDev",
   "version": "2.28.1",
-  "description": "Bounded autonomous development loop: scripted worktree lanes, fast worker subagents, objective script-based verification, and a hard 3-failure escalation to the user.",
+  "description": "Bounded test-driven development loop for plans and tickets: a launch checkpoint, red tests committed one slice at a time, scripted worktree lanes, fast worker subagents, script-based verification, a review gate, guard mutation checks, and a hard 3-failure escalation per slice.",
   "author": {
     "name": "Randall Noval",
     "email": "randall@starfysh.net",

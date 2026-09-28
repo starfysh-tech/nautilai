@@ -87,6 +87,7 @@ Django-shaped files under a temp dir), so they're offline and side-effect-free:
 ```bash
 bash commitcraft/tests/detect-rp.test.sh
 bash autodev/tests/scripts.test.sh
+bash autodev/tests/tdd.test.sh
 python3 rbac-django/tests/test_route_scan.py
 ```
 
