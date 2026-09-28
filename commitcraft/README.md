@@ -15,6 +15,7 @@ Then, in any git repo, invoke a workflow:
 
 ```text
 /commitcraft commit     # AI-generated conventional commit
+/commitcraft commit --files a.py b.py   # stage only these paths
 /commitcraft push       # commit + push with issue tracking
 /commitcraft pr         # PR with an AI-generated description
 /commitcraft release    # semantic version bump + release notes

@@ -22,11 +22,15 @@ git diff --stat
 | Merge conflicts (git status shows `UU`, `AA`, `DD`) | HARD STOP — show conflicts, exit |
 | Detached HEAD | HARD STOP — show current state, exit |
 
-3. Auto-stage all changes:
+3. Stage changes:
 
-- Parse `git status --porcelain` output
-- Stage each modified/untracked file individually: `git add <file>` (never use `git add -A`)
-- If nothing to stage after auto-staging, HARD STOP — "no changes to commit", exit
+- With `--files <path>...` in the context: stage only those paths, each with
+  `git add -- <path>`. Leave every other change unstaged. If another file is
+  already staged, HARD STOP — show it, exit.
+- Otherwise, auto-stage all changes: parse `git status --porcelain` and stage
+  each modified/untracked file individually with `git add <file>` (never use
+  `git add -A`).
+- If nothing is staged, HARD STOP — "no changes to commit", exit
 
 4. Run final staged diff:
 
