@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.31.0](https://github.com/starfysh-tech/nautilai/compare/v2.30.0...v2.31.0) (2026-09-29)
+
+
+### Features
+
+* **pr-review-deep:** cite stated architecture rules in findings ([#164](https://github.com/starfysh-tech/nautilai/issues/164)) ([2a7f6d6](https://github.com/starfysh-tech/nautilai/commit/2a7f6d63354d1bc4039559f3ddd607b1f7bf170d))
+
 ## [2.30.0](https://github.com/starfysh-tech/nautilai/compare/v2.29.0...v2.30.0) (2026-09-29)
 
 
