@@ -32,6 +32,11 @@ enabled = true
 name = "shell"
 enabled = true
 
+  # Every tracked .sh script is bash (shebang or `# shellcheck shell=bash`).
+  # Without this the analyzer flags `[[ == ]]` and `=~` as undefined POSIX sh.
+  [analyzers.meta]
+  dialect = "bash"
+
 [[analyzers]]
 name = "secrets"
 enabled = true
