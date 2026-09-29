@@ -1,8 +1,9 @@
 # AutoDev
 
-Bounded autonomous development loop for Claude Code: take a ticket or plan and
-work it to done, blocked, or needs-guidance — without letting the model grind
-indefinitely or grade its own homework.
+Bounded test-driven development loop for Claude Code: take a plan or ticket(s)
+and work it to done, blocked, or needs-guidance — red tests first, one slice at
+a time — without letting the model grind indefinitely or grade its own
+homework.
 
 ## Install
 
@@ -13,54 +14,91 @@ indefinitely or grade its own homework.
 ## Usage
 
 ```
-/autodev <ticket text | plan text | path or URL>
+/autodev <plan or ticket(s) | path or URL>        # full run
+/autodev --setup                                  # write the TDD profile
+/autodev --plan-only <plan or ticket(s)>          # stop at the launch checkpoint
+/autodev --review-tests <path>                    # FIRST-U review of existing tests
+/autodev --unattended <plan or ticket(s)>         # advisor answers the checkpoint
 ```
+
+The first run in a repo writes a **TDD profile** at `.claude/autodev.md`: the
+single-file test command, full suite, lint and format commands, coverage, test
+DB isolation, frozen test config, and stack. Setup detects each value, shows its
+source file, and asks you to confirm. Commit the file.
 
 ## How it works
 
 ```mermaid
 flowchart TD
-  Init["Init lane + worktree"] --> Baseline{"baseline_verify.sh"}
+  Profile{".claude/autodev.md?"} -->|"no"| Setup["setup: detect + confirm"]
+  Setup --> Plan
+  Profile -->|"yes"| Plan["plan lanes: quadrant, GWT scenarios, seams, guards"]
+  Plan --> Review["review existing tests at the seams"]
+  Review --> Init["init lane + worktree"] --> Baseline{"baseline_verify.sh"}
   Baseline -->|"red"| Escalated["needs_guidance: escalate_summary.sh"]
-  Baseline -->|"green"| Gate{"controller.sh check"}
+  Baseline -->|"green"| Red["write slice 1 red test, expect_run.sh red, red commit"]
+  Red --> Checkpoint{"launch checkpoint"}
+  Checkpoint -->|"confirmed"| Gate{"controller.sh check"}
   Gate -->|"stop"| Escalated
   Gate -->|"continue"| Worker["haiku-worker attempt"]
-  Worker --> Verify{"verify.sh"}
-  Verify -->|"pass"| Review{"review-gate verdict"}
+  Worker --> Verify{"verify.sh pipeline"}
+  Verify -->|"pass"| ReviewGate{"review-gate verdict"}
   Verify -->|"fail"| Classify{"classify_failure.sh"}
-  Review -->|"pass"| Success["record-success + DONE.md"]
-  Success --> Complete["Lane done"]
-  Review -->|"block"| Counted["record-failure implementation: counted_failures +1 of 3, note to RUNSTATE.md"]
+  ReviewGate -->|"pass"| Green["green commit, cap reset"]
+  Green -->|"more scenarios"| NextRed["next red test + red commit"] --> Gate
+  Green -->|"last slice"| Guard{"expect_run.sh guard per guard"}
+  Guard -->|"all caught"| Refactor["one refactor attempt (dropped on failure)"]
+  Guard -->|"guard missed"| Counted
+  Refactor --> Success["record-success + DONE.md"]
+  ReviewGate -->|"block"| Counted["record-failure implementation: +1 of 3 for this slice"]
   Classify -->|"implementation"| Counted
-  Classify -->|"transient"| Transient["record-transient: consecutive transient_retries +1 of 2, not counted"]
+  Classify -->|"transient"| Transient["record-transient: not counted"]
   Classify -->|"environment or specification"| Escalated
   Counted --> Gate
   Transient --> Gate
 ```
 
+- **TDD rules** live in `skills/autodev/references/tdd.md`: FIRST-U, the
+  complexity quadrant and First-U choice, Given/When/Then, the loop, guard
+  checks, coverage, test anti-patterns, and stack patterns (pytest, Factory
+  Boy, Vitest, React Testing Library). Each lane gets a frozen, role-scoped cut:
+  `TDD-worker.md` for the worker and `TDD-review.md` for the review gate, with
+  only the stacks the profile lists.
+- **Launch checkpoint** — one stop before any attempt: seams, scenarios in slice
+  order, quadrant placement and First-U choice, guards, exemptions, proposed
+  test-fix lanes, and the first red test with its real failure output.
+- **Red tests, one slice at a time** — the orchestrator writes each red test,
+  `expect_run.sh red` proves it fails for a real reason (not a timeout, missing
+  command, or empty collection), and it is committed before the worker starts.
+  The worker cannot change it: `verify.sh` fails the attempt if any red test or
+  profile `test_config` file differs from the red commit, or if a test file
+  that existed before the lane changed without TASK.md authorizing it.
 - **One task lane per independent task** — state in `.autodev/<slug>/`
-  (`TASK.md`, `RUNSTATE.md`, `DONE.md`, optional `VERIFY.sh`), all
+  (`TASK.md`, `RUNSTATE.md`, `DONE.md`, TDD files, optional `VERIFY.sh`), all
   self-gitignored.
 - **Scripted worktrees** — every lane gets `.autodev-worktrees/<slug>` on an
-  `autodev/<slug>` branch via `create_worktree.sh`; the model never manages
-  worktree mechanics by hand.
-- **Baseline verification** — checks must pass *before* autonomous work starts,
-  so pre-existing breakage is never billed to the worker.
-- **Fast worker subagents** — each attempt is one bounded `haiku-worker` run
-  that makes the smallest useful change and reports a structured result.
-- **Objective verification** — `verify.sh` (lane `VERIFY.sh`, else auto-detected
-  npm/pytest/go/cargo suite) decides completion, not model self-judgment.
-- **Review gate** — tests-green is necessary, not sufficient: after `verify.sh`
-  passes, an independent `review-gate` agent reviews the lane diff against
-  TASK.md for what tests can't see (resource lifecycle, scope creep, weak new
-  tests, security patterns). Blocking findings count as an implementation
-  failure toward the same 3-cap; only a `pass` verdict yields `DONE.md`.
-- **Failure accounting** — failures are classified
-  (implementation / environment / specification / transient) and fingerprinted;
-  only implementation failures count toward the cap.
-- **Hard escalation** — after 3 counted failures or a repeated identical
-  failure fingerprint, `controller.sh check` stops the lane and
-  `escalate_summary.sh` produces a concise guidance handoff for the user.
+  `autodev/<slug>` branch via `create_worktree.sh`, with its `base_sha`
+  recorded once.
+- **Verification pipeline** — frozen-test check, red tests, lint and format
+  check on changed files, lane `VERIFY.sh`, then the full suite (profile
+  `full_suite`, else repo `VERIFY.sh`, else auto-detected npm/pytest/go/cargo).
+  Coverage is reported, never gated. Lanes without a profile keep the old
+  single-verifier behavior.
+- **Review gate** — after `verify.sh` passes, an independent `review-gate`
+  agent reviews the diff against TASK.md and the lane's `TDD-review.md`.
+  Blocking findings count as an implementation failure.
+- **Guard check** — for every guard the spec demands, `expect_run.sh guard`
+  removes it in a throwaway worktree and requires its test to go red.
+- **Commits** — red, green, and refactor commits on the lane branch, through
+  `commit_lane.sh`. Hooks always run; never `--no-verify`.
+- **Failure accounting** — failures are classified and fingerprinted; only
+  implementation failures count, 3 per slice. A repeated identical failure
+  stops the lane at once.
+- **Unattended runs** — with `--unattended`, the `advisor` agent (staff-engineer
+  role, fresh context) answers the launch checkpoint and spec gaps (setup
+  stays a user stop), each decision logged for your
+  validation at the end. It never decides changes outside the lane branch,
+  secret-scanner hits, or anything irreversible.
 - **Bounded parallelism** — up to 5 lanes at once, only when marked
   `parallel_safe` by a conservative heuristic.
 
@@ -70,11 +108,16 @@ All invoked by the skill via `${CLAUDE_PLUGIN_ROOT}/scripts/`:
 
 | Script | Purpose |
 | --- | --- |
-| `init_task_lane.sh <slug> "<task>"` | Create lane files + controller state |
-| `create_worktree.sh <slug> [base]` | Create/reuse the lane worktree |
+| `init_task_lane.sh <slug> "<task>"` | Create lane files, freeze TDD files + profile |
+| `create_worktree.sh <slug> [base]` | Create/reuse the lane worktree, record `base_sha` |
 | `remove_worktree.sh <slug>` | Remove worktree + `autodev/<slug>` branch |
 | `baseline_verify.sh <worktree> <slug>` | Pre-flight green check |
-| `verify.sh [dir] [lane-dir]` | Objective verifier (lane `VERIFY.sh` wins) |
+| `verify.sh [dir] [lane-dir]` | Verification pipeline (TDD lanes) or single verifier |
+| `expect_run.sh red\|green\|guard …` | Red check, refactor check, guard mutation check |
+| `commit_lane.sh <wt> <lane> <kind> "<subject>" <file>…` | Allowlisted Conventional Commit on the lane branch |
+| `drop_slice.sh <wt> <lane> "<reason>"` | Drop a slice after an unattended spec gap |
+| `drop_slice.sh --checkpoint <lane> "<reason>"` | Log a scenario dropped at the launch checkpoint |
+| `profile.py get\|cut …` | Read the TDD profile; cut TDD rules per role |
 | `classify_failure.sh <log>` | Bucket a failure log |
 | `fingerprint_failure.sh <log>` | Digit/hex-stripped failure hash |
 | `controller.sh <cmd> …` | State machine over `.autodev/state.json` |
@@ -112,6 +155,12 @@ orchestrator decides whether to loop or escalate), `advisory` maps to
 `report`, and there is no `auto-fix` because the reviewer is read-only
 (`Read, Bash, Grep, Glob`, no `Edit`/`Write`).
 
+In `--unattended` runs, the `advisor` decides `ask-user` items (seams, red tests, test-fix lanes, in-lane hook fixes, spec gaps) and logs each
+decision; the user validates the log at the end. Changes outside the lane
+branch, secret-scanner hits, and anything irreversible stay strict `ask-user`.
+`--review-tests` follows the convention as written: no `auto-fix`, scores and
+advisory findings are `report`, blocking-class findings are `ask-user`.
+
 ## Design notes
 
 - No hooks. An earlier iteration ran the verifier as a `Stop` hook in every
@@ -129,11 +178,17 @@ orchestrator decides whether to loop or escalate), `advisory` maps to
 
 ## Tests
 
-Self-contained, offline bash suite (fixtures in `mktemp` dirs, no stubs):
+Self-contained, offline bash suites (fixtures in `mktemp` dirs, a fake `HOME`
+for plugin detection):
 
 ```bash
 bash autodev/tests/scripts.test.sh
+bash autodev/tests/tdd.test.sh
 ```
+
+The planning behavior has a live eval (real `claude -p` calls, not in CI):
+`bash autodev/tests/eval/live-validate.sh` — see
+[`tests/eval/LIVE-LEDGER.md`](tests/eval/LIVE-LEDGER.md).
 
 Fittingly, the suite was authored by the plugin itself during its first live
 validation run.
@@ -153,6 +208,8 @@ Five live validation runs across five repos (see
 - **Orchestration path validated:** teammate-fallback only; every run
   hand-substituted `${CLAUDE_PLUGIN_ROOT}`. The native installed-plugin path
   (skill triggering, agent-type resolution, main-session signals) has not run.
+- **TDD flow:** scripts are covered offline (`tdd.test.sh`); the end-to-end
+  red → checkpoint → slices → guard → refactor flow has not run live.
 - **Review gate:** 3-for-3 correct blocks live; zero live `pass` verdicts —
   the DONE.md happy path through the gate and the false-positive rate are
   unmeasured.
@@ -168,9 +225,9 @@ confidence gate for general use):
   lane that *passes* the review gate (DONE.md-with-verdict path).
 - **Review-gate calibration** — measure the false-positive rate on ordinary
   decent diffs; every false block burns a third of the cap.
-- **`harvest_lane.sh`** — completed work strands in the worktree today
-  (commit on lane branch → push → PR → clean); done by hand four times, and
-  deleting an unharvested worktree destroys the only copy.
+- **`harvest_lane.sh`** — lanes now commit on their branch, but push → PR →
+  clean is still by hand, and deleting an unpushed worktree branch destroys
+  the only copy.
 - **`preflight.sh`** — fail fast before lane init: clean tree, verifier
   detectable (or lane VERIFY.sh required), `python3` present, remote/`gh`
   available; today these surface mid-run as confusing failures.

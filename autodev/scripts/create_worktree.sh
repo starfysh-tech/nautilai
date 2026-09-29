@@ -27,4 +27,9 @@ if [[ ! -d "$WT_ROOT/.git" && ! -f "$WT_ROOT/.git" ]]; then
   fi
 fi
 bash "$SCRIPT_DIR/controller.sh" set "$SLUG" worktree_path "$WT_ROOT"
+# Recorded once: a resumed branch already holds lane commits, so re-reading
+# the base branch later would give a moving comparison point.
+if [[ -z "$(bash "$SCRIPT_DIR/controller.sh" get "$SLUG" base_sha)" ]]; then
+  bash "$SCRIPT_DIR/controller.sh" set "$SLUG" base_sha "$(git merge-base "$BASE_BRANCH" "$BRANCH")"
+fi
 echo "$WT_ROOT"

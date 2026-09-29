@@ -1,0 +1,15 @@
+# id	section	extended regex (case-insensitive) the section must match
+# Facts taken from the aerie TDD skill's expected_output.json
+# (mqol-aerie .claude/skills/tdd/): structure only, not wording. Quadrant checks grade the
+# dependency axis (OAuth has many deps: Q2 or Q3), not one worked placement.
+scenario_lockout	Scenarios	lock.*(5|five)|(5|five).*lock
+scenario_password	Scenarios	scenario.*(password.*(complex|requirement|weak|strength|rule|character|short|missing)|weak password)
+scenario_reset_expiry	Scenarios	reset.*(expir|1 hour|one hour|61 min)
+gwt_given	Scenarios	^[[:space:]]*(given|-[[:space:]]*given)
+gwt_then	Scenarios	^[[:space:]]*(then|-[[:space:]]*then)
+first_u_password	First-U	password
+q1_password	Quadrant	q1.*password|password.*q1
+oauth_many_deps	Quadrant	(q2|q3).*oauth|oauth.*(q2|q3)
+q3_email_send	Quadrant	q3.*(sendgrid|email)|(sendgrid|reset email).*q3
+review_shared_state	Existing test review	(shared|previous test|depends on|interdepend|isolat)
+review_weak_assertion	Existing test review	(== ?true|vague|weak|assert.*too little|truthy)

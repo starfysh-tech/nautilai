@@ -59,6 +59,9 @@ jobs:
       - name: autodev script tests
         run: bash autodev/tests/scripts.test.sh
 
+      - name: autodev TDD script tests
+        run: bash autodev/tests/tdd.test.sh
+
       - name: commitcraft script tests
         run: bash commitcraft/tests/detect-rp.test.sh
 

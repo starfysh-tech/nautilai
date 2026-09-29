@@ -1,0 +1,67 @@
+{
+  "request_type": "generate_acceptance_criteria_and_first_u_test",
+  "feature": {
+    "name": "User Authentication System",
+    "description": "Multi-factor authentication with email/password, OAuth providers, and account security features",
+    "requirements": [
+      "Users can register with email and password",
+      "Password must meet complexity requirements (min 8 chars, uppercase, lowercase, number, special char)",
+      "Users can log in with email/password",
+      "OAuth login support (Google, GitHub)",
+      "Failed login attempts are tracked",
+      "Account locks after 5 failed login attempts within 15 minutes",
+      "Locked accounts automatically unlock after 1 hour",
+      "Users can request password reset via email",
+      "Password reset link valid for 1 hour",
+      "Two-factor authentication (2FA) optional via TOTP",
+      "Session management with secure tokens",
+      "Remember me option (30-day session)"
+    ],
+    "context": {
+      "system_type": "REST API backend",
+      "database": "PostgreSQL",
+      "external_dependencies": [
+        "OAuth providers (Google, GitHub APIs)",
+        "Email service (SendGrid)",
+        "TOTP library (OTPAuth)"
+      ],
+      "security_requirements": [
+        "OWASP Top 10 compliance",
+        "Password hashing with bcrypt",
+        "CSRF protection",
+        "Rate limiting on login endpoint"
+      ],
+      "business_criticality": "High - core application functionality",
+      "team_context": "5 developers, 2-week sprint, TDD workflow"
+    }
+  },
+  "existing_tests": [
+    {
+      "test_name": "testUserRegistration",
+      "code": "def test_user_registration():\n    user = create_user('test@example.com', 'Password123!')\n    assert user is not None\n    assert user.email == 'test@example.com'",
+      "issues": [
+        "Tests implementation detail (user object creation)",
+        "Doesn't test password hashing",
+        "Missing error cases",
+        "No cleanup (database pollution)"
+      ]
+    },
+    {
+      "test_name": "testLogin",
+      "code": "def test_login():\n    user = User.objects.get(email='test@example.com')\n    result = login(user.email, 'Password123!')\n    assert result == True",
+      "issues": [
+        "Depends on data from previous test",
+        "Shared database state",
+        "Vague assertion (result == True)",
+        "Doesn't verify session creation"
+      ]
+    }
+  ],
+  "questions": [
+    "What Given/When/Then acceptance criteria should I write?",
+    "Which test should I write first (First-U test)?",
+    "How do I prioritize tests using complexity quadrant?",
+    "What anti-patterns exist in my current tests?",
+    "What FIRST-U principles are violated?"
+  ]
+}

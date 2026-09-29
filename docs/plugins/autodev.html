@@ -4,9 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>autodev — nautilai</title>
-<meta name="description" content="Bounded autonomous development loop: scripted worktree lanes, fast worker subagents, objective script-based verification, and a hard 3-failure escalation to the user." />
+<meta name="description" content="Bounded test-driven development loop for plans and tickets: a launch checkpoint, red tests committed one slice at a time, scripted worktree lanes, fast worker subagents, script-based verification, a review gate, guard mutation checks, and a hard 3-failure escalation per slice." />
 <meta property="og:title" content="autodev — nautilai" />
-<meta property="og:description" content="Bounded autonomous development loop: scripted worktree lanes, fast worker subagents, objective script-based verification, and a hard 3-failure escalation to the user." />
+<meta property="og:description" content="Bounded test-driven development loop for plans and tickets: a launch checkpoint, red tests committed one slice at a time, scripted worktree lanes, fast worker subagents, script-based verification, a review gate, guard mutation checks, and a hard 3-failure escalation per slice." />
 <meta property="og:type" content="website" />
 <meta name="theme-color" content="#0a141d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -21,7 +21,7 @@
 
   <header class="plugin-hero">
     <h1 class="plugin-name">autodev</h1>
-    <p class="tagline">Bounded autonomous development loop: work a ticket to done, blocked, or needs-guidance — without grinding indefinitely or grading its own homework.</p>
+    <p class="tagline">Test-driven development loop: work a plan or ticket to done, blocked, or needs-guidance, red test first, one slice at a time.</p>
   </header>
 
   <section id="install">
@@ -39,32 +39,36 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>AutoDev takes a ticket or plan and runs it through a bounded autonomous loop: an isolated worktree per lane, disposable haiku worker subagents that make the smallest useful change, and objective script-based verification instead of model self-judgment. A hard stop after 3 counted implementation failures produces a guidance handoff instead of grinding on.</p>
-    <p>Validated across five live runs on one macOS machine, over npm and pytest suites — see the README's "Validated scope" for what hasn't been exercised yet (Linux/CI, the native installed-plugin path, and a live pass through the review gate).</p>
+    <p>AutoDev takes a plan or ticket(s), plans each lane with the complexity quadrant and Given/When/Then scenarios, and stops once at a launch checkpoint to confirm seams, scenarios, and the first red test's real failure output. Then each slice runs red, then green: the orchestrator writes and commits a red test, a disposable haiku worker makes it pass, scripts verify, an independent review-gate agent reviews, and the change is committed on the lane branch. Guards the spec demands are proven by removing each one and requiring its test to fail.</p>
+    <p>The scripts are covered by offline suites; the end-to-end TDD flow has not run live yet. Earlier live runs covered one macOS machine over npm and pytest suites — see the README's "Validated scope".</p>
   </section>
 
   <section id="commands">
     <h2>Commands / skills</h2>
     <ul class="skill-list">
-      <li><div class="sk-name">/autodev &lt;ticket text | plan text | path or URL&gt;</div><p>Runs the given task through the full lane lifecycle: init, worktree, baseline verify, bounded worker attempts, verification, review gate, and either <code>DONE.md</code> or an escalation summary.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/autodev &lt;plan or ticket(s) | path or URL&gt;</div><p>Runs the full flow: TDD profile, lane planning, existing-test review, baseline, first red test, launch checkpoint, then red/green slices, guard checks, one refactor attempt, and either <code>DONE.md</code> or an escalation summary.</p><div class="sk-triggers">"run this ticket to completion", "work this plan test-first", "keep trying until it's done or blocked"</div></li>
+      <li><div class="sk-name">/autodev --setup</div><p>Detects the repo's test, lint, format, coverage, and DB-isolation commands, shows each with its source file, and writes the confirmed TDD profile to <code>.claude/autodev.md</code>.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/autodev --plan-only &lt;plan or ticket(s)&gt;</div><p>Runs to the launch checkpoint and stops; a later run on the same input starts at the slices.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/autodev --review-tests &lt;path&gt;</div><p>Read-only review of existing tests: FIRST-U scores, anti-patterns, missing scenarios, proposed fixes, and coverage gaps.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/autodev --unattended &lt;plan or ticket(s)&gt;</div><p>An advisor agent answers the launch checkpoint and spec gaps; setup stays a user stop. Every decision is logged for you to validate at the end.</p><div class="sk-triggers">explicit slash form only</div></li>
     </ul>
   </section>
 
   <section id="how">
     <h2>How it works</h2>
     <ul>
-      <li>One task lane per independent task, with state in <code>.autodev/&lt;slug&gt;/</code> and a scripted worktree on an <code>autodev/&lt;slug&gt;</code> branch — the model never manages worktree mechanics by hand.</li>
-      <li>Baseline verification must pass before autonomous work starts, so pre-existing breakage is never billed to the worker.</li>
-      <li>Each attempt is one bounded haiku-worker run; <code>verify.sh</code> (a lane <code>VERIFY.sh</code>, or an auto-detected npm/pytest/go/cargo suite) decides completion, not model self-judgment.</li>
-      <li>Tests-green is necessary but not sufficient: an independent review-gate agent checks the lane diff against <code>TASK.md</code> for what tests can't see — resource lifecycle, scope creep, weak new tests, security patterns. A blocking verdict counts as an implementation failure toward the same cap; only a pass yields <code>DONE.md</code>.</li>
-      <li>Failures are classified (implementation / environment / specification / transient) and fingerprinted; only implementation failures count toward the cap. After 3 counted failures, or a repeated identical fingerprint, the lane stops and produces a concise guidance handoff.</li>
-      <li>Up to 5 lanes can run in parallel, gated by a conservative <code>parallel_safe</code> heuristic.</li>
+      <li>TDD rules ship in <code>references/tdd.md</code>; each lane gets a frozen cut per role — <code>TDD-worker.md</code> and <code>TDD-review.md</code> — with only the stacks the repo's TDD profile lists.</li>
+      <li>One task lane per independent task, with state in <code>.autodev/&lt;slug&gt;/</code> and a scripted worktree on an <code>autodev/&lt;slug&gt;</code> branch. Baseline verification must pass before any red test is written.</li>
+      <li>Red tests are written by the orchestrator one slice at a time; <code>expect_run.sh red</code> rejects a timeout, a missing command, or an empty collection as a red, and the test is committed before the worker starts.</li>
+      <li><code>verify.sh</code> runs a pipeline: red tests and test config unchanged since the red commit, red tests, lint and format check on changed files, lane <code>VERIFY.sh</code>, full suite. Coverage is reported, never gated.</li>
+      <li>An independent review-gate agent checks the diff against <code>TASK.md</code> and the lane's test anti-pattern list; <code>expect_run.sh guard</code> removes each guard in a throwaway worktree and requires its test to fail.</li>
+      <li>Failures are classified and fingerprinted; 3 counted failures per slice, or a repeated identical fingerprint, stop the lane with a guidance handoff. Up to 5 <code>parallel_safe</code> lanes run at once.</li>
     </ul>
 
     <div class="flow">
-      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">init lane</span><span class="fs-sub">init_task_lane.sh</span></span></div>
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">plan + red test</span><span class="fs-sub">expect_run.sh red</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">create worktree</span><span class="fs-sub">create_worktree.sh</span></span></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">launch checkpoint</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
       <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">haiku-worker attempt</span></span></div>
     </div>
@@ -81,7 +85,7 @@
       <div class="flow-lane" data-lane="ok"><span class="flow-lane-label">ok</span>
         <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">pass verdict</span></span></div>
         <div class="flow-arrow" aria-hidden="true"></div>
-        <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">DONE.md</span></span></div>
+        <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">green commit, next slice</span></span></div>
       </div>
       <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">degrade</span>
         <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">3rd counted failure</span></span></div>
@@ -94,12 +98,14 @@
       <summary>Under the hood</summary>
       <div class="tech-body">
         <ul>
-          <li>State lives in <code>.autodev/&lt;slug&gt;/</code> — <code>TASK.md</code>, <code>RUNSTATE.md</code>, <code>DONE.md</code>, optional lane <code>VERIFY.sh</code>, all self-gitignored.</li>
+          <li>State lives in <code>.autodev/&lt;slug&gt;/</code> — <code>TASK.md</code>, <code>RUNSTATE.md</code>, <code>DONE.md</code>, <code>TDD-worker.md</code>, <code>TDD-review.md</code>, a frozen <code>profile.md</code>, optional lane <code>VERIFY.sh</code>, all self-gitignored.</li>
+          <li>The TDD profile <code>.claude/autodev.md</code> holds YAML frontmatter (<code>test_file</code>, <code>full_suite</code>, <code>lint</code>, <code>format</code>, <code>format_check</code>, <code>coverage</code>, <code>db_isolation</code>, <code>test_config</code>, <code>stack</code>) read by <code>profile.py</code>; an empty value is an error, <code>unknown</code> is a logged skip.</li>
           <li><code>init_task_lane.sh</code> / <code>create_worktree.sh</code> — lane files + controller state, then a worktree at <code>.autodev-worktrees/&lt;slug&gt;</code> on an <code>autodev/&lt;slug&gt;</code> branch.</li>
           <li><code>baseline_verify.sh</code> — must pass before autonomous work starts.</li>
-          <li><code>verify.sh</code> — lane <code>VERIFY.sh</code> wins, else auto-detected npm/pytest/go/cargo; receives <code>AUTODEV_PHASE</code> (<code>baseline</code> | <code>attempt</code>). Times out after <code>AUTODEV_VERIFY_TIMEOUT</code> seconds (default 1200), killing the process group.</li>
+          <li><code>verify.sh</code> — the TDD pipeline for lanes with a profile; otherwise lane <code>VERIFY.sh</code>, else auto-detected npm/pytest/go/cargo. Receives <code>AUTODEV_PHASE</code> (<code>baseline</code> skips the red and lint stages). Times out after <code>AUTODEV_VERIFY_TIMEOUT</code> seconds (default 1200), killing the process group.</li>
+          <li><code>commit_lane.sh</code> — red, green, and refactor commits stage only named files and always run hooks.</li>
           <li><code>classify_failure.sh</code> / <code>fingerprint_failure.sh</code> — bucket a failure log (implementation / environment / specification / transient) and hash it; only implementation failures count toward the 3-cap. Ambiguous logs default to <code>implementation</code>, since a misclassified failure would be an uncounted retry.</li>
-          <li>The <code>review-gate</code> agent runs on the <code>sonnet</code> model, distinct from the haiku worker attempts.</li>
+          <li>The <code>review-gate</code> agent runs on <code>sonnet</code> and the <code>advisor</code> on <code>opus</code>, distinct from the haiku worker attempts. The advisor never decides changes outside the lane branch, secret-scanner hits, or anything irreversible.</li>
           <li><code>controller.sh</code> — the state machine over <code>.autodev/state.json</code>; <code>escalate_summary.sh</code> writes the guidance handoff after a hard stop.</li>
           <li>No hooks are installed — verification runs only inside the <code>/autodev</code> loop.</li>
           <li>The worker never creates <code>DONE.md</code> — only the orchestrator, after <code>verify.sh</code> passes.</li>
@@ -110,7 +116,7 @@
 
   <section id="requirements">
     <h2>Requirements</h2>
-    <p>Claude Code with plugin support, and an existing test suite the auto-detector can run (npm/<code>node --test</code>, pytest, or a lane-supplied <code>VERIFY.sh</code> for anything else — go/cargo detection exists but is unexercised). No hooks are installed; verification runs only inside the <code>/autodev</code> loop.</p>
+    <p>Claude Code with plugin support, <code>python3</code>, and a test runner that can run a single test file (recorded in the TDD profile by <code>/autodev --setup</code>). Tasks with no testable behavior use a lane <code>VERIFY.sh</code>. No hooks are installed; verification runs only inside the <code>/autodev</code> loop.</p>
   </section>
 
   <footer>

@@ -45,6 +45,11 @@ if cmd == 'init-lane':
     })
 elif cmd == 'set':
     lane, key, value = args[1], args[2], args[3]
+    lane_dir = os.path.join(os.path.dirname(state_file), lane)
+    if (key, value) == ('checkpoint', 'confirmed') \
+            and os.path.isfile(os.path.join(lane_dir, 'profile.md')) \
+            and not os.path.isfile(os.path.join(lane_dir, 'test-review.md')):
+        sys.exit(f"controller: {lane}: write {lane_dir}/test-review.md (run.md step 3) before confirming the checkpoint")
     lanes.setdefault(lane, {})[key] = value
     lanes[lane]['updated_at'] = now
 elif cmd == 'record-failure':
@@ -67,6 +72,10 @@ elif cmd == 'record-failure':
     lane_state['updated_at'] = now
     if int(lane_state.get('counted_failures', 0)) >= MAX_COUNTED_FAILURES:
         lane_state['status'] = 'needs_guidance'
+    # Retrying cannot fix a spec gap or a broken environment; stop the lane
+    # here so escalation never depends on the orchestrator reading the class.
+    if klass in ('specification', 'environment'):
+        lane_state['status'] = 'needs_guidance'
 elif cmd == 'record-transient':
     # A `transient` classification (see classify_failure.sh) retries once
     # immediately without counting toward MAX_COUNTED_FAILURES — but nothing
@@ -85,6 +94,26 @@ elif cmd == 'record-success':
     lane_state['transient_retries'] = 0
     lane_state['attempt_count'] = int(lane_state.get('attempt_count', 0)) + 1
     lane_state['updated_at'] = now
+elif cmd == 'record-slice-green':
+    # Each slice gets its own failure cap; the lane is not done until the
+    # last slice, so status is left alone.
+    lane = args[1]
+    lane_state = lanes.setdefault(lane, {})
+    lane_state['counted_failures'] = 0
+    lane_state['last_failure_fingerprint'] = None
+    lane_state['last_failure_repeated'] = False
+    lane_state['transient_retries'] = 0
+    lane_state['updated_at'] = now
+elif cmd == 'run-set':
+    state.setdefault('run', {})[args[1]] = args[2]
+elif cmd == 'run-get':
+    value = state.get('run', {}).get(args[1])
+    print('' if value is None else value)
+    sys.exit(0)
+elif cmd == 'get':
+    value = lanes.get(args[1], {}).get(args[2])
+    print('' if value is None else value)
+    sys.exit(0)
 elif cmd == 'check':
     # Gate for the orchestration loop: exit 0 = keep going, exit 1 = stop.
     lane = args[1]
@@ -92,6 +121,9 @@ elif cmd == 'check':
     reasons = []
     if lane_state.get('status') in ('done', 'needs_guidance'):
         reasons.append(f"status={lane_state.get('status')}")
+    # Absent on lanes made by init-lane alone (pre-checkpoint callers).
+    if lane_state.get('checkpoint', 'confirmed') != 'confirmed':
+        reasons.append(f"checkpoint={lane_state.get('checkpoint')}")
     if int(lane_state.get('counted_failures', 0)) >= MAX_COUNTED_FAILURES:
         reasons.append(f"counted_failures={lane_state.get('counted_failures')} (cap {MAX_COUNTED_FAILURES})")
     if int(lane_state.get('transient_retries', 0)) >= MAX_TRANSIENT_RETRIES:
@@ -107,7 +139,7 @@ elif cmd == 'show':
     print(json.dumps(state, indent=2))
     sys.exit(0)
 else:
-    print('usage: controller.sh init-lane <lane> | set <lane> <key> <value> | record-failure <lane> <class> <fingerprint> | record-transient <lane> | record-success <lane> | check <lane> | show', file=sys.stderr)
+    print('usage: controller.sh init-lane <lane> | set <lane> <key> <value> | get <lane> <key> | record-failure <lane> <class> <fingerprint> | record-transient <lane> | record-success <lane> | record-slice-green <lane> | check <lane> | run-set <key> <value> | run-get <key> | show', file=sys.stderr)
     sys.exit(1)
 # Atomic replace so an unlocked reader can never observe a torn write.
 tmp_fd, tmp_path = tempfile.mkstemp(dir=os.path.dirname(state_file), suffix='.tmp')
