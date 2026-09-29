@@ -297,7 +297,9 @@ import sys; p=sys.argv[1]; s=open(p).read()
 open(p,'w').write(s.replace("---\n", "---\ndb_isolation: DB_NAME=test_{slug}\n", 1))
 PY
 (cd "$E" && bash "$SCRIPTS_DIR/init_task_lane.sh" dbl "Task." >/dev/null)
-printf 'echo "db=$DB_NAME"; exit 1\n' > "$E/tests/db_test.sh"
+cat > "$E/tests/db_test.sh" <<'SH'
+echo "db=$DB_NAME"; exit 1
+SH
 xr red "$E" "$E/.autodev/dbl" tests/db_test.sh
 grep -q '^db=test_dbl$' "$E/.autodev/dbl/red.log"; assert "run: db_isolation env applied per lane" "0" "$?"
 
@@ -318,7 +320,10 @@ xr green "$E" "$EL" --no-test-changes "$green_sha" tests/green_test.sh; assert "
 # guard: in a throwaway worktree, the named test passes, the guard-removal
 # patch applies, and the same test then fails.
 mkdir -p "$E/src"
-printf 'if [ "$1" = bad ]; then exit 1; fi\nexit 0\n' > "$E/src/guard.sh"
+cat > "$E/src/guard.sh" <<'SH'
+if [ "$1" = bad ]; then exit 1; fi
+exit 0
+SH
 printf 'if sh src/guard.sh bad; then exit 1; fi\nexit 0\n' > "$E/tests/guard_test.sh"
 printf 'exit 0\n' > "$E/tests/weak_test.sh"
 git -C "$E" add src tests; git -C "$E" commit -q -m "feat: guard"
