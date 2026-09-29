@@ -1,7 +1,7 @@
 # Gold planner output for auth-system (grader self-check)
 
 Grader self-check fixture, not model output: written from
-auth-system.expected.json so tests/tdd.test.sh can prove checks.tsv accepts a
+the aerie TDD skill's expected_output.json so tests/tdd.test.sh can prove checks.tsv accepts a
 correct plan and rejects a degraded one. Live runs are graded by live-validate.sh.
 
 ## Scenarios

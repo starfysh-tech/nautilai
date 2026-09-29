@@ -96,10 +96,8 @@ if [[ -f "$LANE_DIR/red_tests.txt" ]]; then
   while IFS= read -r line; do [[ -n "$line" ]] && RED_TESTS+=("$line"); done < "$LANE_DIR/red_tests.txt"
 fi
 
-if [[ "$AUTODEV_PHASE" == "attempt" && "${#RED_TESTS[@]}" -eq 0 ]]; then
-  fail "no red tests recorded; write and commit the slice's red test first, or mark the lane exempt in TASK.md"
-fi
 if [[ "$AUTODEV_PHASE" == "attempt" ]]; then
+  [[ "${#RED_TESTS[@]}" -gt 0 ]] || fail "no red tests recorded; write and commit the slice's red test first, or mark the lane exempt in TASK.md"
   red_sha="$(lane_get red_sha)"
   [[ -n "$red_sha" ]] || fail "red tests recorded but no red_sha for lane $SLUG"
   frozen=("${RED_TESTS[@]}")
@@ -128,10 +126,7 @@ if [[ "$AUTODEV_PHASE" == "attempt" ]]; then
     echo "verify: red test $f"
     run_lane_cmd "$ENV_WORDS" "${test_file//\{file\}/$f}" || fail "red test $f fails"
   done
-fi
 
-if [[ "$AUTODEV_PHASE" == "attempt" ]]; then
-  base_sha="$(lane_get base_sha)"
   changed=()
   if [[ -n "$base_sha" ]]; then
     while IFS= read -r f; do

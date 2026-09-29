@@ -53,9 +53,9 @@ is_test_path() {
   while IFS= read -r p; do
     [[ -z "$p" ]] && continue
     if printf '%s\n' "$frozen" | grep -qxF -- "$p"; then echo "$p"; continue; fi
-    case "$p" in
-      */tests/*|tests/*|*/test/*|test/*|*/__tests__/*|__tests__/*|*/spec/*|spec/*) echo "$p" ;;
-      test_*|*/test_*|*_test.*|*.test.*|*.spec.*|conftest.py|*/conftest.py) echo "$p" ;;
+    # The leading "/" lets one pattern match both repo-root and nested paths.
+    case "/$p" in
+      */tests/*|*/test/*|*/__tests__/*|*/spec/*|*/test_*|*_test.*|*.test.*|*.spec.*|*/conftest.py) echo "$p" ;;
     esac
   done
 }

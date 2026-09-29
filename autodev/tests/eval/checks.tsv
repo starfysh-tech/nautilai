@@ -1,6 +1,6 @@
 # id	section	extended regex (case-insensitive) the section must match
-# Facts taken from fixtures/auth-system.expected.json (the source skill's
-# expected output): structure only, not wording. Quadrant checks grade the
+# Facts taken from the aerie TDD skill's expected_output.json
+# (mqol-aerie .claude/skills/tdd/): structure only, not wording. Quadrant checks grade the
 # dependency axis (OAuth has many deps: Q2 or Q3), not one worked placement.
 scenario_lockout	Scenarios	lock.*(5|five)|(5|five).*lock
 scenario_password	Scenarios	scenario.*(password.*(complex|requirement|weak|strength|rule|character|short|missing)|weak password)
