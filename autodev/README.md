@@ -90,8 +90,7 @@ flowchart TD
 - **Guard check** — for every guard the spec demands, `expect_run.sh guard`
   removes it in a throwaway worktree and requires its test to go red.
 - **Commits** — red, green, and refactor commits on the lane branch, through
-  `/commitcraft commit --files` when CommitCraft is installed for the repo,
-  else `commit_lane.sh`. Hooks always run; never `--no-verify`.
+  `commit_lane.sh`. Hooks always run; never `--no-verify`.
 - **Failure accounting** — failures are classified and fingerprinted; only
   implementation failures count, 3 per slice. A repeated identical failure
   stops the lane at once.
@@ -116,7 +115,6 @@ All invoked by the skill via `${CLAUDE_PLUGIN_ROOT}/scripts/`:
 | `verify.sh [dir] [lane-dir]` | Verification pipeline (TDD lanes) or single verifier |
 | `expect_run.sh red\|green\|guard …` | Red check, refactor check, guard mutation check |
 | `commit_lane.sh <wt> <lane> <kind> "<subject>" <file>…` | Allowlisted Conventional Commit on the lane branch |
-| `commit_path.sh <repo-root>` | Pick CommitCraft or `commit_lane.sh` |
 | `drop_slice.sh <wt> <lane> "<reason>"` | Drop a slice after an unattended spec gap |
 | `drop_slice.sh --checkpoint <lane> "<reason>"` | Log a scenario dropped at the launch checkpoint |
 | `profile.py get\|cut …` | Read the TDD profile; cut TDD rules per role |

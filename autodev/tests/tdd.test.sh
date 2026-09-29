@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Tests for autodev's TDD scripts: profile.py, init_task_lane.sh role files,
 # expect_run.sh, the verify.sh pipeline, controller.sh TDD states,
-# commit_lane.sh, and commit_path.sh. Self-contained: throwaway repos in a
+# and commit_lane.sh. Self-contained: throwaway repos in a
 # tmpdir, fake HOME for plugin detection, exits 0 only when all cases pass.
 set -uo pipefail
 
@@ -578,40 +578,6 @@ grep -q 'advisor dropped scenario 3' "$DL/dropped.md"; assert "drop --checkpoint
 grep -q 'launch checkpoint' "$DL/dropped.md"; assert "drop --checkpoint: stage logged" "0" "$?"
 assert "drop --checkpoint: no commit" "$head_before" "$(git -C "$DW" rev-parse HEAD)"
 assert "drop --checkpoint: red_sha unchanged" "$red_before" "$(dctl get dl red_sha)"
-
-# =============================================================================
-echo "=== commit_path.sh ==="
-# =============================================================================
-
-FH="$TMP/fakehome"
-mkdir -p "$FH/.claude/plugins"
-IP="$FH/.claude/plugins/installed_plugins.json"
-cp_path() { HOME="$FH" bash "$SCRIPTS_DIR/commit_path.sh" "$1" 2>/dev/null; }
-
-# Fake installs: NEW documents `commit --files`, OLD predates it.
-NEW="$FH/cache/commitcraft/new"; OLD="$FH/cache/commitcraft/old"
-mkdir -p "$NEW/skills/commitcraft/workflows" "$OLD/skills/commitcraft/workflows"
-printf -- '- With `--files <path>...` in the context: stage only those paths\n' > "$NEW/skills/commitcraft/workflows/commit.md"
-printf -- '3. Auto-stage all changes\n' > "$OLD/skills/commitcraft/workflows/commit.md"
-printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"user","installPath":"%s"}]}}' "$NEW" > "$IP"
-assert "path: user-scoped install -> commitcraft" "commitcraft" "$(cp_path /repo/a)"
-printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"project","projectPath":"/repo/a","installPath":"%s"}]}}' "$NEW" > "$IP"
-assert "path: this project's install -> commitcraft" "commitcraft" "$(cp_path /repo/a)"
-assert "path: other project's install -> script" "script" "$(cp_path /repo/b)"
-printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"user","installPath":"%s"}]}}' "$OLD" > "$IP"
-assert "path: install without --files -> script" "script" "$(cp_path /repo/a)"
-printf '{"version":2,"plugins":{"commitcraft@nautilai":[{"scope":"user","installPath":"%s/missing"}]}}' "$FH" > "$IP"
-assert "path: installPath gone -> script" "script" "$(cp_path /repo/a)"
-printf '{"version":2,"plugins":{"relay@nautilai":[{"scope":"user"}]}}' > "$IP"
-assert "path: not installed -> script" "script" "$(cp_path /repo/a)"
-printf '{not json' > "$IP"
-assert "path: malformed file -> script" "script" "$(cp_path /repo/a)"
-printf '{"plugins": []}' > "$IP"
-assert "path: plugins not an object -> script" "script" "$(cp_path /repo/a)"
-printf '{"plugins":{"commitcraft@nautilai":[{"scope":"project","projectPath":null}]}}' > "$IP"
-assert "path: null projectPath -> script" "script" "$(cp_path /repo/a)"
-/bin/rm -f "$IP"
-assert "path: no file -> script" "script" "$(cp_path /repo/a)"
 
 # =============================================================================
 echo "=== eval grader (offline) ==="

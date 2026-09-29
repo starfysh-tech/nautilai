@@ -32,10 +32,6 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   commands, DB isolation, stack) live in a committed TDD profile,
   `.claude/autodev.md`, written by `/autodev --setup`. See
   [`autodev/README.md`](../autodev/README.md).
-- **commitcraft — `commit --files`.** autodev commits red, green, and refactor
-  changes on lane branches, and CommitCraft's commit staged every changed file,
-  which would sweep lane scratch like coverage reports into the commit. `--files`
-  stages only the named paths.
 
 ## 2026-09-26
 

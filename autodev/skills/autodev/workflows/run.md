@@ -194,21 +194,11 @@ test "$(git -C <wt> rev-parse HEAD)" = "<green_sha>" && test -z "$(git -C <wt> s
 ## 9. Commits
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/commit_path.sh "$(git rev-parse --show-toplevel)"
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/commit_lane.sh <wt> <lane> <red|green|refactor> "<type>(<scope>): <subject>" <file>...
 ```
 
-- `script` →
-  ```bash
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/commit_lane.sh <wt> <lane> <red|green|refactor> "<type>(<scope>): <subject>" <file>...
-  ```
-  It records `red_sha` / `green_sha` / `refactor_sha` and resets the slice cap on
-  green.
-- `commitcraft` → run `/commitcraft commit --files <file>...` from `<wt>`, then
-  record what `commit_lane.sh` would have:
-  ```bash
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh set <slug> <red|green|refactor>_sha "$(git -C <wt> rev-parse HEAD)"
-  bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh record-slice-green <slug>    # green only
-  ```
+It records `red_sha` / `green_sha` / `refactor_sha` and resets the slice cap on
+green.
 
 Name only the files this commit owns: the red test, or the files the worker
 changed (`git -C <wt> status --porcelain`), never lane scratch or reports.

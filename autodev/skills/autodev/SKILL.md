@@ -51,7 +51,7 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/controller.sh run-set unattended <true|false>
 - Red tests are written one slice at a time, by you, never by the worker.
 - After 3 counted failures in a slice (or a repeated identical failure
   fingerprint), stop the lane and hand off to the user.
-- Commits go through the path `commit_path.sh` prints (see `workflows/run.md`),
+- Commits go through `commit_lane.sh` (see `workflows/run.md`),
   never raw `git commit`, never `--no-verify`.
 
 ## Stops and the advisor
