@@ -48,7 +48,7 @@ lane_env() {
 is_test_path() {
   local cfg frozen
   # `|| true`: an absent test_config (exit 3) must not end a `set -e` caller.
-  cfg="$(python3 "$SCRIPT_DIR/profile.py" get "$PROFILE" test_config 2>/dev/null | tr ', ' '\n\n' || true)"
+  cfg="$(python3 "$SCRIPT_DIR/profile.py" get "$PROFILE" test_config 2>/dev/null | tr ', ' '\n' || true)"
   frozen="$(cat "$LANE_DIR/red_tests.txt" 2>/dev/null; printf '%s\n' "$cfg")"
   while IFS= read -r p; do
     [[ -z "$p" ]] && continue

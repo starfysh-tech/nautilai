@@ -41,6 +41,27 @@ make_repo() {
 echo "=== profile.py ==="
 # =============================================================================
 
+# body() raises ProfileError (not StopIteration) on unclosed frontmatter.
+printf -- '---\ntest_file: x\n' > "$TMP/unclosed.md"
+python3 - "$SCRIPTS_DIR/profile.py" "$TMP/unclosed.md" <<'PY' >/dev/null 2>&1
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("autodev_profile", sys.argv[1])
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+try:
+    m.body(sys.argv[2])
+except m.ProfileError:
+    sys.exit(0)
+sys.exit(1)
+PY
+assert "profile: body() on unclosed frontmatter raises ProfileError" "0" "$?"
+
+# is_test_path splits a test_config list on commas and spaces.
+mkdir -p "$TMP/itp"
+printf -- '---\ntest_config: a.cfg, b.cfg\n---\n' > "$TMP/itp/profile.md"
+itp="$(SCRIPT_DIR="$SCRIPTS_DIR" PROFILE="$TMP/itp/profile.md" LANE_DIR="$TMP/itp" bash -c \
+  'source "$SCRIPT_DIR/lane_run.sh"; printf "a.cfg\nb.cfg\nsrc/x.py\n" | is_test_path' | tr '\n' ' ')"
+assert "lane_run: test_config list splits on comma and space" "a.cfg b.cfg " "$itp"
+
 P="$TMP/profile.md"
 cat > "$P" <<'EOF'
 ---

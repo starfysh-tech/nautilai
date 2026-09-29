@@ -58,7 +58,7 @@ CLOSE = "<!-- /tdd -->"
 def body(path):
     with open(path, encoding="utf-8") as f:
         lines = f.read().splitlines()
-    end = next(i for i, line in enumerate(lines[1:], start=1) if line.strip() == "---")
+    end = len(frontmatter(path)) + 1
     return "\n".join(lines[end + 1:]).strip()
 
 
