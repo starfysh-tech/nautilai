@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.30.0](https://github.com/starfysh-tech/nautilai/compare/v2.29.0...v2.30.0) (2026-09-29)
+
+
+### Features
+
+* **pr-review-deep:** focus on architecture with one-line findings ([#162](https://github.com/starfysh-tech/nautilai/issues/162)) ([74cb65e](https://github.com/starfysh-tech/nautilai/commit/74cb65ee87cd3b9a12ba8b695c1e39c26b205e47))
+
 ## [2.29.0](https://github.com/starfysh-tech/nautilai/compare/v2.28.1...v2.29.0) (2026-09-29)
 
 
