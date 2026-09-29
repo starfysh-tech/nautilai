@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.29.0](https://github.com/starfysh-tech/nautilai/compare/v2.28.1...v2.29.0) (2026-09-29)
+
+
+### Features
+
+* **autodev:** run plans test-first with red tests per slice ([#160](https://github.com/starfysh-tech/nautilai/issues/160)) ([bfc368f](https://github.com/starfysh-tech/nautilai/commit/bfc368fab3499536965ffc4cae402b07c056ccd6))
+
 ## [2.28.1](https://github.com/starfysh-tech/nautilai/compare/v2.28.0...v2.28.1) (2026-09-27)
 
 
