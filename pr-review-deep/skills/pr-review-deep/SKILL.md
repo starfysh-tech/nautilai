@@ -1,23 +1,18 @@
 ---
 name: pr-review-deep
-description: Use for a rigorous, evidence-based structural code-quality review of a branch or PR — hunts for whole branches, layers, or modes that can be deleted rather than rearranged, and holds abstraction design, type/boundary contracts, and decomposition to a high standard. Proposes high-leverage restructurings with cited evidence; never performs them or expands the PR's scope. Not a breadth audit — it does not run tests, security tooling, or coverage checks. User-invoked — run /pr-review-deep; the agent will not auto-fire it.
+description: Use for a rigorous, evidence-based application-architecture review of a branch or PR — hunts for whole branches, layers, or modes that can be deleted rather than rearranged, and holds layering, module boundaries, dependency direction, type contracts, and decomposition to a high standard. One line per finding with cited evidence and the proposed structure; never performs restructurings or expands the PR's scope. Not a correctness, security, or test review. User-invoked — run /pr-review-deep; the agent will not auto-fire it.
 allowed-tools: Read, Grep, Glob, Write, Bash(git:*), Bash(gh:*), mcp__github__pull_request_read
 disable-model-invocation: true
 context: fork
 ---
 
-# Deep Code Quality Review
+# Deep Architecture Review
 
-Use this skill for a rigorous review focused on implementation quality, maintainability, abstraction design, and long-term codebase health.
-
-The reviewer's job is to be **ambitious in identifying** structural improvements — not merely local cleanups, but restructurings that preserve behavior while making the implementation simpler, smaller, more direct, and easier to reason about. The reviewer **proposes** these with evidence; it does not perform them and does not expand the PR's scope. Optimizations are surfaced for the author's decision, not imposed.
-
-## Core Stance
-
-> Audit the current branch's changes for implementation quality. Identify where the change could be structured to materially improve maintainability without altering behavior — better abstractions, clearer boundaries, fewer moving parts, higher legibility. Where a higher-leverage structure is available, describe it concretely and propose it. Be thorough and precise: substantiate every finding against the actual code.
->
-> This is a structural/maintainability pass only — it does not run tests, security
-> tooling, or coverage analysis (detailed under Scope Discipline below).
+Review the change for application architecture: where logic lives, how modules
+depend on each other, what contracts cross boundaries, and what can be deleted.
+Be ambitious in identifying restructurings that preserve behavior and make the
+change simpler, smaller, and more direct. Prefer the structure that makes the change
+feel inevitable in hindsight. Propose these restructurings. Do not perform them.
 
 ## Shoals — learn from corrections
 
@@ -37,80 +32,143 @@ Obtain the change under review with the best-available source, degrading loudly:
 
 State which source you used. Only hard-stop if none can produce a diff.
 
-## Evidence and Verification (non-negotiable)
+Before raising findings, read the modules the diff touches and search for existing
+owners and helpers it could reuse, including files the diff does not name.
 
-1. **Every finding cites `file:line` and is verified against the actual code before it is raised.** If you cannot substantiate a claim by reading the code, do not raise it.
-2. **Behavior-preservation is a hypothesis until proven.** Any proposed restructuring described as "preserves behavior" must be backed by the existing tests or direct inspection. State the evidence (test name, `file:line`) or explicitly mark the equivalence as unverified. Never present an unproven equivalence as fact.
-3. **Use conservative, precise language.** "This appears to…", "this would…" — not "this is broken." Critique the code, not the author. State the concrete cost of an issue rather than escalating tone.
-4. **Guard against false positives.** Automated and pattern-based findings are frequently wrong in context; confirm each against the surrounding code before posting.
+## Scope
 
-## Scope Discipline
+- **In scope:** layering, module boundaries, dependency direction, coupling,
+  abstractions, type and boundary contracts, decomposition, orchestration, and
+  code that can be deleted or replaced by something that already exists.
+- **Out of scope:** correctness bugs, security, tests, coverage, and performance.
+  Do not hunt for them. Data-loss risk stays in scope. Where a change's risk lives
+  in an out-of-scope area, or a problem there is obvious in passing, list it once
+  under `Outside this pass:` with no severity and no tag, and recommend the check
+  that covers it.
+- **Skip:** test code, generated files, lockfiles, and vendored code.
+- **Respect the PR boundary.** Pre-existing debt that this PR only touches is a
+  `follow-up` with a ticket, not a `block`. Do not demand refactors outside the
+  change.
+- **Propose, do not perform.** Never edit the user's code. A change that looks
+  mechanical enough to apply belongs to a separate edit/fix flow.
 
-- **Propose, do not perform.** Describe each restructuring concretely — the files involved, the reframing, and what complexity it removes — and leave the decision to the author. Do not implement restructurings as part of the review.
-- **Respect the PR boundary.** Pre-existing structural debt that this PR merely touches is a follow-up suggestion with a ticket, not a merge blocker. Do not demand refactors outside the change's scope.
-- **A missed simplification is, at most, a should-fix.** It is never an automatic block. Reserve blocking severity for defects this PR introduces.
-- **State what this pass does not cover.** This is a structural/maintainability review; it does not run tests, security tooling, or coverage analysis. Where a change's risk lives in one of those dimensions, say so and recommend the appropriate check — do not let the review imply it covered ground it did not.
+## Evidence
 
-## Review Standards
+1. Every finding cites `file:line` and is verified against the code and its
+   surrounding context before it is raised. If you cannot substantiate it by
+   reading the code, drop it.
+2. Behavior preservation is a hypothesis until proven. In `Preserves behavior:`,
+   cite the test name or `file:line` that proves the proposed structure keeps
+   behavior, or write `unverified`.
+3. State verified findings as fact. State the concrete cost. Critique the code,
+   not the author.
 
-1. **Pursue structural simplification, not surface cleanup.** Look for reframings that allow whole branches, helpers, modes, or layers to be removed rather than rearranged. Prefer the structure that makes the change feel inevitable in hindsight. Favor deleting complexity over redistributing it.
+## What to look for
 
-2. **Treat ad-hoc branching in existing flows as a design signal.** New one-off conditionals, scattered special cases, or flags threaded into unrelated paths indicate a missing abstraction. Prefer pushing the logic into a dedicated helper, policy object, typed model, or module over tangling an existing path. Flag changes that make surrounding code harder to reason about, even when they function correctly.
+For each change, ask whether it improves or degrades the local architecture. Flag
+changes that make surrounding code harder to reason about, even when they function
+correctly. Each finding carries one tag. Report tags in this order:
 
-3. **Prefer direct, maintainable code over clever or implicit code.** Be skeptical of generic mechanisms that conceal simple data-shape assumptions, and of thin wrappers or pass-through helpers that add indirection without adding clarity.
+- `delete` — a reframing removes a whole branch, helper, mode, or layer. Prefer
+  deleting complexity over redistributing it. Name what removes it.
+- `layer` — logic sits in a layer, module, or service that does not own the
+  concept: feature logic in shared code, or implementation details leaking through
+  an API. Name the owner.
+- `coupling` — a new import between modules that should not know each other, a
+  lower layer that reaches up, shared mutable state across a module boundary, or a
+  cohesive module that became more coupled or more stateful. Name the seam.
+- `branching` — a one-off conditional, scattered special case, or flag threaded
+  into an existing flow. Name the missing helper, policy, typed model, or module.
+- `contract` — needless optionality, `any`/`unknown`, casts, loosely shaped
+  objects, or a silent fallback that hides an invariant, where a clearer type
+  boundary would simplify the control flow. Name the explicit typed model, shared
+  contract, or invariant.
+- `indirection` — clever or implicit code, a generic mechanism that conceals a
+  simple data-shape assumption, or a thin wrapper or pass-through helper that adds
+  indirection without clarity. Name the direct form.
+- `reuse` — code that duplicates a canonical repo helper, the standard library, or
+  a native platform feature, or a new dependency that does what one of those does.
+  Name the replacement.
+- `orchestration` — independent work serialized without reason, or related updates
+  that can leave state partially applied. Name the direct or atomic structure. Do
+  not over-index on micro-optimizations.
+- `size` — the change pushes a file from under ~1000 lines to over, or makes a
+  cohesive module harder to scan. Ask whether the new code should be decomposed
+  first, and name the extraction. Waive it when the file stays cohesive.
 
-4. **Hold type and boundary contracts to a high standard.** Question unnecessary optionality, `any`/`unknown`, or cast-heavy code where a clearer type boundary would simplify the control flow. Prefer explicit typed models and shared contracts over loosely-shaped ad-hoc objects. Where a branch relies on a silent fallback to paper over an unclear invariant, propose making the invariant explicit.
+## Finding format
 
-5. **Keep logic in its canonical layer and reuse existing utilities.** Flag feature logic leaking into shared paths, implementation details leaking through APIs, and bespoke helpers that duplicate an existing canonical utility. Push logic toward the package or service that already owns the concept rather than normalizing architectural drift.
+One line per finding:
 
-6. **Flag avoidable orchestration complexity.** Where independent work is serialized without reason, or related updates can leave state partially applied, propose the simpler or more atomic structure — without over-indexing on micro-optimizations.
+`<file>:L<start>[-<end>]: <severity> <tag>: <problem>. <proposed structure>. Preserves behavior: <test name | file:line | unverified>.`
 
-7. **File size is a heuristic, not a gate.** A change pushing a file from under ~1000 lines to over is a strong smell: call it out and ask whether the new code should be decomposed first (extracted helpers, subcomponents, modules). It is not an automatic block — waive it when the file remains cohesive and decomposition would not materially help.
+Severity:
 
-## Questions to Apply per Change
+- `block` — an architectural regression this PR introduces: logic moved into the
+  wrong layer, a dependency that points the wrong way, a broken module boundary,
+  a duplicate of a concept's canonical owner, or a data-loss risk.
+- `should-fix` — a missed simplification, ad-hoc branching, a weak contract,
+  needless indirection, or a decomposition concern this PR introduces.
+- `follow-up` — pre-existing debt or a larger restructuring outside the PR. Pair
+  it with a ticket.
 
-- Is there a higher-leverage structure that makes this materially simpler?
-- Can the change be reframed so fewer concepts, branches, or helper layers are needed?
-- Does this improve or degrade the local architecture?
-- Did the diff add branching where a clearer abstraction belongs?
-- Did a cohesive module become more coupled, more stateful, or harder to scan?
-- Is this logic in the correct file and layer?
-- Do repeated conditionals signal a missing model or helper?
-- Is each abstraction earning its keep, or is it indirection without clarity?
-- Do new casts, optionality, or ad-hoc shapes obscure the real invariant?
-- Is independent work serialized, or state left non-atomic, without justification?
+Order findings by severity, then by tag order. Report every substantiated finding.
+Severity does the filtering.
 
-## Dispositions
+## Examples
 
-Severity (below) says how bad a finding is; **disposition** says what this skill may
-*do* about it. This is a propose-only reviewer, so:
+❌ "The OrderService changes might introduce some coupling concerns, and it may be
+worth considering whether some of this logic could live elsewhere."
 
-- **report** — every finding. Surface it with cited evidence and stop. This skill
-  never edits the user's code, regardless of severity.
-- **ask-user** — any proposal the user might want acted on ("want me to apply this
-  restructuring?"). Surface it and wait; **never** self-resolve, fix, or skip it.
-- **auto-fix** — *none.* Restructurings are proposed, never performed (see Scope
-  Discipline). A change that looks mechanical enough to apply belongs to a separate
-  edit/fix flow, not this review.
+✅ `api/orders.py:L40-72: block layer: discount rules computed in the HTTP handler. Move to pricing/discounts.py, which already owns apply_discount() at L12. Preserves behavior: tests/test_orders.py::test_discount_applied.`
 
-## Severity and Output
+✅ `billing/invoice.ts:L8: block coupling: billing imports ui/format.ts, so a lower layer reaches up. Move formatCurrency to shared/money.ts. Preserves behavior: unverified.`
 
-Tag every finding:
+✅ `sync/run.go:L101-140: should-fix branching: isLegacy flag threaded through 4 steps. A LegacySource implementing Source removes all 4 checks. Preserves behavior: sync/run_test.go TestLegacySync.`
 
-- **Blocking** — correctness, security, data-loss, or a regression this PR introduces.
-- **Should-fix** — structural regression, missed simplification, boundary/contract problem, or decomposition concern that meaningfully affects maintainability.
-- **Suggestion (follow-up)** — pre-existing debt or larger restructuring; pair with a ticket.
+✅ `lib/fetcher.ts:L1-35: should-fix indirection: Fetcher wraps fetch with one caller (app/load.ts:L9). Call fetch directly. Preserves behavior: lib/fetcher.ts:L12 passes arguments through unchanged.`
 
-Order findings: structural regressions → missed high-leverage simplifications → branching-complexity growth → boundary/contract problems → file-size/decomposition → modularity → legibility. Prefer a small set of substantiated, high-conviction findings over a long list of cosmetic notes.
+A full report:
 
-## Approval Bar
+<example>
+Diff source: gh pr diff 214
+
+api/orders.py:L40-72: block layer: discount rules computed in the HTTP handler. Move to pricing/discounts.py, which already owns apply_discount() at L12. Preserves behavior: tests/test_orders.py::test_discount_applied.
+lib/fetcher.ts:L1-35: should-fix indirection: Fetcher wraps fetch with one caller (app/load.ts:L9). Call fetch directly. Preserves behavior: lib/fetcher.ts:L12 passes arguments through unchanged.
+
+Outside this pass: api/orders.py:L55 builds SQL by string concatenation. Run a security review.
+
+Verdict: block. 2 findings, net ~-40 lines if all applied.
+</example>
+
+## Output
+
+1. Diff source line.
+2. Findings, in the format above.
+3. `Outside this pass:` lines, only if any.
+4. One verdict line:
+   `Verdict: <approve | approve with should-fix | block>. <N> findings, net ~<±N> lines if all applied.`
+
+If there are no findings, write `No architectural findings. Verdict: approve.` and
+stop.
+
+## Approval bar
 
 Approve when:
 
 - No structural regression introduced by this PR.
-- No defect (correctness, security, data-loss).
+- No data-loss risk introduced by this PR.
 - No unjustified file-size explosion presented without a decomposition question.
 - No ad-hoc branching that tangles an existing flow without a proposed alternative.
-- No feature logic scattered across shared code, and no duplication of a canonical helper.
+- No feature logic scattered across shared code, and no duplication of a canonical
+  helper.
 
-A visible-but-unpursued simplification is noted as should-fix or follow-up; it does not by itself block approval. Do not approve solely because behavior appears correct, and do not block solely because a more ambitious structure is imaginable. Every blocking call must rest on cited, verified evidence.
+A visible but unpursued simplification is `should-fix` or `follow-up`. It does not
+by itself block approval. Do not approve solely because behavior appears correct,
+and do not block solely because a more ambitious structure is imaginable. Every
+`block` rests on cited, verified evidence.
+
+## Dispositions
+
+Every finding is **report**. Any proposal the user might want applied is
+**ask-user** — surface it and wait, never self-resolve. **auto-fix** is none.

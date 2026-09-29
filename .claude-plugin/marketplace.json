@@ -98,7 +98,7 @@
     {
       "name": "pr-review-deep",
       "source": "./pr-review-deep",
-      "description": "Structural code-quality review of a branch or PR — finds whole branches, layers, and modes that can be deleted rather than merely rearranged, and holds abstraction design, type/boundary contracts, and decomposition to a high standard. Proposes high-leverage restructurings with cited evidence; never performs them or expands scope.",
+      "description": "Application-architecture review of a branch or PR — finds whole branches, layers, and modes that can be deleted rather than merely rearranged, and holds layering, module boundaries, dependency direction, type contracts, and decomposition to a high standard. One line per finding with cited evidence; proposes restructurings, never performs them or expands scope.",
       "version": "2.29.0",
       "author": {
         "name": "Randall Noval"
