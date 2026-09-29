@@ -10,7 +10,9 @@ local cleanups) and **proposes** them with cited evidence. It does **not** perfo
 them or expand the PR's scope — every optimization is surfaced for the author's
 decision. Correctness bugs, security, tests, and coverage are **out of scope** — it
 does not hunt for them, and it names the check to run when a change's risk lives
-there. Data-loss risk stays in scope.
+there. Data-loss risk stays in scope. For correctness, security, tests, comments,
+and error handling, pair it with
+[`/pr-review-toolkit:review-pr`](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/pr-review-toolkit).
 
 ## Install
 

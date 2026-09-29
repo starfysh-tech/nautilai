@@ -33,7 +33,9 @@ Obtain the change under review with the best-available source, degrading loudly:
 State which source you used. Only hard-stop if none can produce a diff.
 
 Before raising findings, read the modules the diff touches and search for existing
-owners and helpers it could reuse, including files the diff does not name.
+owners and helpers it could reuse, including files the diff does not name. Read
+CLAUDE.md, ADRs, and other architecture docs for stated layering and ownership
+rules. When a finding breaks a stated rule, cite the rule.
 
 ## Scope
 
@@ -81,8 +83,10 @@ correctly. Each finding carries one tag. Report tags in this order:
   into an existing flow. Name the missing helper, policy, typed model, or module.
 - `contract` — needless optionality, `any`/`unknown`, casts, loosely shaped
   objects, or a silent fallback that hides an invariant, where a clearer type
-  boundary would simplify the control flow. Name the explicit typed model, shared
-  contract, or invariant.
+  boundary would simplify the control flow. Also a type that allows invalid
+  states, an invariant enforced only by documentation or by callers, or missing
+  validation at construction. Name the explicit typed model, shared contract, or
+  invariant.
 - `indirection` — clever or implicit code, a generic mechanism that conceals a
   simple data-shape assumption, or a thin wrapper or pass-through helper that adds
   indirection without clarity. Name the direct form.
