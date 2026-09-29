@@ -1,16 +1,16 @@
 # pr-review-deep
 
-A rigorous, evidence-based **structural code-quality** review for a branch or PR —
+A rigorous, evidence-based **application-architecture** review for a branch or PR —
 it hunts for whole branches, layers, or modes that can be **deleted** rather than
-merely rearranged, and holds abstraction design, type/boundary contracts, and
-decomposition to a high standard.
+merely rearranged, and holds layering, module boundaries, dependency direction,
+type contracts, and decomposition to a high standard.
 
 The reviewer is **ambitious in identifying** high-leverage restructurings (not just
 local cleanups) and **proposes** them with cited evidence. It does **not** perform
 them or expand the PR's scope — every optimization is surfaced for the author's
-decision. It is a depth pass, **not a breadth audit**: it does not run tests,
-security tooling, or coverage checks — reach for a multi-dimension review tool for
-those.
+decision. Correctness bugs, security, tests, and coverage are **out of scope** — it
+does not hunt for them, and it names the check to run when a change's risk lives
+there. Data-loss risk stays in scope.
 
 ## Install
 
@@ -35,7 +35,14 @@ PR when given a number/URL.
   decision to the author; never edits code.
 - **Reads the diff with a fallback chain** — GitHub MCP → `gh` CLI → `git diff`,
   degrading loudly.
-- **Severity** — `Blocking` / `Should-fix` / `Suggestion (follow-up)`.
+- **One line per finding** — `<file>:L<line>: <severity> <tag>: <problem>. <proposed structure>. Preserves behavior: <test | file:line | unverified>.`
+- **Severity** — `block` (architectural regression or data-loss risk this PR introduces) /
+  `should-fix` / `follow-up` (pre-existing debt).
+- **Tags** — `delete`, `layer`, `coupling`, `branching`, `contract`, `indirection`,
+  `reuse`, `orchestration`, `size`.
+- **Verdict line** — `approve`, `approve with should-fix`, or `block`, with the
+  finding count and net line estimate. With no findings it says
+  `No architectural findings. Verdict: approve.` and stops.
 
 ## nautilai conventions
 
@@ -49,7 +56,7 @@ PR when given a number/URL.
 
 ### Shared behavior
 
-The review method is identical — implementation quality, abstraction design, type/boundary
+The review method is identical — layering, module boundaries, dependency direction, type
 contracts, behavior-preserving simplification, every claim cited to `file:line`. It proposes
 restructurings; it never performs them.
 

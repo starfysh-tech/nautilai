@@ -94,7 +94,7 @@ built, since it's the CI-safe half.
   threads with known categories (nit vs blocking vs question); assert the
   categorization. Live and stateful (it edits code + replies) — hardest to
   fixture; the gradeable slice is the categorization, not the code edits.
-- **pr-review-deep** — evidence-based quality review (abstraction design,
+- **pr-review-deep** — evidence-based architecture review (layering, module boundaries, abstraction design,
   type/boundary contracts, behavior-preserving simplifications). Fixture: a diff
   with seeded quality defects (leaky abstraction, unsafe cast, dead branch);
   assert recall of the planted issues + precision (no invented ones). Fully

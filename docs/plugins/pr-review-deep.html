@@ -4,9 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>pr-review-deep — nautilai</title>
-<meta name="description" content="Structural code-quality review of a branch or PR — finds whole branches, layers, and modes that can be deleted rather than merely rearranged, and holds abstraction design, type/boundary contracts, and decomposition to a high standard. Proposes high-leverage restructurings with cited evidence; never performs them or expands scope." />
+<meta name="description" content="Application-architecture review of a branch or PR — finds whole branches, layers, and modes that can be deleted rather than merely rearranged, and holds layering, module boundaries, dependency direction, type contracts, and decomposition to a high standard. One line per finding with cited evidence; proposes restructurings, never performs them or expands scope." />
 <meta property="og:title" content="pr-review-deep — nautilai" />
-<meta property="og:description" content="Structural code-quality review of a branch or PR — finds whole branches, layers, and modes that can be deleted rather than merely rearranged, and holds abstraction design, type/boundary contracts, and decomposition to a high standard. Proposes high-leverage restructurings with cited evidence; never performs them or expands scope." />
+<meta property="og:description" content="Application-architecture review of a branch or PR — finds whole branches, layers, and modes that can be deleted rather than merely rearranged, and holds layering, module boundaries, dependency direction, type contracts, and decomposition to a high standard. One line per finding with cited evidence; proposes restructurings, never performs them or expands scope." />
 <meta property="og:type" content="website" />
 <meta name="theme-color" content="#0a141d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -21,7 +21,7 @@
 
   <header class="plugin-hero">
     <h1 class="plugin-name">pr-review-deep</h1>
-    <p class="tagline">Structural code-quality review of a branch or PR — finds whole branches, layers, and modes to delete, not just rearrange.</p>
+    <p class="tagline">Application-architecture review of a branch or PR — finds whole branches, layers, and modes to delete, not just rearrange.</p>
   </header>
 
   <section id="install">
@@ -51,13 +51,13 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>Focuses on implementation quality, maintainability, abstraction design, type/boundary contracts, and behavior-preserving structural simplification. Identifies high-leverage restructurings with cited evidence and proposes them for your decision. Does not perform edits or expand PR scope — all findings are raised for review.</p>
+    <p>Focuses on application architecture: where logic lives, how modules depend on each other, what contracts cross boundaries, and what can be deleted. Each finding is one line with cited evidence and the proposed structure, for your decision. Correctness bugs, security, tests, and coverage are out of scope; it names the check to run when a change's risk lives there. Data-loss risk stays in scope. It does not perform edits or expand PR scope.</p>
   </section>
 
   <section id="commands">
     <h2>Commands / skills</h2>
     <ul class="skill-list">
-      <li><div class="sk-name">/pr-review-deep</div><p>Review code quality of the current branch.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/pr-review-deep</div><p>Review the architecture of the current branch.</p><div class="sk-triggers">explicit slash form only</div></li>
       <li><div class="sk-name">/pr-review-deep &lt;PR#&gt;</div><p>Review a pull request by number, e.g. <code>/pr-review-deep 42</code>.</p><div class="sk-triggers">explicit slash form only</div></li>
       <li><div class="sk-name">/pr-review-deep &lt;URL&gt;</div><p>Review a pull request by GitHub URL.</p><div class="sk-triggers">explicit slash form only</div></li>
     </ul>
@@ -65,18 +65,18 @@
 
   <section id="how">
     <h2>How it works</h2>
-    <p>The skill reads the diff from the current branch or a PR, citing every finding with <code>file:line</code> and verifying claims against the code before raising them. It focuses on implementation quality, maintainability, type/boundary contracts, and behavior-preserving structural simplifications — identifying high-leverage restructurings, not just local cleanups.</p>
-    <p>The review reads the diff via a graceful degradation chain: GitHub MCP (preferred), then <code>gh</code> CLI, then plain <code>git diff</code>. All findings are categorized by severity (Blocking, Should-fix, Suggestion) and proposed for your decision — the skill never edits code or expands the PR's scope.</p>
+    <p>The skill reads the diff from the current branch or a PR, citing every finding with <code>file:line</code> and verifying claims against the code before raising them. It focuses on layering, module boundaries, dependency direction, type contracts, and behavior-preserving simplifications — identifying high-leverage restructurings, not just local cleanups.</p>
+    <p>The review reads the diff via a graceful degradation chain: GitHub MCP (preferred), then <code>gh</code> CLI, then plain <code>git diff</code>. Each finding is one line with a severity (<code>block</code>, <code>should-fix</code>, <code>follow-up</code>) and a tag (<code>delete</code>, <code>layer</code>, <code>coupling</code>, <code>branching</code>, <code>contract</code>, <code>indirection</code>, <code>reuse</code>, <code>orchestration</code>, <code>size</code>), and the review ends with one verdict line. All findings are proposed for your decision — the skill never edits code or expands the PR's scope.</p>
     <p>Shoals: reads and appends user corrections to <code>.claude/shoals/pr-review-deep.pr-review-deep.md</code> in your project.</p>
 
     <div class="flow">
       <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">read diff</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">analyze code quality</span></span></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">analyze architecture</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
       <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">verify vs. code</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">categorize severity</span></span></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">tag severity + kind</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
       <div class="flow-step"><span class="fs-num">5</span><span class="fs-body"><span class="fs-label">propose findings</span></span></div>
     </div>
@@ -86,7 +86,9 @@
       <div class="tech-body">
         <ul>
           <li>Diff read chain: GitHub MCP (preferred) → <code>gh</code> CLI → <code>git diff</code>, degrading loudly on failure.</li>
-          <li>Finding severity: Blocking, Should-fix, Suggestion.</li>
+          <li>Finding format: <code>&lt;file&gt;:L&lt;line&gt;: &lt;severity&gt; &lt;tag&gt;: &lt;problem&gt;. &lt;proposed structure&gt;. Preserves behavior: &lt;test | file:line | unverified&gt;.</code></li>
+          <li>Severity: <code>block</code> (architectural regression or data-loss risk this PR introduces), <code>should-fix</code>, <code>follow-up</code> (pre-existing debt).</li>
+          <li>Verdict line: <code>approve</code>, <code>approve with should-fix</code>, or <code>block</code>, with the finding count and net line estimate. No findings: <code>No architectural findings. Verdict: approve.</code></li>
           <li>Dispositions (per nautilai conventions): all findings are <code>report</code> (proposes, never auto-fixes); user-actionable proposals are <code>ask-user</code> (never self-resolved).</li>
           <li>Evidence-first: every finding cites <code>file:line</code>, verified against the code before raised; behavior-preservation is treated as a hypothesis until proven.</li>
           <li>Findings are proposed, not performed — describes restructurings concretely and leaves the decision to the author; never edits code or expands the PR's scope.</li>

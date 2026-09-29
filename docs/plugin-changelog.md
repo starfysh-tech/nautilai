@@ -16,6 +16,17 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-09-28
 
+- **pr-review-deep — architecture focus and a fixed finding format.** The skill had
+  no output format, so each run shaped its report differently, and nothing let it
+  return zero findings, so it tended to fill the report. Its `Blocking` class covered
+  correctness and security, which the skill said it did not review. Each finding is
+  now one line with a severity, a tag, the proposed structure, and proof that it
+  preserves behavior (or `unverified`), and the review ends with one verdict line. `block` now means an
+  architectural regression or data-loss risk the PR introduces. Correctness, security,
+  and tests are out of scope; the review names the check to run when risk lives there. New checks cover dependency direction, coupling, and code that duplicates
+  the standard library or a native feature. The format borrows from ponytail's
+  `ponytail-review`. See [`pr-review-deep/README.md`](../pr-review-deep/README.md).
+
 - **autodev — test-driven by default.** A project TDD skill (FIRST-U, complexity
   quadrant, Given/When/Then, seams, guard checks) only worked in the one repo that
   had it, and autodev lanes never loaded it: the haiku worker has no Skill tool. The
