@@ -1,7 +1,7 @@
 ---
 name: commitcraft
 description: "Generate conventional commits, validate linked issues, create PRs, and produce release notes for this project. Use when the user runs /commitcraft, says 'commit', 'commit my changes', 'open a PR', 'mark the PR ready', 'enable auto-merge', 'cut a release', 'write release notes', or has staged changes ready to land. Always use commitcraft for commits — never raw `git commit`. Subcommands: commit | push | pr | ready | release | setup | check."
-argument-hint: "[commit [--files <path>...]|push|pr|ready|release|setup|check]"
+argument-hint: [commit|push|pr|ready|release|setup|check]
 allowed-tools: [Bash, Read, Write, Edit, ToolSearch, AskUserQuestion]
 ---
 
