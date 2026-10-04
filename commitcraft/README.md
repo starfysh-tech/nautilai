@@ -303,6 +303,6 @@ inherit it) — `.gitignore` it if you'd rather keep it per-developer.
 
 ## Privacy
 
-CommitCraft runs on your machine and sends nothing to its author. See the
+CommitCraft runs on your machine and sends nothing to Starfysh. See the
 [privacy page](https://starfysh-tech.github.io/nautilai/privacy.html) for what it
 reads, stores, and sends.
