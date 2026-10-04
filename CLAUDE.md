@@ -105,6 +105,13 @@ check that secret first.
 
 > Note: `commitcraft/templates/release-please-config.json` is a *template CommitCraft ships into end-user repos* during `setup` — it is **not** nautilai's own release config. Don't edit it to manage this repo's versions.
 
+## Anthropic directory listings
+
+To submit a plugin to Anthropic's directory (claude.ai/directory), follow
+[`docs/directory-listing.md`](docs/directory-listing.md). Every listed plugin links
+the shared privacy page [`docs/privacy.html`](docs/privacy.html) — keep its row in
+that page true when the plugin's data handling changes.
+
 ## Plugin changelog
 
 `docs/plugin-changelog.md` is a **hand-curated** log of major, user-visible plugin
