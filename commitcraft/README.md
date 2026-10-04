@@ -300,3 +300,9 @@ messages, it records the lesson in `.claude/shoals/commitcraft.commitcraft.md` i
 your project and reads it back on the next run, so it won't repeat a mistake you
 already flagged. The file is append-only and committed by default (teammates
 inherit it) — `.gitignore` it if you'd rather keep it per-developer.
+
+## Privacy
+
+CommitCraft runs on your machine and sends nothing to its author. See the
+[privacy page](https://starfysh-tech.github.io/nautilai/privacy.html) for what it
+reads, stores, and sends.
