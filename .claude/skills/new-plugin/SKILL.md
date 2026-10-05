@@ -43,7 +43,7 @@ Create a new plugin in this repo and register it. Plugin name comes from `$ARGUM
 }
 ```
 
-4. **Write `<name>/skills/<name>/SKILL.md`** with valid frontmatter (`name`, `description`) and a short body describing what it does.
+4. **Write `<name>/skills/<name>/SKILL.md`** with valid frontmatter (`name`, `description`) and a short body describing what it does. If the skill references `${CLAUDE_PLUGIN_ROOT}` (bundled scripts, workflows, templates), put the omp/pi adapter line from [`docs/conventions/dual-runtime.md`](../../../docs/conventions/dual-runtime.md) rule 9 directly under its title, verbatim — CI (`check-plugin-root-note.sh`) fails without it.
 
 5. **Register in `.claude-plugin/marketplace.json`** — append to the `plugins` array, keeping `name`, `version`, and `description` identical to `plugin.json`:
 

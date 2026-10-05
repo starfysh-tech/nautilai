@@ -8,7 +8,7 @@ allowed-tools: [Read, Grep, Glob, Write, Bash(python3:*), Bash(node:*)]
 
 # Wireframe
 
-> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
 
 Low-fidelity wireframe creator for rapid prototyping and UI planning. Three
 modes: **ASCII** (text layouts, the default), **wiremd** (interactive

@@ -16,6 +16,15 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-10-05
 
+- **15 skills across 12 plugins — bundled scripts now run under omp and pi.** omp
+  (oh-my-pi) and pi load nautilai's plugins but never expand `CLAUDE_PLUGIN_ROOT` in skill
+  text, so commitcraft, autodev, worktree-lanes, relay and the rest handed the agent a
+  broken `/scripts/…` path, and commitcraft's "never substitute" rule then stopped it
+  cold. Each affected skill now says how to find the plugin root on those runtimes and
+  exempts them from the stop rule; commitcraft also falls back to the runtime's own
+  question tool when `ToolSearch` is missing. A CI check keeps the line on every skill
+  that needs it. See [`dual-runtime.md`](conventions/dual-runtime.md), rule 9.
+
 - **worktree-lanes — new plugin: parallel dev lanes for any repo.** Running several
   branches at once collides on ports, databases, and env files, so each repo grows its
   own worktree script (mqol-aerie's `mise run lane` was the template). Those scripts
