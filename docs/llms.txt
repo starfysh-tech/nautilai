@@ -144,6 +144,22 @@ file path or `-` for stdin).
   inputs, `[Select ▼]`); the renderer draws node graphs. Do not route ASCII-mode layout
   work through it.
 
+## Notes for agents — worktree-lanes
+
+Claude Code only. Run the engine as `bash "${CLAUDE_PLUGIN_ROOT}/scripts/lane" <verb>`
+from inside the repo; never hand-run `git worktree add/remove` on its lanes or edit
+`<LANE_ROOT>/.state/`. The engine exits non-zero on every failure, including a failing
+recipe hook — report the error rather than retrying around it.
+- `AGENT ACTION REQUIRED: …` in the output is an instruction to you: switch the session
+  into the printed lane path.
+- A failed `open` keeps the lane: continue with `lane resume <slug>`. After fixing
+  `lane_env`, use `lane resume <slug> --env` (it rewrites the lane's env file).
+- `rm` refusing means uncommitted work or a failing teardown hook. Pass `--force` only
+  when the user has said to discard that work.
+- A lane's env file is a copy of main's, secrets included: grep specific keys, never
+  print the file.
+- Writing or editing `.lanerc` is a user stop; it is executable code.
+
 ## Optional
 
 - [Plugin changelog](https://github.com/starfysh-tech/nautilai/blob/main/docs/plugin-changelog.md): Hand-curated log of user-visible plugin changes, newest first.

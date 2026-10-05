@@ -14,6 +14,27 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-10-05
+
+- **worktree-lanes — new plugin: parallel dev lanes for any repo.** Running several
+  branches at once collides on ports, databases, and env files, so each repo grows its
+  own worktree script (mqol-aerie's `mise run lane` was the template). Those scripts
+  can't be reused, and a script built for one stack fails quietly on another. One
+  stack-agnostic engine (`scripts/lane`) now owns the parts every repo needs: the
+  worktree, the base ref, port allocation, the env file, and the
+  open/resume/rm/gc lifecycle. A per-repo `.lanerc` recipe holds everything
+  stack-specific. The recipe is executable bash, so the skill drafts it from the repo's
+  own tooling and stops for approval before writing it — a declarative format was
+  rejected because real repos already have bootstrap scripts that the hooks should
+  call. Two adversarial reviews shaped the engine to fail loudly instead of silently:
+  - `rm` refuses uncommitted work.
+  - The env file is never written over a tracked file.
+  - Hooks run with errexit, and a failed open is resumable.
+  - Ports are reserved under a lock and stay clear of main, other lanes, ports
+    recorded by lanes from older tooling, and live sockets.
+
+  See [`worktree-lanes/README.md`](../worktree-lanes/README.md).
+
 ## 2026-09-28
 
 - **pr-review-deep — architecture focus and a fixed finding format.** The skill had
