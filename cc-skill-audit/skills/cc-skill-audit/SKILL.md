@@ -8,6 +8,8 @@ allowed-tools: [Read, Write, Edit, Glob, Grep, Task, Workflow, Bash(python3:*), 
 
 # Auditing Skills
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Review existing skills against Anthropic's official authoring guidance. Optimized for the audit case: a SKILL.md file (or a directory of them) already exists and the user wants to know what's working, what's broken, and what to change.
 
 This skill assumes Anthropic's official guidance as the ground truth (Skills overview, Skill authoring best practices, skill-creator). It also incorporates community patterns where they don't conflict with official guidance. Where community claims go beyond the official docs, this skill calls them out so the user can decide.

@@ -8,6 +8,8 @@ allowed-tools: Read, Grep, Glob, AskUserQuestion, Bash(gh:*), mcp__github__list_
 
 # GitHub Issue Auditor
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Audit a repository's open issues for cleanup opportunities, then — only with
 explicit approval — apply the agreed changes. The audit (Phases 1–3) is
 **read-only**. Mutations (Phase 4) are **opt-in** and gated.

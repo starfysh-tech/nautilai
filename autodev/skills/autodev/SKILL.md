@@ -7,6 +7,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, Agent, Skill, AskUserQuesti
 
 # AutoDev
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Take `$ARGUMENTS` — a plan or ticket(s), as text, a file path, or a URL (read or
 fetch it) — and drive it to done, blocked, or needs-guidance, test-first. All
 state machinery is scripted; never manage git worktrees, lane state, test runs,

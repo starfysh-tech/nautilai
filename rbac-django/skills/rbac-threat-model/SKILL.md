@@ -15,6 +15,8 @@ allowed-tools: [Read, Glob, Grep, Write]
 
 # RBAC Threat Model
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Generate adversarial abuse cases for any RBAC system. Where the audit skill asks
 "is this permission check correct?", this skill asks "if I were a malicious
 insider with a valid account, what's the most damage I could do?"

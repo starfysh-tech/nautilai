@@ -8,6 +8,8 @@ allowed-tools: [Read, Grep, Glob, Write, Bash(python3:*), Bash(node:*)]
 
 # Wireframe
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Low-fidelity wireframe creator for rapid prototyping and UI planning. Three
 modes: **ASCII** (text layouts, the default), **wiremd** (interactive
 prototypes that render to HTML/React), and **Mermaid** (diagrams for tickets and

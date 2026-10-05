@@ -8,6 +8,8 @@ allowed-tools: [Read, Glob, Grep, Bash(python3:*), Bash(rg:*), Bash(ast-grep:*),
 
 # RBAC Audit for Django/DRF
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Audit a Django REST Framework backend (and optionally its React frontend) for
 role-based access control gaps, tenant isolation leaks, and authorization
 enforcement issues. A deterministic scanner builds the inventory; you supply the

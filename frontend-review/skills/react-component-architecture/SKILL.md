@@ -9,6 +9,8 @@ allowed-tools: [Read, Glob, Grep, Bash(python3:*)]
 
 # React Component Architecture Audit
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Review a React + TypeScript codebase for composition, reuse, prop drilling, variant
 typing, and folder organization. This is a **read-only, propose-only** audit — it
 reports findings and lets the user decide what to change. It never edits code.

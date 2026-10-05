@@ -7,6 +7,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 
 # Worktree Lanes
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 A lane is a git worktree that behaves like the main checkout but with its own ports,
 env file, and (when the recipe supports it) database and hostnames. The **engine**
 (`bash "${CLAUDE_PLUGIN_ROOT}/scripts/lane"`) is generic; the **recipe** (`.lanerc` at

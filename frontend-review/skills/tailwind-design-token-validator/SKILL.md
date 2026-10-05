@@ -9,6 +9,8 @@ allowed-tools: [Read, Glob, Grep, Edit, Bash(python3:*)]
 
 # Tailwind Design Token Validator
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Audit a React/TypeScript + Tailwind codebase for design-token violations and
 class-usage anti-patterns, validating against the project's own Tailwind config. Most
 findings are propose-only; a narrow class of exact, reversible token swaps may be

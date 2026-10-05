@@ -4,6 +4,8 @@ description: Write a transcript-grounded handoff document so a fresh session can
 argument-hint: 'What will the next session be used for?'
 ---
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Write a handoff document from the ground truth of this session's transcript — not
 just your in-context memory — so a fresh agent can continue the work and pick it
 up automatically on `/clear`.

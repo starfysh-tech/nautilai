@@ -7,6 +7,8 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, ToolSearch, WebFetch, AskUs
 
 # Sentry Hygiene
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Two workflows. Read exactly one per run.
 
 ## Relationship to the official Sentry plugin

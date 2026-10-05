@@ -8,6 +8,8 @@ allowed-tools: [Read, Glob, Grep, Task, Bash(python3:*), Bash(grep:*)]
 
 # PHI Scan
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Scan a codebase for Protected Health Information under the HIPAA Safe Harbor
 standard, then apply AI judgment to separate real exposure from noise. An
 optional, stack-gated OWASP grep pass covers common Django/React web

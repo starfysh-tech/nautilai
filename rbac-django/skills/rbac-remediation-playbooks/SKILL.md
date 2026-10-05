@@ -9,6 +9,8 @@ allowed-tools: [Read, Glob, Grep, Bash(python3:*), Bash(rg:*), Bash(ast-grep:*),
 
 # RBAC Remediation Playbooks
 
+> **omp / pi:** these runtimes leave `${CLAUDE_PLUGIN_ROOT}` literal in skill text. If it appears unexpanded below, substitute the plugin root: the directory two levels above the folder containing this `SKILL.md` (`<plugin-root>/skills/<skill>/SKILL.md`).
+
 Turn audit findings into implementable work: prioritized playbooks with concrete
 steps, test scaffolds, and GitHub issues. This skill consumes output from
 `rbac-audit-django` (and optionally `rbac-threat-model`). It does **not** re-run
