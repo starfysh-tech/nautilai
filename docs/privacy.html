@@ -66,6 +66,7 @@
         <tr><td>cc-adoption-audit</td><td>api.github.com and code.claude.com, to check the latest Claude Code release and docs.</td><td>None. It reads the MCP server list in <code>~/.claude.json</code>.</td><td>None.</td></tr>
         <tr><td>cc-skill-audit</td><td>Public documentation sites.</td><td>None. It reads skills in <code>~/.claude/</code>.</td><td>Edits skill files, after your approval.</td></tr>
         <tr><td>sentry-hygiene</td><td>Public Sentry documentation. The Context7 service, if you have it installed.</td><td>None.</td><td>Adds Sentry code to your project when you run <code>instrument</code>.</td></tr>
+        <tr><td>worktree-lanes</td><td>GitHub, only when <code>lane pr</code> checks out a pull request.</td><td>None. Lanes live inside your repo, under <code>.claude/worktrees</code> by default.</td><td>Creates git worktrees and branches, writes per-lane env files, and runs the install, route, and service commands in your <code>.lanerc</code>. Writes <code>.lanerc</code> only after your approval. <code>rm</code> removes a worktree but keeps its branch.</td></tr>
         <tr><td>autodev, phi-scan, rbac-django, review-plan, cc-validate-hooks, frontend-review, wireframe, action-first</td><td>Nothing beyond your AI provider.</td><td>None.</td><td>autodev, cc-validate-hooks (with <code>--fix</code>), and phi-scan (when you install its git hook) change files in your project or settings.</td></tr>
       </tbody>
     </table>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>worktree-lanes — nautilai</title>
+<meta name="description" content="Run parallel dev lanes in any repo with isolated git worktrees — per-lane env files, port allocation, dep linking, and service routing — driven by a per-repo .lanerc recipe the agent discovers and writes. One engine, any stack." />
+<meta property="og:title" content="worktree-lanes — nautilai" />
+<meta property="og:description" content="Run parallel dev lanes in any repo with isolated git worktrees — per-lane env files, port allocation, dep linking, and service routing — driven by a per-repo .lanerc recipe the agent discovers and writes. One engine, any stack." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a141d" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/plugin.css" />
+</head>
+<body>
+<div id="copy-live" class="visually-hidden" aria-live="polite" role="status"></div>
+<div class="wrap">
+  <a class="back" href="../index.html#plugins">&larr; all plugins</a>
+
+  <header class="plugin-hero">
+    <h1 class="plugin-name">worktree-lanes</h1>
+    <p class="tagline">Run several branches of a repo at once, each in its own git worktree with its own env file, ports, linked deps, and route — driven by a per-repo recipe.</p>
+  </header>
+
+  <section id="install">
+    <h2>Install</h2>
+    <div class="copyfield">
+      <code class="cf-code"><span class="prompt">/</span>plugin install worktree-lanes@nautilai</code>
+      <button class="copy-btn" type="button" data-copy="/plugin install worktree-lanes@nautilai" aria-label="Copy install command">
+        <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="cf-label" aria-hidden="true">Copy</span>
+      </button>
+    </div>
+  </section>
+
+  <section id="what">
+    <h2>What it does</h2>
+    <p>A lane is a git worktree on its own branch that runs like the main checkout: its own env file, its own ports, dependencies linked or installed, an optional service route, and optionally its services started. The bundled engine, <code>scripts/lane</code>, does that work for any stack; everything stack-specific lives in a per-repo <code>.lanerc</code> recipe — a sourced shell file of hooks and variables. <code>/worktree-lanes --setup</code> discovers the stack, shows each detected piece with its source file, and drafts the recipe for you to confirm. After that, opening a lane is one command.</p>
+    <p>The engine is generic, but a stack's install and start hooks are only as good as the recipe written for it; setup smoke-tests a throwaway lane to prove the recipe before calling it done.</p>
+  </section>
+
+  <section id="commands">
+    <h2>Commands / skills</h2>
+    <ul class="skill-list">
+      <li><div class="sk-name">/worktree-lanes --setup</div><p>Discovers this repo's stack — dependency installs, services, and which values must differ per lane — and drafts a <code>.lanerc</code> at the repo root for you to confirm and commit.</p><div class="sk-triggers">"set up worktree lanes"</div></li>
+      <li><div class="sk-name">/worktree-lanes &lt;slug&gt; [--proxy | --isolated]</div><p>Opens a lane named <code>&lt;slug&gt;</code> on a new branch, in host mode by default, and reports the lane path, mode, and per-lane ports.</p><div class="sk-triggers">"run parallel branches", "work on several features at once", "open a dev lane"</div></li>
+    </ul>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <ul>
+      <li>The engine owns the worktree, the env file, port allocation, dependency linking, routing, and the lane lifecycle. The recipe supplies optional hooks (<code>lane_project</code>, <code>lane_env</code>, <code>lane_setup</code>, <code>lane_route</code>, <code>lane_start</code>, <code>lane_stop</code>, <code>lane_retire</code>, <code>lane_gc</code>) and variables (<code>LANE_LINK_DIRS</code>, <code>LANE_PORT_VARS</code>, <code>LANE_ENV_FILE</code>, …). A hook the stack doesn't need is simply omitted.</li>
+      <li>Bootstrap from main, run from the lane: the recipe is always sourced from the main worktree, so the bootstrap never drifts with the branch under test, and its hooks run with <code>CWD</code> set to the lane.</li>
+      <li>Three modes. <strong>host</strong> (default) shares the database and uses no hostnames; <strong>proxy</strong> (<code>--proxy</code>) shares the database and gives the lane its own hostnames through a reverse proxy; <strong>isolated</strong> (<code>--isolated</code>) has the recipe provision the lane's own database and stack, and is available only when the recipe declares support for it.</li>
+      <li>Install or link, per dependency: <code>lane_setup</code> installs per lane by default; a directory in <code>LANE_LINK_DIRS</code> is symlinked from main only when it is identical on every branch, since installing through the link changes main's copy. The linker never replaces a real file with a symlink.</li>
+      <li>Ports: each <code>KEY:base</code> pair in <code>LANE_PORT_VARS</code> becomes <code>base + stride × offset</code>. Offsets start at 1 (main is 0), and allocation runs under a repo lock, skipping any offset whose ports clash with main, another lane's reservation, ports recorded by lanes made with other tooling, or a listening socket.</li>
+      <li><code>rm</code> refuses any uncommitted change except the engine's own artifacts (the untracked env file and link symlinks), and a failing teardown hook, unless <code>--force</code>; then it retires the lane's route, stops its services, and removes the worktree, keeping the branch. <code>gc</code> runs the recipe's sweep first and only then releases the offsets of vanished lanes, so a stale route can't serve the next lane that inherits its port.</li>
+    </ul>
+
+    <div class="flow">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">worktree + branch</span><span class="fs-sub">lane open</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">env file + ports</span><span class="fs-sub">lane_env</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">link deps</span><span class="fs-sub">LANE_LINK_DIRS</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">install deps</span><span class="fs-sub">lane_setup</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">5</span><span class="fs-body"><span class="fs-label">route</span><span class="fs-sub">lane_route</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">6</span><span class="fs-body"><span class="fs-label">start services</span><span class="fs-sub">lane_start</span></span></div>
+    </div>
+
+    <div class="flow">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">discover stack</span><span class="fs-sub">/worktree-lanes --setup</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">draft recipe</span></span></div>
+    </div>
+    <div class="flow-legend">
+      <span class="fl-item"><span class="fl-swatch" data-lane="ok"></span> user confirms</span>
+      <span class="fl-item"><span class="fl-swatch" data-lane="degrade"></span> no user to answer</span>
+    </div>
+    <div class="flow-split" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v6"/><path d="M12 10c0 4-6 2-6 7"/><path d="M12 10c0 4 6 2 6 7"/></svg></div>
+    <div class="flow-lanes">
+      <div class="flow-lane" data-lane="ok"><span class="flow-lane-label">ok</span>
+        <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">write recipe</span><span class="fs-sub">.lanerc</span></span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">open lanes</span></span></div>
+      </div>
+      <div class="flow-lane" data-lane="degrade"><span class="flow-lane-label">degrade</span>
+        <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">write draft</span><span class="fs-sub">.lanerc.draft</span></span></div>
+        <div class="flow-arrow" aria-hidden="true"></div>
+        <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">stop: awaiting_setup</span></span></div>
+      </div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li><code>lane open &lt;slug&gt; [--proxy|--isolated] [--start] [--base &lt;ref&gt;]</code> — cuts branch <code>&lt;slug&gt;</code> from <code>origin/&lt;base&gt;</code>, else local <code>&lt;base&gt;</code>; fails if neither resolves.</li>
+          <li><code>lane pr &lt;number&gt; [--proxy|--isolated] [--start]</code> — a lane named <code>pr-&lt;number&gt;</code> on the PR's own branch, via <code>gh pr checkout</code>.</li>
+          <li><code>lane resume &lt;slug&gt; [--start] [--env]</code> — finishes an interrupted open, re-running setup and route; <code>--start</code> (re)starts services; <code>--env</code> regenerates the env file after a recipe fix.</li>
+          <li><code>lane rm &lt;slug&gt; [--force]</code>, <code>lane ls</code> (branch, mode, offset, ports per lane), <code>lane gc</code>.</li>
+          <li>Services start only with <code>--start</code>; without it the lane is ready but idle.</li>
+          <li>Lanes live under <code>LANE_ROOT</code> (default <code>.claude/worktrees</code>); new branches cut from <code>LANE_BASE_BRANCH</code> (default <code>main</code>); ports are spaced by <code>LANE_PORT_STRIDE</code> (default <code>100</code>).</li>
+          <li>The lane's env file starts as a copy of main's <code>LANE_ENV_FILE</code> (<code>LANE_ENV_COPY=false</code> to start empty); every key the engine or <code>lane_env</code> sets then replaces all earlier definitions of it (<code>export</code> and CRLF forms included). <code>lane_env</code> may not set <code>LANE_*</code> or allocated port keys. Before every write the file must be untracked, not a symlink, and inside the lane.</li>
+          <li>Hooks run with errexit, so a failing hook stops the verb and keeps the lane for <code>lane resume</code>. Lane hooks see <code>LANE_DIR</code>, <code>LANE_MAIN</code>, <code>LANE_SLUG</code>, <code>LANE_OFFSET</code>, <code>LANE_PROJECT</code>, <code>LANE_MODE</code>, <code>LANE_BASE_BRANCH</code>, and each per-lane port, so a recipe can build values like <code>WEB_URL</code> from <code>WEB_PORT</code>; <code>lane_gc</code> sees only <code>LANE_MAIN</code> and <code>LANE_ROOT</code>.</li>
+          <li><code>LANE_WORKTREE_GUARD</code> (default <code>SKIP_WORKTREE_SETUP=1</code>) is exported around <code>git worktree add</code> so a repo's post-checkout hook skips its own bootstrap; the engine runs <code>lane_setup</code> itself (again on every <code>resume</code>, so it must be idempotent).</li>
+          <li>Writing <code>.lanerc</code> changes the repo, so setup is always a user stop, even unattended.</li>
+          <li>Worktrees aren't relocatable — a venv bakes its absolute path into its shebangs — so a lane is rebuilt, never moved.</li>
+          <li>The full contract is <code>references/contract.md</code>; a minimal recipe is <code>references/lanerc.example</code>.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <section id="requirements">
+    <h2>Requirements</h2>
+    <p>Claude Code with plugin support, <code>git</code>, and <code>bash</code>. <code>lane pr</code> also needs the GitHub CLI (<code>gh</code>). Proxy mode needs a reverse proxy the recipe writes routes for, and isolated mode needs a recipe that provisions its own database and stack; host mode needs neither. Dependency installs and dev servers are whatever the stack already uses, called from the recipe.</p>
+  </section>
+
+  <footer>
+    <nav class="foot-links">
+      <a href="https://github.com/starfysh-tech/nautilai/tree/main/worktree-lanes" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      <a href="../index.html#plugins">&larr; all plugins</a>
+    </nav>
+  </footer>
+</div>
+
+<script src="../assets/plugin.js"></script>
+</body>
+</html>

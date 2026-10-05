@@ -193,6 +193,17 @@
       },
       "homepage": "https://starfysh-tech.github.io/nautilai/plugins/action-first.html",
       "license": "MIT"
+    },
+    {
+      "name": "worktree-lanes",
+      "source": "./worktree-lanes",
+      "description": "Run parallel dev lanes in any repo with isolated git worktrees — per-lane env files, port allocation, dep linking, and service routing — driven by a per-repo .lanerc recipe the agent discovers and writes. One engine, any stack.",
+      "version": "2.31.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/worktree-lanes.html",
+      "license": "MIT"
     }
   ]
 }

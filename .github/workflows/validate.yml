@@ -68,6 +68,9 @@ jobs:
       - name: commitcraft pr-template tests
         run: bash commitcraft/tests/pr-template.test.sh
 
+      - name: worktree-lanes engine lifecycle tests
+        run: bash worktree-lanes/tests/lane.test.sh
+
       - name: phi-scan eval
         run: bash phi-scan/tests/eval/recall-precision.sh
 
@@ -101,11 +104,13 @@ jobs:
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
           ./actionlint -color
 
-      # Shellcheck every bundled/test shell script (warning+). ubuntu-latest
-      # ships shellcheck. These scripts otherwise had no lint gate, so this
-      # catches the class before it reaches external review.
+      # Shellcheck every bundled/test shell script (warning+), plus extensionless
+      # bash executables (the worktree-lanes engine). ubuntu-latest ships
+      # shellcheck. These scripts otherwise had no lint gate, so this catches
+      # the class before it reaches external review.
       - name: Shellcheck shell scripts
-        run: git ls-files '*.sh' | xargs -r shellcheck -x -S warning
+        run: |
+          { git ls-files '*.sh'; echo worktree-lanes/scripts/lane; } | xargs -r shellcheck -x -S warning
 
       # Bundled Python had no gate at all: a DeepSource autofix PR dedented a
       # method body out of its class and the resulting import-time SyntaxError
@@ -113,3 +118,13 @@ jobs:
       # catches only what stops the module loading.
       - name: Python syntax check
         run: git ls-files '*.py' | xargs -r -n1 python3 -m py_compile
+
+  # The worktree-lanes engine promises bash 3.2 (macOS /bin/bash). Linux bash 5
+  # can't prove that: errexit and array semantics differ across the two.
+  worktree-lanes-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: worktree-lanes engine tests (bash 3.2)
+        run: LANE_TEST_BASH=/bin/bash bash worktree-lanes/tests/lane.test.sh
