@@ -10,7 +10,7 @@ No `.lanerc` at the repo root → follow
 ## 2. Open
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/lane" open <slug> [--proxy | --isolated] [--start] [--base <ref>]
+$LANE open <slug> [--proxy | --isolated] [--start] [--base <ref>]
 ```
 
 - Mode: no flag = **host** (default; shared DB, no hostnames). `--proxy` = shared DB

@@ -105,9 +105,8 @@ jobs:
           ./actionlint -color
 
       # Shellcheck every bundled/test shell script (warning+), plus extensionless
-      # bash executables (the worktree-lanes engine). ubuntu-latest ships
-      # shellcheck. These scripts otherwise had no lint gate, so this catches
-      # the class before it reaches external review.
+      # bash executables. ubuntu-latest ships shellcheck. These scripts otherwise
+      # had no lint gate, so this catches the class before it reaches external review.
       - name: Shellcheck shell scripts
         run: |
           { git ls-files '*.sh'; echo worktree-lanes/scripts/lane; } | xargs -r shellcheck -x -S warning

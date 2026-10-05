@@ -1,8 +1,7 @@
 # Setup — discover the stack, write a `.lanerc`
 
-The engine is stack-agnostic; the recipe holds all the stack knowledge, and it is
-executable code the user will run. Read
-`${CLAUDE_PLUGIN_ROOT}/skills/worktree-lanes/references/contract.md` first.
+Read `${CLAUDE_PLUGIN_ROOT}/skills/worktree-lanes/references/contract.md` first.
+`$LANE` below is `bash "${CLAUDE_PLUGIN_ROOT}/scripts/lane"`.
 
 ## 1. Existing tooling first
 
@@ -44,8 +43,8 @@ Comment each hook with the file it was derived from. Rules:
   `$LANE_MAIN/$LANE_ROOT/.run/$LANE_SLUG`, a Compose project name) — never a bare
   `pkill -f`.
 - Keep lane runtime files out of the worktree, or `rm` will see them as uncommitted work.
-- `LANE_ENV_COPY=true` (default) copies main's env, secrets included. Fine on one dev
-  machine; set `false` and generate only what the lane needs when that's not acceptable.
+- `LANE_ENV_COPY=true` (default) copies main's env, secrets included. Set `false` and
+  generate only what the lane needs when copying main's secrets isn't acceptable.
 
 ## 4. Confirm (user stop)
 
@@ -61,20 +60,20 @@ Use a unique throwaway slug, the most demanding declared mode, and `--start`:
 
 ```bash
 SLUG="zz-setup-$(date +%s)"
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/lane" open "$SLUG" --start              # host-only recipe
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/lane" open "$SLUG" --start --isolated   # if it declares isolated
+$LANE open "$SLUG" --start              # host-only recipe
+$LANE open "$SLUG" --start --isolated   # if it declares isolated
 ```
 
 Then prove it works: hit each service on the lane's printed ports (e.g.
 `curl -fsS localhost:<port>/health`), and for `isolated` confirm the app is on the
 lane's DB name, not main's. On failure, fix the recipe and run
-`lane resume "$SLUG" --start` — add `--env` when the fix was in `lane_env`.
+`$LANE resume "$SLUG" --start` — add `--env` when the fix was in `lane_env`.
 Do not print the lane's env file — it holds main's secrets; grep the specific keys.
 
 Clean up only what the smoke test made:
 
 ```bash
-bash "${CLAUDE_PLUGIN_ROOT}/scripts/lane" rm "$SLUG" --force
+$LANE rm "$SLUG" --force
 git branch -D "$SLUG"
 ```
 

@@ -63,8 +63,8 @@ git checkout -q -b release && git commit -q --allow-empty -m rel && git checkout
 lane --help >/dev/null 2>&1; check "--help: exit 0" 0 $?
 lane open x --help >/dev/null 2>&1
 check "--help: recipe not sourced" no "$(yn test -e sourced)"
-out="$(lane open feat-x --base release 2>&1)"; rc=$?
-check "open <slug> --base <ref>: exit 0" 0 "$rc"
+lane open feat-x --base release >/dev/null 2>&1
+check "open <slug> --base <ref>: exit 0" 0 $?
 check "open: lane named by slug, not base" "feat-x" "$(git -C "$(WT feat-x)" rev-parse --abbrev-ref HEAD 2>&1)"
 check "open: cut from the --base commit" "$(git rev-parse release)" "$(git -C "$(WT feat-x)" rev-parse HEAD)"
 lane open a b >/dev/null 2>&1; check "open: extra positional rejected" 1 $?
@@ -116,8 +116,8 @@ check "resume: phase is ready" "PHASE=ready" "$(grep '^PHASE=' "$(STATE s)")"
 cat > .lanerc <<'EOF'
 lane_env() { false; echo IGNORED_FAILURE=yes; }
 EOF
-out="$(lane open envfail 2>&1)"; rc=$?
-check "open: lane_env failing mid-hook exits non-zero" 1 "$rc"
+lane open envfail >/dev/null 2>&1
+check "open: lane_env failing mid-hook exits non-zero" 1 $?
 check "open: lane_env failure writes no env file" no "$(yn test -e "$(WT envfail)/.env")"
 check "open: no temp files left in the lane" "" "$(find "$(WT envfail)" -maxdepth 1 -name '.lane.*')"
 lane rm envfail >/dev/null 2>&1; check "rm: lane from a failed open is clean (no temp leftovers)" 0 $?
