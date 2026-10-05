@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.32.0](https://github.com/starfysh-tech/nautilai/compare/v2.31.0...v2.32.0) (2026-10-05)
+
+
+### Features
+
+* **worktree-lanes:** add parallel dev lanes plugin with recipe engine ([#169](https://github.com/starfysh-tech/nautilai/issues/169)) ([6e9a9f9](https://github.com/starfysh-tech/nautilai/commit/6e9a9f98935bfb842508ff3623d115fbc72446e4))
+
 ## [2.31.0](https://github.com/starfysh-tech/nautilai/compare/v2.30.0...v2.31.0) (2026-09-29)
 
 
