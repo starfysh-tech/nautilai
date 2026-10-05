@@ -200,7 +200,11 @@ echo "=== checkout hooks ==="
 new_repo hooks
 # Husky-style repo hooks: committed dir + core.hooksPath. Each hook logs its name.
 mkdir .hk
-printf '#!/bin/sh\nbasename "$0" >> "%s/fired"\n' "$REPO_DIR" > .hk/post-checkout
+# \$0 stays literal: git expands it when it runs the hook, so each hook logs its own name.
+cat > .hk/post-checkout <<EOF
+#!/bin/sh
+basename "\$0" >> "$REPO_DIR/fired"
+EOF
 cp .hk/post-checkout .hk/pre-commit && chmod +x .hk/*
 git add .hk && git commit -qm hooks && git config core.hooksPath .hk && rm -f fired
 : > .lanerc
