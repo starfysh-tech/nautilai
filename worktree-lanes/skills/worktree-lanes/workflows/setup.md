@@ -8,8 +8,10 @@ Read `${CLAUDE_PLUGIN_ROOT}/skills/worktree-lanes/references/contract.md` first.
 - `.lanerc` exists → show it; offer targeted hook changes if the stack moved; stop.
 - The repo already has worktree tooling (a `lane`/`worktree` script, mise/just/make
   task, `.claude/hooks/*worktree*`, a post-checkout hook that bootstraps worktrees) →
-  the recipe's hooks should **call that tooling**, not reimplement it. Note the env
-  variable its post-checkout hook checks to skip auto-setup → `LANE_WORKTREE_GUARD`.
+  the recipe's hooks should **call that tooling**, not reimplement it. The engine
+  creates lanes with checkout hooks off (`LANE_CHECKOUT_HOOKS=0`), so read the
+  `post-checkout` hook (`git config core.hooksPath`, else `.git/hooks/`) and move
+  what a fresh lane needs into `lane_setup`.
 
 ## 2. Discover
 
@@ -43,8 +45,10 @@ Comment each hook with the file it was derived from. Rules:
   `$LANE_MAIN/$LANE_ROOT/.run/$LANE_SLUG`, a Compose project name) — never a bare
   `pkill -f`.
 - Keep lane runtime files out of the worktree, or `rm` will see them as uncommitted work.
-- `LANE_ENV_COPY=true` (default) copies main's env, secrets included. Set `false` and
+- `LANE_ENV_COPY=1` (default) copies main's env, secrets included. Set `0` and
   generate only what the lane needs when copying main's secrets isn't acceptable.
+- Top level of the recipe: variable assignments and function definitions only — it is
+  sourced again for every hook.
 
 ## 4. Confirm (user stop)
 

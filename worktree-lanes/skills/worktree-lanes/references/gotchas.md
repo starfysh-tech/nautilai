@@ -29,7 +29,7 @@ env file.
 
 ## Secrets
 
-With `LANE_ENV_COPY=true` (default) every lane's env file holds a copy of main's,
+With `LANE_ENV_COPY=1` (default) every lane's env file holds a copy of main's,
 secrets included. `rm` deletes them with the worktree. Don't print lane env files into
 transcripts — grep specific keys.
 
@@ -39,12 +39,15 @@ Routes are keyed by hostname/port. A route not retired on `rm` silently serves t
 lane that gets the same offset. `lane gc` releases offsets of vanished lanes and runs
 the recipe's `lane_gc` to sweep routes. Wrong app on a lane's hostname → `lane gc`.
 
-## Auto-bootstrap hooks
+## Checkout hooks don't run at lane creation
 
-`git worktree add` fires the repo's post-checkout hook, which may run its own full
-setup. The engine sets `LANE_WORKTREE_GUARD` (default `SKIP_WORKTREE_SETUP=1`) around
-the add; if the repo's hook checks a different variable, set the guard to that, or setup
-runs twice.
+The engine creates lanes with the repo's checkout hooks off (`LANE_CHECKOUT_HOOKS=0`),
+so a `post-checkout` hook that installs deps, generates files, or prints reminders does
+not run there. A lane missing something "a normal checkout has" → that work belongs in
+`lane_setup`. Later `git checkout`s inside the lane, and commit hooks, run normally.
+Git LFS content still downloads (that's a filter, not a hook), but LFS's post-checkout
+step — making locked files read-only — is skipped. A repo that relies on LFS locking
+should set `LANE_CHECKOUT_HOOKS=1` or reproduce that step in `lane_setup`.
 
 ## A failed open
 

@@ -78,12 +78,17 @@ nothing per mode itself.
   replaces every earlier definition (`KEY=`, `export KEY=`, CRLF) from main's copy.
   Other keys from main's copy are passed through as written. The env file must stay
   untracked and inside the lane; that is re-checked before every write.
-- **Strict hooks.** Hooks run with errexit; a failure stops the verb and keeps the lane
-  at its phase for `lane resume`. An open that dies before the worktree exists leaves a
+- **Strict hooks.** Each hook runs in its own bash process with `set -euo pipefail`, so
+  however the engine calls it, a hook that fails stops the verb and keeps the lane at
+  its phase for `lane resume`. (Bash's usual limits apply inside a hook: check failures
+  in `$(…)` explicitly.) An open that dies before the worktree exists leaves a
   reservation that `lane gc` (or reopening the slug) reclaims once its process is gone.
 - **Work is never discarded implicitly.** `rm` refuses any uncommitted change except
   the engine's own artifacts (the untracked env file, link-dir symlinks), and refuses a
   failing teardown hook — unless `--force`. It keeps the branch.
+- **Checkout hooks off at creation.** The repo's `post-checkout` hook doesn't run while
+  the engine creates a lane, so it can't run a second, conflicting setup; `lane_setup`
+  is the bootstrap. `LANE_CHECKOUT_HOOKS=1` turns them on.
 - **Self-ignored.** The lanes root writes its own `.gitignore`.
 
 ## Design notes
@@ -94,8 +99,10 @@ nothing per mode itself.
   identical across branches.
 - **Isolate only what collides.** Ports, DB, hostnames, Compose project names.
 - **Worktrees are not relocatable.** Rebuild a lane rather than moving it.
-- **Secrets.** By default a lane's env file copies main's (`LANE_ENV_COPY=false` to
-  opt out); `rm` deletes it with the worktree.
+- **Secrets.** By default a lane's env file copies main's (`LANE_ENV_COPY=0` to opt
+  out); `rm` deletes it with the worktree.
+- **On/off settings are `1`/`0`.** Every switch is named for what it turns on, so `1`
+  always means "do it"; other values are rejected rather than guessed.
 
 ## Requirements
 

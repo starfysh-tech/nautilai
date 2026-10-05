@@ -1,6 +1,8 @@
 # .lanerc — worktree-lanes recipe (sourced bash, executable: review it).
 # Example: a Node web app + Python API. Copy to <repo>/.lanerc and adapt.
-# Every hook runs with CWD=lane and errexit on; see references/contract.md.
+# Each hook runs in its own bash process (CWD=lane, set -euo pipefail), and this
+# file is sourced again for each one: keep the top level to assignments and
+# function definitions. See references/contract.md.
 # Prefer the stack's own lifecycle tooling when it has one (e.g. a Compose
 # project per lane: `docker compose -p "$LANE_PROJECT" up -d` / `down`).
 

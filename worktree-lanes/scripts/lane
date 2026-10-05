@@ -13,16 +13,14 @@
 #     hooks run with CWD=lane.
 #   * Worktree work is sacred: the linker never clobbers a real file, the env
 #     writer never overwrites a tracked file, and `rm` refuses a dirty lane.
-#   * Hooks are strict: a failing hook stops the verb and leaves the lane for
-#     `lane resume` (or `lane rm --force`).
+#   * Hooks are strict: each runs in its own bash process with errexit on; a
+#     failing hook stops the verb and leaves the lane for `lane resume` (or
+#     `lane rm --force`).
+#   * The repo's checkout hooks stay off while a lane is created
+#     (LANE_CHECKOUT_HOOKS=1 turns them on); lane_setup is the bootstrap.
 #
 # Engine state (offset, mode, ports, phase) lives in <LANE_ROOT>/.state/<slug>,
 # separate from the app's env file. <LANE_ROOT> is self-gitignored.
-#
-# errexit note: bash disables `set -e` for everything executed inside an
-# if/while condition or an &&/|| list — including nested functions and the
-# subshells they start. Every path that runs a recipe hook is therefore called
-# as a plain statement and reports through a global (HOOK_RC, ENV_RC).
 
 set -euo pipefail
 
@@ -103,31 +101,37 @@ MAIN="$(git worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p' ||
 [[ -n "$MAIN" && -d "$MAIN" ]] || die "could not determine the main worktree (not in a git repo?)"
 REPO="$(basename "$MAIN")"
 
-# Default hooks FIRST, so the recipe's definitions override them.
-lane_project() { printf '%s-%s\n' "$REPO" "$LANE_SLUG"; }
-lane_env()     { :; }
-lane_setup()   { :; }
-lane_route()   { :; }
-lane_start()   { :; }
-lane_stop()    { :; }
-lane_retire()  { :; }
-lane_gc()      { :; }
+# Hook defaults live in HOOK_RUNNER (below): hooks never run in this shell.
 
 RECIPE="${LANE_RECIPE:-$MAIN/.lanerc}"
 [[ -f "$RECIPE" ]] || die "no recipe at $RECIPE — write one (see the worktree-lanes contract) or set LANE_RECIPE"
+# Absolute, so hooks (which cd into the lane) can source it too.
+RECIPE="$(cd "$(dirname "$RECIPE")" && pwd -P)/$(basename "$RECIPE")"
 # shellcheck source=/dev/null
 source "$RECIPE"
 
 LANE_ROOT="${LANE_ROOT:-.claude/worktrees}"
 LANE_BASE_BRANCH="${LANE_BASE_BRANCH:-main}"
 LANE_ENV_FILE="${LANE_ENV_FILE:-.env}"
-LANE_ENV_COPY="${LANE_ENV_COPY:-true}"
+LANE_ENV_COPY="${LANE_ENV_COPY-1}"
 LANE_LINK_DIRS="${LANE_LINK_DIRS:-}"
 LANE_PORT_VARS="${LANE_PORT_VARS:-}"
 LANE_PORT_STRIDE="${LANE_PORT_STRIDE:-100}"
 LANE_MODES="${LANE_MODES:-host}"
-LANE_WORKTREE_GUARD="${LANE_WORKTREE_GUARD:-SKIP_WORKTREE_SETUP=1}"
+LANE_CHECKOUT_HOOKS="${LANE_CHECKOUT_HOOKS-0}"
 LANE_AGENT_MSG="${LANE_AGENT_MSG:-switch this session into the lane now by calling the EnterWorktree tool with path=%s}"
+
+# On/off settings are 1 (on) or 0 (off); anything else — empty included — is an
+# error, not a guess. (`-` not `:-` above, so an explicit empty value is caught.)
+[[ "$LANE_ENV_COPY" =~ ^[01]$ ]] \
+  || die "LANE_ENV_COPY must be 1 (copy main's env file) or 0 (start empty); got '$LANE_ENV_COPY'"
+[[ "$LANE_CHECKOUT_HOOKS" =~ ^[01]$ ]] \
+  || die "LANE_CHECKOUT_HOOKS must be 1 (run the repo's checkout hooks) or 0; got '$LANE_CHECKOUT_HOOKS'"
+
+# Resolved settings are exported so hooks (separate processes) see the values
+# the engine uses, defaults included.
+export LANE_ROOT LANE_BASE_BRANCH LANE_ENV_FILE LANE_ENV_COPY LANE_LINK_DIRS \
+       LANE_PORT_VARS LANE_PORT_STRIDE LANE_MODES LANE_CHECKOUT_HOOKS
 
 LANES_ROOT="$MAIN/$LANE_ROOT"
 STATE_DIR="$LANES_ROOT/.state"
@@ -346,16 +350,16 @@ resolve_base() {
   fi
 }
 
-# Recipe env guard (NAME=value words) applied around `git worktree add`.
-GUARD=()
-parse_guard() {
-  local g
-  read -r -a GUARD <<<"$LANE_WORKTREE_GUARD"
-  for g in ${GUARD[@]+"${GUARD[@]}"}; do
-    [[ "$g" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]] || die "LANE_WORKTREE_GUARD entry '$g' is not NAME=value"
-  done
+# Run a git/gh command that checks out files for a new lane. The repo's checkout
+# hooks are off unless LANE_CHECKOUT_HOOKS=1: core.hooksPath=/dev/null is appended
+# to GIT_CONFIG_PARAMETERS — the variable `git -c` uses to pass config to child
+# gits, so it also reaches the git that gh runs. git reads it after the config
+# files and GIT_CONFIG_COUNT entries, and its last entry wins, so nothing earlier
+# (repo config, husky, an inherited -c) can turn the hooks back on.
+checkout_cmd() {
+  if [[ "$LANE_CHECKOUT_HOOKS" == "1" ]]; then "$@"; return; fi
+  GIT_CONFIG_PARAMETERS="${GIT_CONFIG_PARAMETERS:+$GIT_CONFIG_PARAMETERS }'core.hooksPath=/dev/null'" "$@"
 }
-guarded_git() { env ${GUARD[@]+"${GUARD[@]}"} git -C "$MAIN" "$@"; }
 
 # Per-lane identity exported to every hook.
 CUR_PORTS=""
@@ -365,31 +369,32 @@ set_ctx() { # lane slug offset project mode ports
   CUR_PORTS="$6"
 }
 
-# Run a recipe hook strictly: subshell, CWD=dir, errexit on, per-lane ports
-# exported. Result in HOOK_RC. Call ONLY as a plain statement (see errexit
-# note at the top). Optional third arg captures the hook's stdout to a file.
-HOOK_RC=0
+# Hooks run in their own bash process, not a subshell of this one. bash turns
+# `set -e` off for everything run inside an if/&&/|| context — nested functions
+# and subshells included — so an in-process hook could silently keep going past
+# a failure depending on how the engine called it. A separate process keeps its
+# own errexit. The child defines the default hooks, sources the recipe, exports
+# the per-lane ports, and runs one hook. It sees the exported LANE_* variables,
+# REPO, the ports, and the recipe's own functions — nothing else of the engine.
+# shellcheck disable=SC2016  # expanded by the child shell, not here
+HOOK_RUNNER='set -euo pipefail
+lane_project() { printf "%s-%s\n" "$REPO" "$LANE_SLUG"; }
+lane_env() { :; }; lane_setup() { :; }; lane_route() { :; }; lane_start() { :; }
+lane_stop() { :; }; lane_retire() { :; }; lane_gc() { :; }
+source "$RECIPE"
+for p in $LANE_HOOK_PORTS; do export "${p%%:*}=${p#*:}"; done
+unset p LANE_HOOK_PORTS
+"$1"'
+
+# run_hook <hook> <dir> [stdout-file] — returns the hook's exit status.
 run_hook() {
-  local hook="$1" dir="$2" out="${3:-/dev/stdout}"
-  HOOK_RC=0
-  declare -F "$hook" >/dev/null || return 0
-  set +e
-  (
-    set -e
-    cd "$dir"
-    for p in $CUR_PORTS; do export "${p%%:*}=${p#*:}"; done
-    "$hook"
-  ) > "$out"
-  HOOK_RC=$?
-  set -e
-  return 0
+  ( cd "$2" && REPO="$REPO" RECIPE="$RECIPE" LANE_HOOK_PORTS="$CUR_PORTS" \
+      "$BASH" -c "$HOOK_RUNNER" lane-hook "$1" ) > "${3:-/dev/stdout}"
 }
 
-# run_hook in the lane; a failure stops the verb and keeps the lane. Plain
-# statement only.
+# run_hook in the lane; a failure stops the verb and keeps the lane.
 must_hook() { # slug hook [out]
-  run_hook "$2" "$LANES_ROOT/$1" ${3:+"$3"}
-  [[ $HOOK_RC -eq 0 ]] || fail_phase "$1" "$2"
+  run_hook "$2" "$LANES_ROOT/$1" ${3:+"$3"} || fail_phase "$1" "$2"
 }
 
 # Idempotent, non-destructive symlink from main. Never clobbers a real file.
@@ -428,16 +433,18 @@ check_env_dest() {
 # Build the lane env file atomically: optional copy of main's env, engine keys,
 # per-lane ports, then lane_env's KEY=VALUE lines (each replaces any earlier
 # definition of that key). lane_env may not set engine-owned keys (LANE_*,
-# port keys). Result in ENV_RC; call as a plain statement.
-ENV_RC=0
+# port keys). Any failure stops the verb via fail_phase (or errexit) before the
+# destination is touched. Call as a plain statement: inside if/&&/|| bash would
+# turn errexit off for this whole function.
 write_env() { # lane slug off project
   local lane="$1" dest="$1/$LANE_ENV_FILE" tmp out line key why p
-  ENV_RC=1
-  if ! why="$(check_env_dest "$lane")"; then echo "  $why" >&2; return 0; fi
+  if ! why="$(check_env_dest "$lane")"; then echo "  $why" >&2; fail_phase "$2" lane_env; fi
   mktmp "$lane"; tmp="$TMP_RET"
   {
     echo "# generated by lane ($2, mode $LANE_MODE, offset $3)"
-    if [[ "$LANE_ENV_COPY" == "true" && -f "$MAIN/$LANE_ENV_FILE" ]]; then cat "$MAIN/$LANE_ENV_FILE"; fi
+    if [[ "$LANE_ENV_COPY" == "1" && -f "$MAIN/$LANE_ENV_FILE" ]]; then
+      cat "$MAIN/$LANE_ENV_FILE" || { echo "  could not read main's $LANE_ENV_FILE" >&2; fail_phase "$2" lane_env; }
+    fi
   } > "$tmp"
   kv_set "$tmp" LANE_SLUG "$2"
   kv_set "$tmp" LANE_OFFSET "$3"
@@ -446,21 +453,19 @@ write_env() { # lane slug off project
   for p in $CUR_PORTS; do kv_set "$tmp" "${p%%:*}" "${p#*:}"; done
 
   mktmp; out="$TMP_RET"
-  run_hook lane_env "$lane" "$out"
-  if [[ $HOOK_RC -ne 0 ]]; then echo "  lane_env failed (exit $HOOK_RC)" >&2; return 0; fi
+  if ! run_hook lane_env "$lane" "$out"; then echo "  lane_env failed" >&2; fail_phase "$2" lane_env; fi
   while IFS= read -r line || [[ -n "$line" ]]; do
     line="${line%$'\r'}"
     [[ -z "$line" || "$line" == \#* ]] && continue
     if [[ ! "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-      echo "  lane_env printed a non KEY=VALUE line: $line" >&2; return 0
+      echo "  lane_env printed a non KEY=VALUE line: $line" >&2; fail_phase "$2" lane_env
     fi
     key="${line%%=*}"
-    case "$key" in LANE_*) echo "  lane_env may not set engine key $key" >&2; return 0 ;; esac
-    case "$PORT_KEYS" in *" $key "*) echo "  lane_env may not override allocated port $key" >&2; return 0 ;; esac
+    case "$key" in LANE_*) echo "  lane_env may not set engine key $key" >&2; fail_phase "$2" lane_env ;; esac
+    case "$PORT_KEYS" in *" $key "*) echo "  lane_env may not override allocated port $key" >&2; fail_phase "$2" lane_env ;; esac
     kv_set "$tmp" "$key" "${line#*=}"
   done < "$out"
   mv "$tmp" "$dest"
-  ENV_RC=0
 }
 
 fail_phase() { # slug phase
@@ -495,7 +500,6 @@ advance() { # slug
 
   if [[ "$fresh" == "true" || "$regen" == "true" ]]; then
     write_env "$lane" "$slug" "$off" "$project"
-    [[ $ENV_RC -eq 0 ]] || fail_phase "$slug" lane_env
     state_set "$slug" PHASE env
   fi
 
@@ -538,7 +542,6 @@ cmd_open() { # slug-input [pr-number]
   case " $LANE_MODES " in *" $mode "*) ;; *) die "this recipe does not support --$mode (LANE_MODES='$LANE_MODES')" ;; esac
   lane="$LANES_ROOT/$slug"
   validate_ports
-  parse_guard
   if [[ -z "$pr" ]]; then resolve_base "${base_arg:-$LANE_BASE_BRANCH}"; fi
 
   mkdir -p "$STATE_DIR"
@@ -567,13 +570,13 @@ cmd_open() { # slug-input [pr-number]
   # From here the reservation is ours: failures before `created` drop it.
   echo "==> creating worktree $lane"
   if [[ -n "$pr" ]]; then
-    guarded_git worktree add --detach "$lane" HEAD >/dev/null
-    if ! ( cd "$lane" && gh pr checkout "$pr" ); then
+    checkout_cmd git -C "$MAIN" worktree add --detach "$lane" HEAD >/dev/null
+    if ! ( cd "$lane" && checkout_cmd gh pr checkout "$pr" ); then
       undo_open "$slug" "$made_branch"; die "gh pr checkout $pr failed"
     fi
   else
     echo "    from $BASE_REF ($BASE_SHA)"
-    if ! guarded_git worktree add -b "$slug" "$lane" "$BASE_SHA" >/dev/null; then
+    if ! checkout_cmd git -C "$MAIN" worktree add -b "$slug" "$lane" "$BASE_SHA" >/dev/null; then
       undo_open "$slug" "$made_branch"; die "git worktree add failed"
     fi
     made_branch="true"
@@ -638,10 +641,12 @@ cmd_rm() {
   fi
 
   echo "==> removing $lane"
-  run_hook lane_retire "$lane"
-  if [[ $HOOK_RC -ne 0 && "$force" != "true" ]]; then die "lane_retire failed — lane kept (fix it, or: lane rm $slug --force)"; fi
-  run_hook lane_stop "$lane"
-  if [[ $HOOK_RC -ne 0 && "$force" != "true" ]]; then die "lane_stop failed — lane kept (fix it, or: lane rm $slug --force)"; fi
+  if ! run_hook lane_retire "$lane" && [[ "$force" != "true" ]]; then
+    die "lane_retire failed — lane kept (fix it, or: lane rm $slug --force)"
+  fi
+  if ! run_hook lane_stop "$lane" && [[ "$force" != "true" ]]; then
+    die "lane_stop failed — lane kept (fix it, or: lane rm $slug --force)"
+  fi
 
   # Uncommitted work was checked above (or discarded by --force); anything left
   # is engine-made, which git's own clean check would otherwise trip on.
@@ -680,8 +685,7 @@ cmd_gc() {
   done
   export LANE_MAIN="$MAIN" LANE_ROOT
   CUR_PORTS=""
-  run_hook lane_gc "$MAIN"
-  [[ $HOOK_RC -eq 0 ]] || die "lane_gc failed — no state released"
+  run_hook lane_gc "$MAIN" || die "lane_gc failed — no state released"
   for slug in $stale; do
     rm -f "$(state_file "$slug")"; echo "  - dropped stale state for $slug (offset released)"
   done

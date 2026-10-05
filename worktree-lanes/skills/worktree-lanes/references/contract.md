@@ -1,9 +1,16 @@
 # The `.lanerc` contract
 
 A `.lanerc` is a **sourced bash file** at the repo root. The engine sources it from the
-main checkout on every verb (except `--help`), then calls its hooks with `CWD` set to
-the lane. It is executable code with the user's privileges: review it like any script
-you run, and treat every later edit to it as a new review.
+main checkout on every verb (except `--help`) to read its variables, and again in each
+hook's own process. It is executable code with the user's privileges: review it like
+any script you run, and treat every later edit to it as a new review.
+
+Because it is sourced many times per verb (once per hook), its **top level must only
+assign variables and define functions** — no commands with side effects, nothing slow,
+and no references to per-lane variables (`LANE_SLUG`, ports), which are unset when
+`lane_gc` runs. Do the work inside hooks.
+
+On/off settings take `1` (on) or `0` (off); any other value is an error.
 
 ## Variables
 
@@ -13,11 +20,11 @@ you run, and treat every later edit to it as a new review.
 | `LANE_BASE_BRANCH` | `main` | Base when `open` gets no `--base`. Resolved as `origin/<base>` (fetched), else local `<base>`; unresolvable fails. |
 | `LANE_MODES` | `host` | Modes this recipe supports (`host proxy isolated`). `open --proxy/--isolated` fails unless listed. |
 | `LANE_ENV_FILE` | `.env` | The app's env file, generated per lane. Must stay gitignored and inside the lane: a tracked file, symlink, or path resolving outside the lane is refused (checked before every write). |
-| `LANE_ENV_COPY` | `true` | Seed the lane env file with main's copy (including its secrets). `false` = start empty. |
+| `LANE_ENV_COPY` | `1` | `1`: seed the lane env file with main's copy (including its secrets). `0`: start empty. |
 | `LANE_LINK_DIRS` | *(empty)* | Dirs **symlinked** from main. Only for deps proven branch-agnostic — installs through a link mutate main. |
 | `LANE_PORT_VARS` | *(empty)* | `KEY:base` pairs: unique uppercase keys (not `LANE_*`, `BASH*`, or shell/engine names), unique bases 1024–65535. Lane port = `base + stride*offset`. |
 | `LANE_PORT_STRIDE` | `100` | Port spacing between lanes. |
-| `LANE_WORKTREE_GUARD` | `SKIP_WORKTREE_SETUP=1` | Space-separated `NAME=value` words set around `git worktree add`, so a repo's post-checkout bootstrap hook can skip. |
+| `LANE_CHECKOUT_HOOKS` | `0` | `1`: run the repo's checkout hooks (e.g. `post-checkout`) when the engine creates a lane. `0`: they stay off for the `worktree add` / `gh pr checkout` (`core.hooksPath=/dev/null`, appended to `GIT_CONFIG_PARAMETERS` so an inherited `-c` or repo setting can't override it), so `lane_setup` is the only bootstrap. Later checkouts and commit hooks in the lane are unaffected either way. |
 | `LANE_AGENT_MSG` | EnterWorktree form | Non-TTY handoff message (`%s` = lane path). |
 
 Ports: offsets start at 1 (main is offset 0). Allocation runs under a lock and skips any
@@ -26,16 +33,30 @@ offset whose ports collide with main, another lane, or a listening socket — so
 
 ## Hooks (all optional)
 
-Every hook runs in a subshell with `CWD=lane` (`lane_gc`: main) and **errexit on**: the
-first failing command fails the hook, and a failed hook fails the verb. A failed `open`
-keeps the lane and records its phase; `lane resume <slug>` continues from there. (An
-open that dies before the worktree exists leaves only a reservation; `lane gc` or
-reopening the slug reclaims it once that process has exited.)
+Every hook runs in **its own bash process** with `CWD=lane` (`lane_gc`: main) and
+`set -euo pipefail`, and a hook that exits non-zero fails the verb. Being a separate
+process, a hook keeps errexit however the engine calls it. Inside the hook, bash's own
+errexit rules still apply: a failure inside `$(…)`, or inside a function called from
+`if`/`&&`/`||`, does **not** stop the hook — check those explicitly
+(`x="$(cmd)" || return 1`). A failed `open` keeps the lane and records its phase;
+`lane resume <slug>` continues from there. (An open that dies before the worktree
+exists leaves only a reservation; `lane gc` or reopening the slug reclaims it once that
+process has exited.)
 
-Exported to every lane hook: `LANE_DIR`, `LANE_MAIN`, `LANE_SLUG`, `LANE_OFFSET`,
+A hook sees: the recipe's own functions and variables, `REPO` (main's directory name),
+every setting above as the engine resolved it (defaults included), and the per-lane
+variables — `LANE_DIR`, `LANE_MAIN`, `LANE_SLUG`, `LANE_OFFSET`,
 `LANE_PROJECT` (empty inside `lane_project`), `LANE_MODE`, `LANE_BASE_BRANCH`,
 `LANE_ROOT`, and each port key from `LANE_PORT_VARS` with its per-lane value.
-`lane_gc` gets only `LANE_MAIN` and `LANE_ROOT` (it sweeps all lanes, not one).
+`lane_gc` gets only `LANE_MAIN` and `LANE_ROOT` (it sweeps all lanes, not one). Nothing
+else of the engine (its internal variables or functions) is visible, and hooks cannot
+pass shell variables to each other.
+
+**Checkout hooks.** With `LANE_CHECKOUT_HOOKS=0` (default), put anything the repo's
+`post-checkout` hook does for a fresh checkout into `lane_setup`, or call the hook
+script from there. To keep the repo's hook but skip part of it, set
+`LANE_CHECKOUT_HOOKS=1` and export the variable that hook checks from the recipe's top
+level (e.g. `export SKIP_WORKTREE_SETUP=1`).
 
 | Hook | Runs at | Contract |
 |---|---|---|

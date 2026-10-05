@@ -95,11 +95,12 @@ echo edited >> "$(WT linked)/app.txt"
 lane rm linked >/dev/null 2>&1; check "rm: edit to a real file named in LANE_LINK_DIRS blocks rm" 1 $?
 check "rm: that edit survives" yes "$(yn grep -q edited "$(WT linked)/app.txt")"
 cat > .lanerc <<'EOF'
-lane_stop() { false; }
+lane_stop() { false; echo reached > "$LANE_MAIN/stop-after-failure"; }
 EOF
 lane open stuck >/dev/null 2>&1
 lane rm stuck >/dev/null 2>&1; check "rm: failing teardown hook keeps the lane" 1 $?
 check "rm: lane still present after failed teardown" yes "$(yn test -d "$(WT stuck)")"
+check "rm: teardown hook stops at its failing command" no "$(yn test -e stop-after-failure)"
 
 echo "=== strict hooks + resume ==="
 new_repo strict
@@ -138,6 +139,29 @@ check "env: every definition of a set key collapses to one" "DB_NAME=envf-env1_d
 check "env: hook sees per-lane port" "WEB_URL=http://localhost:41100" "$(grep '^WEB_URL=' "$ENVF")"
 check "env: main env copied by default" "SECRET=main-secret" "$(grep '^SECRET=' "$ENVF")"
 cat > .lanerc <<'EOF'
+LANE_ENV_COPY=0
+EOF
+lane open nocopy >/dev/null 2>&1; check "env: LANE_ENV_COPY=0 open succeeds" 0 $?
+check "env: LANE_ENV_COPY=0 still writes the env file" yes "$(yn test -f "$(WT nocopy)/.env")"
+check "env: LANE_ENV_COPY=0 leaves main's secrets out" no "$(yn grep -q '^SECRET=' "$(WT nocopy)/.env")"
+echo 'LANE_ENV_COPY=true' > .lanerc
+lane open badflag >/dev/null 2>&1; check "settings: on/off value other than 1/0 rejected" 1 $?
+check "settings: rejected value creates nothing" no "$(yn test -e "$(WT badflag)")"
+echo 'LANE_CHECKOUT_HOOKS=' > .lanerc
+lane open emptyflag >/dev/null 2>&1; check "settings: empty on/off value rejected" 1 $?
+cat > .lanerc <<'EOF'
+lane_setup() { echo "$LANE_ENV_FILE $LANE_ENV_COPY" > "$LANE_MAIN/seen-settings"; }
+EOF
+lane open seen >/dev/null 2>&1
+check "hooks see resolved settings, defaults included" ".env 1" "$(cat seen-settings 2>&1)"
+: > .lanerc
+lane open keep >/dev/null 2>&1
+chmod 000 .env
+lane resume keep --env >/dev/null 2>&1; rc=$?
+chmod 644 .env
+check "env: unreadable main env fails the regeneration" 1 "$rc"
+check "env: failed regeneration leaves the lane's env file intact" "SECRET=main-secret" "$(grep '^SECRET=' "$(WT keep)/.env")"
+cat > .lanerc <<'EOF'
 LANE_PORT_VARS="WEB_PORT:41000"
 lane_env() { echo "WEB_PORT=49999"; }
 EOF
@@ -171,6 +195,30 @@ lane open later >/dev/null 2>&1
 touch ok
 lane resume later >/dev/null 2>&1; check "resume: env file tracked since the open is refused" 1 $?
 check "resume: user's tracked env content survives" "USER WORK" "$(cat "$(WT later)/.env")"
+
+echo "=== checkout hooks ==="
+new_repo hooks
+# Husky-style repo hooks: committed dir + core.hooksPath. Each hook logs its name.
+mkdir .hk
+printf '#!/bin/sh\nbasename "$0" >> "%s/fired"\n' "$REPO_DIR" > .hk/post-checkout
+cp .hk/post-checkout .hk/pre-commit && chmod +x .hk/*
+git add .hk && git commit -qm hooks && git config core.hooksPath .hk && rm -f fired
+: > .lanerc
+lane open h1 >/dev/null 2>&1; check "hooks: open in a repo with checkout hooks succeeds" 0 $?
+check "hooks: repo's post-checkout does not run when a lane is created" no "$(yn grep -qs post-checkout fired)"
+git -C "$(WT h1)" commit -q --allow-empty -m x
+check "hooks: repo's commit hooks still run in the lane" yes "$(yn grep -qs pre-commit fired)"
+echo 'LANE_CHECKOUT_HOOKS=1' > .lanerc && rm -f fired
+lane open h2 >/dev/null 2>&1
+check "hooks: LANE_CHECKOUT_HOOKS=1 runs the repo's post-checkout" yes "$(yn grep -qs post-checkout fired)"
+echo 'LANE_CHECKOUT_HOOKS=0' > .lanerc && rm -f fired
+GIT_CONFIG_PARAMETERS="'core.hooksPath=.hk'" lane open h3 >/dev/null 2>&1
+GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=.hk lane open h4 >/dev/null 2>&1
+check "hooks: an inherited -c / GIT_CONFIG_* hooksPath can't turn them back on" no "$(yn grep -qs post-checkout fired)"
+check "hooks: those opens succeeded" yes "$(yn test -d "$(WT h3)" -a -d "$(WT h4)")"
+LANE_RECIPE=.lanerc lane open rel1 >/dev/null 2>&1; check "recipe: relative LANE_RECIPE from main" 0 $?
+( cd "$(WT h1)" && LANE_RECIPE=../../../.lanerc "$BASH_BIN" "$LANE" open rel2 >/dev/null 2>&1 )
+check "recipe: relative LANE_RECIPE from another worktree" 0 $?
 
 echo "=== ports ==="
 new_repo ports
