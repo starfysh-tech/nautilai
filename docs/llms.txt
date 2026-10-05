@@ -44,6 +44,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [cc-validate-hooks](https://starfysh-tech.github.io/nautilai/plugins/cc-validate-hooks.html): Validates Claude Code hook configuration in `settings.json`, with an optional `--fix`.
 - [sentry-hygiene](https://starfysh-tech.github.io/nautilai/plugins/sentry-hygiene.html): Audits a repo's Sentry setup against official SDK docs fetched at runtime, and instruments capture behind a hard PII boundary. Repo-only (no Sentry MCP). Deliberately complements the official `sentry` plugin, which owns SDK setup and fixing production issues. **Not currently ported to Hermes.**
 - [action-first](https://starfysh-tech.github.io/nautilai/plugins/action-first.html): Persistent output-style skill — reshapes every response around one doable-now action (lead with the step, number/cap multi-step work at 5, restate progress each turn, cut preamble/recap). User-invoked only, stays on until "stop action-first."
+- [worktree-lanes](https://starfysh-tech.github.io/nautilai/plugins/worktree-lanes.html): Runs several branches at once, each in its own git worktree with a per-lane env file, ports, linked deps, and route. A bundled engine (`scripts/lane`: `open`, `pr`, `resume`, `rm`, `ls`, `gc`) driven by a per-repo `.lanerc` recipe; modes host (default, shared DB), `--proxy` (shared DB + per-lane hostnames), `--isolated` (own DB/stack, only if the recipe declares support). `/worktree-lanes --setup` drafts the recipe; writing it is always a user stop, so with no user to answer it writes `.lanerc.draft`, reports `awaiting_setup`, and stops. `rm` refuses a lane with uncommitted changes unless `--force`.
 
 ## Notes for agents — Hermes runtime
 
@@ -142,6 +143,22 @@ file path or `-` for stdin).
 - **ASCII mode is not this renderer.** ASCII mode draws UI layouts (nav bars, `[____]`
   inputs, `[Select ▼]`); the renderer draws node graphs. Do not route ASCII-mode layout
   work through it.
+
+## Notes for agents — worktree-lanes
+
+Claude Code only. Run the engine as `bash "${CLAUDE_PLUGIN_ROOT}/scripts/lane" <verb>`
+from inside the repo; never hand-run `git worktree add/remove` on its lanes or edit
+`<LANE_ROOT>/.state/`. The engine exits non-zero on every failure, including a failing
+recipe hook — report the error rather than retrying around it.
+- `AGENT ACTION REQUIRED: …` in the output is an instruction to you: switch the session
+  into the printed lane path.
+- A failed `open` keeps the lane: continue with `lane resume <slug>`. After fixing
+  `lane_env`, use `lane resume <slug> --env` (it rewrites the lane's env file).
+- `rm` refusing means uncommitted work or a failing teardown hook. Pass `--force` only
+  when the user has said to discard that work.
+- A lane's env file is a copy of main's, secrets included: grep specific keys, never
+  print the file.
+- Writing or editing `.lanerc` is a user stop; it is executable code.
 
 ## Optional
 

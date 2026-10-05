@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "worktree-lanes",
+  "displayName": "Worktree Lanes",
+  "version": "2.31.0",
+  "description": "Run parallel dev lanes in any repo with isolated git worktrees — per-lane env files, port allocation, dep linking, and service routing — driven by a per-repo .lanerc recipe the agent discovers and writes. One engine, any stack.",
+  "author": {
+    "name": "Randall Noval",
+    "email": "randall@starfysh.net",
+    "url": "https://github.com/starfysh-tech"
+  },
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/worktree-lanes#readme",
+  "repository": "https://github.com/starfysh-tech/nautilai",
+  "license": "MIT",
+  "keywords": [
+    "worktree",
+    "parallel",
+    "lanes",
+    "git",
+    "claude-code"
+  ],
+  "skills": "./skills/"
+}

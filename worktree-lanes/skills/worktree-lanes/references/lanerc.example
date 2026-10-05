@@ -1,0 +1,59 @@
+# .lanerc — worktree-lanes recipe (sourced bash, executable: review it).
+# Example: a Node web app + Python API. Copy to <repo>/.lanerc and adapt.
+# Each hook runs in its own bash process (CWD=lane, set -euo pipefail), and this
+# file is sourced again for each one: keep the top level to assignments and
+# function definitions. See references/contract.md.
+# Prefer the stack's own lifecycle tooling when it has one (e.g. a Compose
+# project per lane: `docker compose -p "$LANE_PROJECT" up -d` / `down`).
+
+LANE_BASE_BRANCH="main"
+LANE_ENV_FILE=".env"            # must be gitignored
+LANE_MODES="host"               # add proxy/isolated only once the hooks implement them
+
+# Per-lane ports: lane value = base + 100*offset (offsets start at 1).
+LANE_PORT_VARS="WEB_PORT:3000 API_PORT:8000"
+
+# Per-lane installs by default. Symlink a dir here only if it is identical on every
+# branch — installing through the link would mutate main's copy.
+LANE_LINK_DIRS=""
+
+lane_env() {
+  echo "WEB_URL=http://localhost:${WEB_PORT}"
+  echo "API_URL=http://localhost:${API_PORT}"
+}
+
+lane_setup() {
+  npm ci --prefer-offline
+  uv sync
+}
+
+# PIDs/logs live under the (gitignored) lanes root, not in the worktree, so they
+# never count as uncommitted work.
+run_dir() { echo "$LANE_MAIN/$LANE_ROOT/.run/$LANE_SLUG"; }
+
+# Each service runs in its own process group (set -m: background job's PGID =
+# its PID), so stop can signal the launcher AND everything it spawned.
+lane_start() {
+  lane_stop    # resume --start re-runs this: never leave duplicates behind
+  local d; d="$(run_dir)"; mkdir -p "$d"
+  set -m
+  nohup npm run dev -- --port "$WEB_PORT" > "$d/web.log" 2>&1 &
+  echo $! > "$d/web.pid"
+  nohup uv run uvicorn app:app --port "$API_PORT" > "$d/api.log" 2>&1 &
+  echo $! > "$d/api.pid"
+}
+
+lane_stop() {
+  local f pid i
+  for f in "$(run_dir)"/*.pid; do
+    [ -e "$f" ] || continue
+    pid="$(cat "$f")"
+    # Only signal it if that PID still leads its own group (guards PID reuse).
+    if [ "$(ps -o pgid= -p "$pid" 2>/dev/null | tr -d ' ')" = "$pid" ]; then
+      kill -TERM -- "-$pid" 2>/dev/null || true
+      for i in 1 2 3 4 5 6 7 8 9 10; do kill -0 "$pid" 2>/dev/null || break; sleep 0.5; done
+      if kill -0 "$pid" 2>/dev/null; then kill -KILL -- "-$pid" 2>/dev/null || true; fi
+    fi
+    rm -f "$f"
+  done
+}

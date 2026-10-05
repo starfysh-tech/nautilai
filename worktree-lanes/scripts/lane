@@ -1,0 +1,703 @@
+#!/usr/bin/env bash
+#
+# lane — run N branches in parallel, each a fully working dev environment.
+#
+# A "lane" is a git worktree that behaves like the main checkout: same deps,
+# working hooks, a working env, and its own ports/DB/hostnames. All
+# repo-specific behavior lives in a recipe (<main>/.lanerc, or $LANE_RECIPE)
+# that the engine sources from the MAIN checkout. The recipe is executable
+# code: review it like any script you run.
+#
+# Load-bearing rules:
+#   * Bootstrap from MAIN, run from the LANE: the recipe is sourced from main;
+#     hooks run with CWD=lane.
+#   * Worktree work is sacred: the linker never clobbers a real file, the env
+#     writer never overwrites a tracked file, and `rm` refuses a dirty lane.
+#   * Hooks are strict: each runs in its own bash process with errexit on; a
+#     failing hook stops the verb and leaves the lane for `lane resume` (or
+#     `lane rm --force`).
+#   * The repo's checkout hooks stay off while a lane is created
+#     (LANE_CHECKOUT_HOOKS=1 turns them on); lane_setup is the bootstrap.
+#
+# Engine state (offset, mode, ports, phase) lives in <LANE_ROOT>/.state/<slug>,
+# separate from the app's env file. <LANE_ROOT> is self-gitignored.
+
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+usage:
+  lane open <slug> [--proxy|--isolated] [--start] [--base <ref>]
+  lane pr <number> [--proxy|--isolated] [--start]
+  lane resume <slug> [--start] [--env]
+  lane rm <slug> [--force]
+  lane ls
+  lane gc
+
+  --proxy / --isolated   lane mode (default: host); the recipe must list it in LANE_MODES
+  --start                run lane_start after setup
+  --base <ref>           cut the lane from <ref> (default: recipe's LANE_BASE_BRANCH)
+  --env                  resume: regenerate the lane's env file (discards edits to it)
+  --force                rm even with uncommitted changes or a failing teardown hook
+EOF
+}
+
+die() { echo "lane: $*" >&2; exit 1; }
+
+# ---------------------------------------------------------------------------
+# Arguments (parsed before anything touches git or the recipe)
+# ---------------------------------------------------------------------------
+
+cmd="${1:-}"
+[[ $# -gt 0 ]] && shift
+case "$cmd" in
+  -h|--help|help) usage; exit 0 ;;
+  open)   allowed="--proxy --isolated --start --base" ;;
+  pr)     allowed="--proxy --isolated --start" ;;
+  resume) allowed="--start --env" ;;
+  rm)     allowed="--force" ;;
+  ls|list|gc) allowed="" ;;
+  "") usage >&2; exit 1 ;;
+  *) usage >&2; die "unknown verb: $cmd" ;;
+esac
+
+mode="host"; start="false"; force="false"; regen="false"; base_arg=""; positional=""; npos=0
+while [[ $# -gt 0 ]]; do
+  arg="$1"; shift
+  case "$arg" in
+    -h|--help) usage; exit 0 ;;
+    --base=*) flag="--base"; base_arg="${arg#--base=}" ;;
+    --*) flag="$arg" ;;
+    *) positional="$arg"; npos=$((npos + 1)); continue ;;
+  esac
+  case " $allowed " in *" $flag "*) ;; *) die "'$flag' is not valid for '$cmd'" ;; esac
+  case "$flag" in
+    --proxy)    mode="proxy" ;;
+    --isolated) mode="isolated" ;;
+    --start)    start="true" ;;
+    --force)    force="true" ;;
+    --env)      regen="true" ;;
+    --base)
+      if [[ "$arg" == "--base" ]]; then
+        [[ $# -gt 0 && "$1" != --* ]] || die "--base needs a ref"
+        base_arg="$1"; shift
+      fi
+      [[ -n "$base_arg" ]] || die "--base needs a ref" ;;
+  esac
+done
+case "$cmd" in
+  ls|list|gc) [[ $npos -eq 0 ]] || die "'$cmd' takes no arguments" ;;
+  *) [[ $npos -eq 1 ]] || die "'$cmd' takes exactly one argument (got $npos); see: lane --help" ;;
+esac
+
+# ---------------------------------------------------------------------------
+# Resolve the main worktree, then source the recipe.
+#
+# The FIRST entry of `git worktree list --porcelain` is always the main
+# worktree. `git rev-parse --show-toplevel` would return the *current* worktree
+# when run from inside a lane, nesting a lane inside another.
+# ---------------------------------------------------------------------------
+MAIN="$(git worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p' || true)"
+[[ -n "$MAIN" && -d "$MAIN" ]] || die "could not determine the main worktree (not in a git repo?)"
+REPO="$(basename "$MAIN")"
+
+# Hook defaults live in HOOK_RUNNER (below): hooks never run in this shell.
+
+RECIPE="${LANE_RECIPE:-$MAIN/.lanerc}"
+[[ -f "$RECIPE" ]] || die "no recipe at $RECIPE — write one (see the worktree-lanes contract) or set LANE_RECIPE"
+# Absolute, so hooks (which cd into the lane) can source it too.
+RECIPE="$(cd "$(dirname "$RECIPE")" && pwd -P)/$(basename "$RECIPE")"
+# shellcheck source=/dev/null
+source "$RECIPE"
+
+LANE_ROOT="${LANE_ROOT:-.claude/worktrees}"
+LANE_BASE_BRANCH="${LANE_BASE_BRANCH:-main}"
+LANE_ENV_FILE="${LANE_ENV_FILE:-.env}"
+LANE_ENV_COPY="${LANE_ENV_COPY-1}"
+LANE_LINK_DIRS="${LANE_LINK_DIRS:-}"
+LANE_PORT_VARS="${LANE_PORT_VARS:-}"
+LANE_PORT_STRIDE="${LANE_PORT_STRIDE:-100}"
+LANE_MODES="${LANE_MODES:-host}"
+LANE_CHECKOUT_HOOKS="${LANE_CHECKOUT_HOOKS-0}"
+LANE_AGENT_MSG="${LANE_AGENT_MSG:-switch this session into the lane now by calling the EnterWorktree tool with path=%s}"
+
+# On/off settings are 1 (on) or 0 (off); anything else — empty included — is an
+# error, not a guess. (`-` not `:-` above, so an explicit empty value is caught.)
+[[ "$LANE_ENV_COPY" =~ ^[01]$ ]] \
+  || die "LANE_ENV_COPY must be 1 (copy main's env file) or 0 (start empty); got '$LANE_ENV_COPY'"
+[[ "$LANE_CHECKOUT_HOOKS" =~ ^[01]$ ]] \
+  || die "LANE_CHECKOUT_HOOKS must be 1 (run the repo's checkout hooks) or 0; got '$LANE_CHECKOUT_HOOKS'"
+
+# Resolved settings are exported so hooks (separate processes) see the values
+# the engine uses, defaults included.
+export LANE_ROOT LANE_BASE_BRANCH LANE_ENV_FILE LANE_ENV_COPY LANE_LINK_DIRS \
+       LANE_PORT_VARS LANE_PORT_STRIDE LANE_MODES LANE_CHECKOUT_HOOKS
+
+LANES_ROOT="$MAIN/$LANE_ROOT"
+STATE_DIR="$LANES_ROOT/.state"
+LOCK="$STATE_DIR/.lock"
+MAX_OFFSET=99
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+TMPFILES=(); HAVE_LOCK="false"
+cleanup() {
+  local f
+  for f in ${TMPFILES[@]+"${TMPFILES[@]}"}; do rm -f "$f"; done
+  if [[ "$HAVE_LOCK" == "true" ]]; then rm -rf "$LOCK"; fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+# Temp file registered in THIS shell (never call inside $(...): the
+# registration would be lost with the subshell). Path returned in TMP_RET.
+TMP_RET=""
+mktmp() {
+  TMP_RET="$(mktemp "${1:-${TMPDIR:-/tmp}}/.lane.XXXXXX")"
+  TMPFILES+=("$TMP_RET")
+}
+
+slugify() { tr '[:upper:]' '[:lower:]' | tr '/_' '--' | sed 's/[^a-z0-9-]//g'; }
+
+# Slug check shared by every verb: no path components can survive it.
+valid_slug() { [[ "$1" =~ ^[a-z0-9][a-z0-9-]*$ ]]; }
+
+# Dotenv syntax the engine reads and writes: `KEY=VALUE`, optionally prefixed by
+# whitespace and `export `, CRLF tolerated, one layer of matching quotes
+# stripped. kv_get returns the first match; empty if the file or key is absent.
+kv_get() {
+  awk -v k="$2" '
+    { sub(/\r$/, ""); l = $0; sub(/^[ \t]*(export[ \t]+)?/, "", l)
+      if (index(l, k "=") == 1) {
+        v = substr(l, length(k) + 2)
+        if (v ~ /^".*"$/ || v ~ /^\047.*\047$/) v = substr(v, 2, length(v) - 2)
+        print v; exit
+      } }' "$1" 2>/dev/null || true
+}
+
+# Set KEY=VALUE: the first line defining KEY (any syntax above) becomes
+# KEY=VALUE, later definitions are dropped, appended when absent. Values pass via
+# ENVIRON, so any characters are safe.
+kv_set() {
+  local file="$1" tmp
+  touch "$file"
+  mktmp "$(dirname "$file")"; tmp="$TMP_RET"
+  K="$2" V="$3" awk '
+    BEGIN { k = ENVIRON["K"]; v = ENVIRON["V"]; done = 0 }
+    { l = $0; sub(/\r$/, "", l); sub(/^[ \t]*(export[ \t]+)?/, "", l)
+      if (index(l, k "=") == 1) { if (!done) { print k "=" v; done = 1 } next }
+      print }
+    END { if (!done) print k "=" v }
+  ' "$file" > "$tmp"
+  mv "$tmp" "$file"
+}
+
+state_file() { echo "$STATE_DIR/$1"; }
+state_get()  { kv_get "$(state_file "$1")" "$2"; }
+state_set()  { kv_set "$(state_file "$1")" "$2" "$3"; }
+
+env_tracked() { git -C "$1" ls-files --error-unmatch -- "$LANE_ENV_FILE" >/dev/null 2>&1; }
+
+# "KEY:port ..." for each LANE_PORT_VARS key holding a number in an env file.
+env_ports() {
+  local pair v out=""
+  for pair in $LANE_PORT_VARS; do
+    v="$(kv_get "$1" "${pair%%:*}")"
+    if [[ "$v" =~ ^[0-9]+$ ]]; then out="$out ${pair%%:*}:$v"; fi
+  done
+  echo "${out# }"
+}
+
+# Validate recipe port declarations: KEY:base, a plain assignable identifier
+# the engine and shell don't depend on, unique key and base, base 1024-65535.
+PORT_KEYS=""
+validate_ports() {
+  [[ "$LANE_PORT_STRIDE" =~ ^[1-9][0-9]*$ ]] || die "LANE_PORT_STRIDE must be a positive integer"
+  local pair key base seen=" "
+  PORT_KEYS=" "
+  for pair in $LANE_PORT_VARS; do
+    [[ "$pair" == *:* ]] || die "LANE_PORT_VARS entry '$pair' is not KEY:base"
+    key="${pair%%:*}"; base="${pair#*:}"
+    [[ "$key" =~ ^[A-Z_][A-Z0-9_]*$ ]] || die "port key '$key' must be an uppercase identifier"
+    case "$key" in
+      LANE_*|BASH*|PATH|HOME|PWD|OLDPWD|SHELL|SHELLOPTS|IFS|USER|UID|EUID|PPID|HOSTNAME|\
+      RANDOM|SECONDS|LINENO|OPTIND|OPTARG|PS1|PS2|PS4|TERM|TMPDIR|LANG|\
+      MAIN|REPO|RECIPE|LANES_ROOT|STATE_DIR|LOCK|K|V)
+        die "port key '$key' is reserved" ;;
+    esac
+    ( eval "$key=1" ) 2>/dev/null || die "port key '$key' is not assignable"
+    case "$PORT_KEYS" in *" $key "*) die "port key '$key' is declared twice" ;; esac
+    [[ "$base" =~ ^[0-9]+$ ]] && (( base >= 1024 && base <= 65535 )) \
+      || die "port base for $key must be 1024-65535 (got '$base')"
+    case "$seen" in *" $base "*) die "two port keys share base $base" ;; esac
+    seen="$seen$base "; PORT_KEYS="$PORT_KEYS$key "
+  done
+}
+
+# "KEY:port KEY:port" for a given offset.
+ports_for() {
+  local off="$1" pair out=""
+  for pair in $LANE_PORT_VARS; do
+    out="$out ${pair%%:*}:$(( ${pair#*:} + LANE_PORT_STRIDE * off ))"
+  done
+  echo "${out# }"
+}
+
+port_listening() {
+  command -v lsof >/dev/null 2>&1 || return 1
+  lsof -nP -iTCP:"$1" -sTCP:LISTEN -t >/dev/null 2>&1
+}
+
+pid_alive() { [[ "$1" =~ ^[0-9]+$ ]] && kill -0 "$1" 2>/dev/null; }
+
+# Repo-wide lock (mkdir is atomic). The owner PID is recorded; a lock whose
+# owner is dead is reclaimed. A lock without a PID is only waited on (its owner
+# may be between mkdir and writing the PID).
+acquire_lock() {
+  mkdir -p "$STATE_DIR"
+  local tries=0 owner
+  until mkdir "$LOCK" 2>/dev/null; do
+    owner="$(cat "$LOCK/pid" 2>/dev/null || true)"
+    if [[ -n "$owner" ]] && ! pid_alive "$owner"; then
+      rm -rf "$LOCK"; echo "  ! reclaimed a stale lock (pid $owner exited)" >&2
+      continue
+    fi
+    tries=$((tries + 1))
+    [[ $tries -le 100 ]] || die "lock busy: $LOCK (remove it if no lane command is running)"
+    sleep 0.1
+  done
+  HAVE_LOCK="true"
+  echo "$$" > "$LOCK/pid"
+}
+release_lock() { rm -rf "$LOCK"; HAVE_LOCK="false"; }
+
+# Is the lane a registered worktree of this repo (not just some directory)?
+registered() { git -C "$MAIN" worktree list --porcelain | grep -qxF "worktree $1"; }
+
+# State is stale when it has no registered worktree — unless it is a fresh
+# reservation (phase allocated) whose opening process is still alive.
+is_stale() {
+  local slug="$1" lane="$LANES_ROOT/$1"
+  if [[ -d "$lane" ]] && registered "$lane"; then return 1; fi
+  if [[ "$(state_get "$slug" PHASE)" == "allocated" ]] && pid_alive "$(state_get "$slug" OWNER)"; then
+    return 1
+  fi
+  return 0
+}
+
+# Offsets and ports already claimed: main (offset 0), every lane with engine
+# state, and lanes created by other tooling — those claim each port key from
+# LANE_PORT_VARS found in their env file (and LANE_OFFSET, if recorded), since
+# a stopped lane's ports are invisible to the listening-socket check.
+claimed() {
+  local offs=" 0 " ports f d o
+  ports=" $(ports_for 0) "
+  for f in "$STATE_DIR"/*; do
+    [[ -f "$f" ]] || continue
+    offs="$offs$(kv_get "$f" OFFSET) "
+    ports="$ports$(kv_get "$f" PORTS) "
+  done
+  for d in "$LANES_ROOT"/*/; do
+    [[ -d "$d" && ! -f "$STATE_DIR/$(basename "$d")" ]] || continue
+    o="$(kv_get "$d$LANE_ENV_FILE" LANE_OFFSET)"
+    if [[ "$o" =~ ^[0-9]+$ ]]; then offs="$offs$o "; ports="$ports$(ports_for "$o") "; fi
+    ports="$ports$(env_ports "$d$LANE_ENV_FILE") "
+  done
+  local p bare=" "
+  for p in $ports; do bare="$bare${p#*:} "; done
+  echo "$offs|$bare"
+}
+
+# First free offset (>= 1): unclaimed, every port unclaimed, in range, and not
+# already listening. Caller holds the lock.
+alloc_offset() {
+  local c offs ports off p ok
+  c="$(claimed)"; offs="${c%%|*}"; ports="${c#*|}"
+  for (( off = 1; off <= MAX_OFFSET; off++ )); do
+    case "$offs" in *" $off "*) continue ;; esac
+    ok=1
+    for p in $(ports_for "$off"); do
+      p="${p#*:}"
+      if (( p > 65535 )); then ok=0; break; fi
+      case "$ports" in *" $p "*) ok=0; break ;; esac
+      if port_listening "$p"; then ok=0; break; fi
+    done
+    if [[ $ok -eq 1 ]]; then echo "$off"; return 0; fi
+  done
+  die "no free port offset in 1..$MAX_OFFSET"
+}
+
+# Resolve the lane base. Prefer the freshly fetched origin/<base>; else any
+# local ref named <base> (reported as such). Never silently falls back to
+# whatever main has checked out.
+BASE_REF=""; BASE_SHA=""
+resolve_base() {
+  local b="$1"
+  if git -C "$MAIN" remote get-url origin >/dev/null 2>&1; then
+    git -C "$MAIN" fetch --quiet origin "$b" 2>/dev/null \
+      || echo "  ! could not fetch origin/$b — using the last-fetched state" >&2
+  fi
+  if BASE_SHA="$(git -C "$MAIN" rev-parse --verify --quiet "refs/remotes/origin/$b^{commit}")"; then
+    BASE_REF="origin/$b"
+  elif BASE_SHA="$(git -C "$MAIN" rev-parse --verify --quiet "$b^{commit}")"; then
+    BASE_REF="$b"
+    echo "  ! origin/$b not found — cutting from local ref '$b'" >&2
+  else
+    die "base '$b' not found (looked for origin/$b and $b); pass --base <ref>"
+  fi
+}
+
+# Run a git/gh command that checks out files for a new lane. The repo's checkout
+# hooks are off unless LANE_CHECKOUT_HOOKS=1: core.hooksPath=/dev/null is appended
+# to GIT_CONFIG_PARAMETERS — the variable `git -c` uses to pass config to child
+# gits, so it also reaches the git that gh runs. git reads it after the config
+# files and GIT_CONFIG_COUNT entries, and its last entry wins, so nothing earlier
+# (repo config, husky, an inherited -c) can turn the hooks back on.
+checkout_cmd() {
+  if [[ "$LANE_CHECKOUT_HOOKS" == "1" ]]; then "$@"; return; fi
+  GIT_CONFIG_PARAMETERS="${GIT_CONFIG_PARAMETERS:+$GIT_CONFIG_PARAMETERS }'core.hooksPath=/dev/null'" "$@"
+}
+
+# Per-lane identity exported to every hook.
+CUR_PORTS=""
+set_ctx() { # lane slug offset project mode ports
+  export LANE_DIR="$1" LANE_MAIN="$MAIN" LANE_SLUG="$2" LANE_OFFSET="$3" \
+         LANE_PROJECT="$4" LANE_MODE="$5" LANE_BASE_BRANCH LANE_ROOT
+  CUR_PORTS="$6"
+}
+
+# Hooks run in their own bash process, not a subshell of this one. bash turns
+# `set -e` off for everything run inside an if/&&/|| context — nested functions
+# and subshells included — so an in-process hook could silently keep going past
+# a failure depending on how the engine called it. A separate process keeps its
+# own errexit. The child defines the default hooks, sources the recipe, exports
+# the per-lane ports, and runs one hook. It sees the exported LANE_* variables,
+# REPO, the ports, and the recipe's own functions — nothing else of the engine.
+# shellcheck disable=SC2016  # expanded by the child shell, not here
+HOOK_RUNNER='set -euo pipefail
+lane_project() { printf "%s-%s\n" "$REPO" "$LANE_SLUG"; }
+lane_env() { :; }; lane_setup() { :; }; lane_route() { :; }; lane_start() { :; }
+lane_stop() { :; }; lane_retire() { :; }; lane_gc() { :; }
+source "$RECIPE"
+for p in $LANE_HOOK_PORTS; do export "${p%%:*}=${p#*:}"; done
+unset p LANE_HOOK_PORTS
+"$1"'
+
+# run_hook <hook> <dir> [stdout-file] — returns the hook's exit status.
+run_hook() {
+  ( cd "$2" && REPO="$REPO" RECIPE="$RECIPE" LANE_HOOK_PORTS="$CUR_PORTS" \
+      "$BASH" -c "$HOOK_RUNNER" lane-hook "$1" ) > "${3:-/dev/stdout}"
+}
+
+# run_hook in the lane; a failure stops the verb and keeps the lane.
+must_hook() { # slug hook [out]
+  run_hook "$2" "$LANES_ROOT/$1" ${3:+"$3"} || fail_phase "$1" "$2"
+}
+
+# Idempotent, non-destructive symlink from main. Never clobbers a real file.
+link_safe() {
+  local target="$1" link="$2"
+  if [[ ! -e "$target" ]]; then
+    echo "  ! skipped $link — $target does not exist"
+  elif [[ -L "$link" ]]; then
+    ln -sfn "$target" "$link"; echo "  ~ relinked $link"
+  elif [[ ! -e "$link" ]]; then
+    ln -s "$target" "$link"; echo "  + linked $link"
+  else
+    echo "  = kept $link — real file/dir in the worktree"
+  fi
+}
+
+# The env destination must be an untracked, non-symlink file inside the lane
+# (parent directories included). Prints the reason and returns 1 otherwise.
+check_env_dest() {
+  local lane="$1" dest="$1/$LANE_ENV_FILE" real_lane real_parent
+  if [[ -L "$dest" ]]; then echo "$LANE_ENV_FILE is a symlink in the lane; refusing to write through it"; return 1; fi
+  real_lane="$(cd "$lane" && pwd -P)"
+  if ! real_parent="$(cd "$(dirname "$dest")" 2>/dev/null && pwd -P)"; then
+    echo "the directory for $LANE_ENV_FILE does not exist in the lane"; return 1
+  fi
+  case "$real_parent/" in
+    "$real_lane"/*) ;;
+    *) echo "$LANE_ENV_FILE resolves outside the lane ($real_parent)"; return 1 ;;
+  esac
+  if env_tracked "$lane"; then
+    echo "$LANE_ENV_FILE is tracked by git; set LANE_ENV_FILE to a gitignored file"; return 1
+  fi
+  return 0
+}
+
+# Build the lane env file atomically: optional copy of main's env, engine keys,
+# per-lane ports, then lane_env's KEY=VALUE lines (each replaces any earlier
+# definition of that key). lane_env may not set engine-owned keys (LANE_*,
+# port keys). Any failure stops the verb via fail_phase (or errexit) before the
+# destination is touched. Call as a plain statement: inside if/&&/|| bash would
+# turn errexit off for this whole function.
+write_env() { # lane slug off project
+  local lane="$1" dest="$1/$LANE_ENV_FILE" tmp out line key why p
+  if ! why="$(check_env_dest "$lane")"; then echo "  $why" >&2; fail_phase "$2" lane_env; fi
+  mktmp "$lane"; tmp="$TMP_RET"
+  {
+    echo "# generated by lane ($2, mode $LANE_MODE, offset $3)"
+    if [[ "$LANE_ENV_COPY" == "1" && -f "$MAIN/$LANE_ENV_FILE" ]]; then
+      cat "$MAIN/$LANE_ENV_FILE" || { echo "  could not read main's $LANE_ENV_FILE" >&2; fail_phase "$2" lane_env; }
+    fi
+  } > "$tmp"
+  kv_set "$tmp" LANE_SLUG "$2"
+  kv_set "$tmp" LANE_OFFSET "$3"
+  kv_set "$tmp" LANE_MODE "$LANE_MODE"
+  kv_set "$tmp" LANE_PROJECT "$4"
+  for p in $CUR_PORTS; do kv_set "$tmp" "${p%%:*}" "${p#*:}"; done
+
+  mktmp; out="$TMP_RET"
+  if ! run_hook lane_env "$lane" "$out"; then echo "  lane_env failed" >&2; fail_phase "$2" lane_env; fi
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line%$'\r'}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    if [[ ! "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+      echo "  lane_env printed a non KEY=VALUE line: $line" >&2; fail_phase "$2" lane_env
+    fi
+    key="${line%%=*}"
+    case "$key" in LANE_*) echo "  lane_env may not set engine key $key" >&2; fail_phase "$2" lane_env ;; esac
+    case "$PORT_KEYS" in *" $key "*) echo "  lane_env may not override allocated port $key" >&2; fail_phase "$2" lane_env ;; esac
+    kv_set "$tmp" "$key" "${line#*=}"
+  done < "$out"
+  mv "$tmp" "$dest"
+}
+
+fail_phase() { # slug phase
+  echo "lane: '$2' failed for lane $1 — the lane is kept." >&2
+  echo "      fix the recipe or environment, then: lane resume $1   (or discard: lane rm $1 --force)" >&2
+  exit 1
+}
+
+agent_handoff() {
+  if [[ ! -t 1 ]]; then
+    # shellcheck disable=SC2059
+    printf 'AGENT ACTION REQUIRED: %s\n' "$(printf "$LANE_AGENT_MSG" "$1")"
+  fi
+}
+
+# Bring a lane from its recorded phase to `ready`. Shared by open and resume.
+advance() { # slug
+  local slug="$1" lane="$LANES_ROOT/$1" off project fresh d out
+  off="$(state_get "$slug" OFFSET)"
+  set_ctx "$lane" "$slug" "$off" "" "$(state_get "$slug" MODE)" "$(state_get "$slug" PORTS)"
+  case "$(state_get "$slug" PHASE)" in env|setup|route|ready) fresh="false" ;; *) fresh="true" ;; esac
+
+  if [[ "$fresh" == "true" ]]; then
+    mktmp; out="$TMP_RET"
+    must_hook "$slug" lane_project "$out"
+    project="$(head -n1 "$out")"; project="${project:-$REPO-$slug}"
+    state_set "$slug" PROJECT "$project"
+  else
+    project="$(state_get "$slug" PROJECT)"
+  fi
+  set_ctx "$lane" "$slug" "$off" "$project" "$LANE_MODE" "$CUR_PORTS"
+
+  if [[ "$fresh" == "true" || "$regen" == "true" ]]; then
+    write_env "$lane" "$slug" "$off" "$project"
+    state_set "$slug" PHASE env
+  fi
+
+  echo "==> setup (link deps + lane_setup)"
+  for d in $LANE_LINK_DIRS; do link_safe "$MAIN/$d" "$lane/$d"; done
+  must_hook "$slug" lane_setup
+  state_set "$slug" PHASE setup
+
+  must_hook "$slug" lane_route
+  state_set "$slug" PHASE route
+
+  if [[ "$start" == "true" ]]; then
+    must_hook "$slug" lane_start
+  fi
+  state_set "$slug" PHASE ready
+
+  echo "==> lane ready: $lane"
+  echo "    branch $(state_get "$slug" BRANCH) (from $(state_get "$slug" BASE)) | mode $LANE_MODE | offset $off | project $project"
+  [[ -z "$CUR_PORTS" ]] || echo "    ports: $CUR_PORTS"
+  [[ "$start" == "true" ]] || echo "    services not started (use --start, or run your dev command in the lane)"
+  agent_handoff "$lane"
+}
+
+# ---------------------------------------------------------------------------
+# Verbs
+# ---------------------------------------------------------------------------
+
+# Roll back a partial open: its worktree, the branch it made, its reservation.
+undo_open() { # slug made_branch
+  local lane="$LANES_ROOT/$1"
+  if registered "$lane"; then git -C "$MAIN" worktree remove --force "$lane"; fi
+  if [[ "$2" == "true" ]]; then git -C "$MAIN" branch -D "$1" >/dev/null; fi
+  rm -f "$(state_file "$1")"
+}
+
+cmd_open() { # slug-input [pr-number]
+  local slug lane pr="${2:-}" off branch made_branch="false" why
+  slug="$(slugify <<<"$1")"
+  valid_slug "$slug" || die "invalid slug '$1' (use letters, digits, dashes)"
+  case " $LANE_MODES " in *" $mode "*) ;; *) die "this recipe does not support --$mode (LANE_MODES='$LANE_MODES')" ;; esac
+  lane="$LANES_ROOT/$slug"
+  validate_ports
+  if [[ -z "$pr" ]]; then resolve_base "${base_arg:-$LANE_BASE_BRANCH}"; fi
+
+  mkdir -p "$STATE_DIR"
+  [[ -f "$LANES_ROOT/.gitignore" ]] || printf '*\n' > "$LANES_ROOT/.gitignore"
+
+  # Existence checks and the reservation happen under one lock, so concurrent
+  # opens (or a gc) can't interleave between check and claim.
+  acquire_lock
+  if [[ -f "$(state_file "$slug")" ]]; then
+    if is_stale "$slug"; then
+      rm -f "$(state_file "$slug")"; echo "  ! dropped stale state for '$slug'" >&2
+    else
+      die "lane '$slug' already exists — use: lane resume $slug"
+    fi
+  fi
+  [[ ! -e "$lane" ]] || die "$lane already exists but is not a lane this engine manages"
+  if [[ -z "$pr" ]] && git -C "$MAIN" show-ref --verify --quiet "refs/heads/$slug"; then
+    die "branch '$slug' already exists — pick another slug or delete the branch"
+  fi
+  off="$(alloc_offset)"
+  # The state file is absent here (checked above), so it is written whole.
+  printf 'OWNER=%s\nOFFSET=%s\nMODE=%s\nPORTS=%s\nBASE=%s\nPHASE=allocated\n' \
+    "$$" "$off" "$mode" "$(ports_for "$off")" "${BASE_REF:-pr/$pr}" > "$(state_file "$slug")"
+  release_lock
+
+  # From here the reservation is ours: failures before `created` drop it.
+  echo "==> creating worktree $lane"
+  if [[ -n "$pr" ]]; then
+    checkout_cmd git -C "$MAIN" worktree add --detach "$lane" HEAD >/dev/null
+    if ! ( cd "$lane" && checkout_cmd gh pr checkout "$pr" ); then
+      undo_open "$slug" "$made_branch"; die "gh pr checkout $pr failed"
+    fi
+  else
+    echo "    from $BASE_REF ($BASE_SHA)"
+    if ! checkout_cmd git -C "$MAIN" worktree add -b "$slug" "$lane" "$BASE_SHA" >/dev/null; then
+      undo_open "$slug" "$made_branch"; die "git worktree add failed"
+    fi
+    made_branch="true"
+  fi
+  branch="$(git -C "$lane" rev-parse --abbrev-ref HEAD)"
+  state_set "$slug" BRANCH "$branch"
+  state_set "$slug" PHASE created
+
+  # Nothing user-made exists yet, so an unusable env destination is undone fully.
+  if ! why="$(check_env_dest "$lane")"; then
+    undo_open "$slug" "$made_branch"; die "$why"
+  fi
+
+  advance "$slug"
+}
+
+cmd_resume() {
+  local slug="$1" lane
+  valid_slug "$slug" || die "invalid slug '$slug'"
+  lane="$LANES_ROOT/$slug"
+  [[ -f "$(state_file "$slug")" ]] || die "no engine state for '$slug' (not created by this engine, or removed)"
+  if [[ ! -d "$lane" ]] || ! registered "$lane"; then
+    die "lane '$slug' has no registered worktree (an open died before creating it) — run: lane gc, then open it again"
+  fi
+  validate_ports
+  echo "==> resuming $lane (phase: $(state_get "$slug" PHASE))"
+  advance "$slug"
+}
+
+cmd_rm() {
+  local slug="$1" lane branch dirty d f m excl=()
+  valid_slug "$slug" || die "invalid slug '$slug'"
+  lane="$LANES_ROOT/$slug"
+  if [[ ! -d "$lane" ]] || ! registered "$lane"; then die "no lane '$slug' registered at $lane"; fi
+
+  if [[ "$force" != "true" ]]; then
+    # Exempt only artifacts the engine created: the env file while it is
+    # untracked, and link dirs that are still the engine's symlinks.
+    if ! env_tracked "$lane"; then
+      excl+=(":(exclude)$LANE_ENV_FILE")
+    fi
+    for d in $LANE_LINK_DIRS; do
+      if [[ -L "$lane/$d" ]]; then excl+=(":(exclude)$d"); fi
+    done
+    dirty="$(git -C "$lane" status --porcelain --untracked-files=normal -- . ${excl[@]+"${excl[@]}"})"
+    if [[ -n "$dirty" ]]; then
+      echo "$dirty" | sed 's/^/    /' >&2
+      die "lane '$slug' has uncommitted changes — commit/stash them, or: lane rm $slug --force"
+    fi
+  fi
+
+  branch="$(git -C "$lane" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+  f="$(state_file "$slug")"
+  if [[ -f "$f" ]]; then
+    m="$(kv_get "$f" MODE)"
+    set_ctx "$lane" "$slug" "$(kv_get "$f" OFFSET)" "$(kv_get "$f" PROJECT)" "${m:-host}" "$(kv_get "$f" PORTS)"
+  else
+    # Lane made by other tooling: rebuild what context its env file records.
+    f="$lane/$LANE_ENV_FILE"
+    m="$(kv_get "$f" LANE_MODE)"
+    set_ctx "$lane" "$slug" "$(kv_get "$f" LANE_OFFSET)" "$(kv_get "$f" LANE_PROJECT)" "${m:-host}" "$(env_ports "$f")"
+  fi
+
+  echo "==> removing $lane"
+  if ! run_hook lane_retire "$lane" && [[ "$force" != "true" ]]; then
+    die "lane_retire failed — lane kept (fix it, or: lane rm $slug --force)"
+  fi
+  if ! run_hook lane_stop "$lane" && [[ "$force" != "true" ]]; then
+    die "lane_stop failed — lane kept (fix it, or: lane rm $slug --force)"
+  fi
+
+  # Uncommitted work was checked above (or discarded by --force); anything left
+  # is engine-made, which git's own clean check would otherwise trip on.
+  git -C "$MAIN" worktree remove --force "$lane"
+  rm -f "$(state_file "$slug")"
+  echo "==> removed lane $slug (branch '$branch' kept; delete with: git branch -D $branch)"
+}
+
+cmd_ls() {
+  echo "Lanes in $LANES_ROOT:"
+  local d slug f branch found=0
+  for d in "$LANES_ROOT"/*/; do
+    [[ -d "$d" ]] || continue
+    found=1; slug="$(basename "$d")"; f="$(state_file "$slug")"
+    branch="$(git -C "$d" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?')"
+    if [[ -f "$f" ]]; then
+      printf '  %-24s branch=%-24s mode=%-8s offset=%-3s phase=%-9s %s\n' "$slug" "$branch" \
+        "$(kv_get "$f" MODE)" "$(kv_get "$f" OFFSET)" "$(kv_get "$f" PHASE)" "$(kv_get "$f" PORTS)"
+    else
+      printf '  %-24s branch=%-24s (not managed by this engine)\n' "$slug" "$branch"
+    fi
+  done
+  [[ $found -eq 1 ]] || echo "  (none)"
+}
+
+# Run the recipe's lane_gc sweep first, then release the offsets of state whose
+# worktree is gone — so resources are retired before their ports can be reused.
+cmd_gc() {
+  git -C "$MAIN" worktree prune
+  acquire_lock
+  local f slug stale=""
+  for f in "$STATE_DIR"/*; do
+    [[ -f "$f" ]] || continue
+    slug="$(basename "$f")"
+    if is_stale "$slug"; then stale="$stale $slug"; fi
+  done
+  export LANE_MAIN="$MAIN" LANE_ROOT
+  CUR_PORTS=""
+  run_hook lane_gc "$MAIN" || die "lane_gc failed — no state released"
+  for slug in $stale; do
+    rm -f "$(state_file "$slug")"; echo "  - dropped stale state for $slug (offset released)"
+  done
+  release_lock
+}
+
+case "$cmd" in
+  open)    cmd_open "$positional" ;;
+  pr)      [[ "$positional" =~ ^[0-9]+$ ]] || die "PR number must be numeric"
+           cmd_open "pr-$positional" "$positional" ;;
+  resume)  cmd_resume "$positional" ;;
+  rm)      cmd_rm "$positional" ;;
+  ls|list) cmd_ls ;;
+  gc)      cmd_gc ;;
+esac

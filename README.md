@@ -48,6 +48,7 @@ After installing, reload plugins if prompted, then invoke the plugin's skill.
 | **autodev** | Bounded autonomous development loop — scripted worktree lanes, fast worker subagents, objective script-based verification, and a hard 3-failure escalation to the user. | `/plugin install autodev@nautilai` | [autodev/](./autodev/README.md) |
 | **sentry-hygiene** | Audit a repo's Sentry setup against official SDK docs and instrument capture behind a hard PII boundary — including what the SDK attaches on its own. Complements the official Sentry plugin, which owns SDK setup and issue-fixing. | `/plugin install sentry-hygiene@nautilai` | [sentry-hygiene/](./sentry-hygiene/README.md) |
 | **action-first** | Persistent output-style skill — shapes every response around one doable-now action: lead with the command/step, number and cap multi-step work, restate progress each turn, cut preamble and recap. | `/plugin install action-first@nautilai` | [action-first/](./action-first/README.md) |
+| **worktree-lanes** | Run parallel dev lanes in any repo with isolated git worktrees — per-lane env files, port allocation, dep linking, and service routing — driven by a per-repo `.lanerc` recipe the agent discovers and writes. One engine, any stack. | `/plugin install worktree-lanes@nautilai` | [worktree-lanes/](./worktree-lanes/README.md) |
 
 _More plugins will surface here over time._
 
