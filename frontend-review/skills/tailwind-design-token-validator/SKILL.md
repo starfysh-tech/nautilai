@@ -9,6 +9,8 @@ allowed-tools: [Read, Glob, Grep, Edit, Bash(python3:*)]
 
 # Tailwind Design Token Validator
 
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
 Audit a React/TypeScript + Tailwind codebase for design-token violations and
 class-usage anti-patterns, validating against the project's own Tailwind config. Most
 findings are propose-only; a narrow class of exact, reversible token swaps may be

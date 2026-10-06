@@ -7,6 +7,8 @@ allowed-tools: [Read, Write, Edit, Bash, Grep, Glob]
 
 # Worktree Lanes
 
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
 A lane is a git worktree that behaves like the main checkout but with its own ports,
 env file, and (when the recipe supports it) database and hostnames. The **engine**
 (`bash "${CLAUDE_PLUGIN_ROOT}/scripts/lane"`) is generic; the **recipe** (`.lanerc` at

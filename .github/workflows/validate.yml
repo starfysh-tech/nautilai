@@ -22,6 +22,11 @@ jobs:
       - name: Check marketplace sync
         run: bash .github/scripts/check-marketplace-sync.sh
 
+      # omp and pi never expand CLAUDE_PLUGIN_ROOT in skill text; every skill
+      # using it must carry the adapter line (docs/conventions/dual-runtime.md, rule 9).
+      - name: Check omp/pi plugin-root adapter line
+        run: bash .github/scripts/check-plugin-root-note.sh
+
       # Each top-level dir with a plugin manifest is a plugin. Validate every one so
       # a malformed manifest/skill can't ride a green build into an auto-release.
       - name: Validate every plugin manifest

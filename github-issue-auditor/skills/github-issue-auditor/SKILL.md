@@ -8,6 +8,8 @@ allowed-tools: Read, Grep, Glob, AskUserQuestion, Bash(gh:*), mcp__github__list_
 
 # GitHub Issue Auditor
 
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
 Audit a repository's open issues for cleanup opportunities, then — only with
 explicit approval — apply the agreed changes. The audit (Phases 1–3) is
 **read-only**. Mutations (Phase 4) are **opt-in** and gated.

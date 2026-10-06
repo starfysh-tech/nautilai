@@ -10,6 +10,8 @@ allowed-tools: [Read, "Bash(${CLAUDE_PLUGIN_ROOT}/scripts/validate-hooks.sh:*)"]
 
 # Hooks Validator
 
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
 Validates your Claude Code hooks configuration to catch errors that would
 otherwise surface as UI failures or hooks that silently never fire.
 

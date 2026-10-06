@@ -7,12 +7,18 @@ allowed-tools: [Bash, Read, Write, Edit, ToolSearch, AskUserQuestion]
 
 # CommitCraft
 
-**MANDATORY FIRST STEP — DO NOT SKIP:**
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
+**MANDATORY FIRST STEP — DO NOT SKIP** (runtimes with `ToolSearch`, i.e. Claude Code):
 You MUST call `ToolSearch` with query `select:AskUserQuestion` RIGHT NOW before reading any workflow file or doing anything else. AskUserQuestion is a deferred tool that will not exist until you load it. If you skip this step, you will be unable to ask the user questions interactively and will have to fall back to plain text.
 
 1. Call `ToolSearch` with query `select:AskUserQuestion` — wait for it to return before continuing
 2. Confirm AskUserQuestion is now available (it will appear in the results)
 3. Proceed with the workflow
+
+On a runtime without `ToolSearch` (omp, pi), skip this step. Wherever a workflow says
+`AskUserQuestion`, use that runtime's own question tool (omp: `ask`); if it has none, ask in
+plain text and wait for the answer.
 
 ## Execution Policy
 
@@ -48,8 +54,10 @@ fails the first rule.
 
 ## Resource paths (runtime adapter)
 
-Exactly one of these two lines is resolved to an absolute path by your runtime; the
-other stays literal `${...}` text. **Use the line that resolved. Ignore the literal one.**
+On Claude Code and Hermes, exactly one of these two lines is resolved to an absolute path by
+your runtime; the other stays literal `${...}` text. **Use the line that resolved. Ignore the
+literal one.** On omp and pi neither resolves: use the Claude Code line, resolving the plugin
+root as the note under the title says.
 
 - **Claude Code** — workflows: `${CLAUDE_PLUGIN_ROOT}/skills/commitcraft/workflows/<token>.md`,
   scripts: `${CLAUDE_PLUGIN_ROOT}/scripts/<name>.sh`
@@ -63,7 +71,8 @@ instead. The scripts are identical; only the location and the `bash` prefix diff
 (Hermes strips the executable bit on install, so scripts must be run via `bash`).
 
 Never substitute a token yourself and never fall back to a relative path. If neither
-line resolved, stop and tell the user.
+line resolved, stop and tell the user — except on omp and pi, where the note under the title
+gives the one substitution you may make.
 
 ### In Hermes: `setup` and `check` are unavailable
 

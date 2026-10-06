@@ -8,6 +8,8 @@ allowed-tools: [Read, Write, Edit, Glob, Grep, Task, Workflow, Bash(python3:*), 
 
 # Auditing Skills
 
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
 Review existing skills against Anthropic's official authoring guidance. Optimized for the audit case: a SKILL.md file (or a directory of them) already exists and the user wants to know what's working, what's broken, and what to change.
 
 This skill assumes Anthropic's official guidance as the ground truth (Skills overview, Skill authoring best practices, skill-creator). It also incorporates community patterns where they don't conflict with official guidance. Where community claims go beyond the official docs, this skill calls them out so the user can decide.

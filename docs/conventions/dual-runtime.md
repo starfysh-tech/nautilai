@@ -56,7 +56,8 @@ there is nothing for the model to guess.
 
 Instruct the agent to **never substitute a token itself and never fall back to a relative
 path**. A model that "helpfully" repairs a path converts a real failure into a silent wrong
-answer.
+answer. The one exception is omp and pi (rule 9), where the skill states the exact
+substitution, so nothing is guessed.
 
 ### 4. Invoke bundled scripts via `bash` on the Hermes line
 
@@ -136,6 +137,26 @@ concurrency=3 / depth=1 caps. Write adapters so the parent passes **all** needed
 Every dual-runtime plugin's README states: shared behavior · Claude Code invocation · Hermes
 invocation · runtime-specific limitations · update behavior. Add the plugin to
 [`docs/llms.txt`](../llms.txt) with the runtimes it supports.
+
+### 9. omp and pi: one adapter line under every skill's title
+
+omp (oh-my-pi) and pi load these plugins too, but they expand `CLAUDE_PLUGIN_ROOT` only in
+MCP server config, never in skill text, so a skill that runs a bundled script hands the agent
+a broken path. Every `SKILL.md` that uses the variable carries this line directly under its
+title (after the frontmatter if it has no title), verbatim:
+
+```markdown
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+```
+
+- **Name the variable bare.** Claude Code substitutes `${…}` in `SKILL.md`, so writing the
+  token there would turn the line into nonsense for Claude users.
+- **It covers workflow and reference files too.** Most uses live there, not in `SKILL.md`.
+- **It is inert to Claude.** Claude Code resolves the variable before the agent reads it, and
+  the rule it states (`<plugin>/skills/<skill>/SKILL.md`) holds in Claude's cache as well.
+- **A skill's own "never substitute" rule must name the exception**, or the agent stops.
+- **A skill that requires `ToolSearch`** must say what to do without it (omp: the `ask` tool).
+- CI enforces the line: `.github/scripts/check-plugin-root-note.sh`.
 
 ---
 

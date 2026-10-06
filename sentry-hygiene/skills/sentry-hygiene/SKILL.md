@@ -7,6 +7,8 @@ allowed-tools: [Bash, Read, Write, Edit, Grep, Glob, ToolSearch, WebFetch, AskUs
 
 # Sentry Hygiene
 
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
 Two workflows. Read exactly one per run.
 
 ## Relationship to the official Sentry plugin
@@ -36,7 +38,8 @@ remaining words are context to pass into the workflow, not part of the dispatch.
 - Anything else → say the subcommand wasn't recognized and list the two. Do not guess.
 
 `${CLAUDE_PLUGIN_ROOT}` is resolved to an absolute path by the runtime. Never substitute
-it yourself and never fall back to a relative path; if it did not resolve, stop and say so.
+it yourself and never fall back to a relative path; if it did not resolve, stop and say so —
+except on omp and pi, where the note under the title gives the one substitution you may make.
 
 Run all commands from the repo root.
 

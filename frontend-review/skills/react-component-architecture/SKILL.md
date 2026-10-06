@@ -9,6 +9,8 @@ allowed-tools: [Read, Glob, Grep, Bash(python3:*)]
 
 # React Component Architecture Audit
 
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
 Review a React + TypeScript codebase for composition, reuse, prop drilling, variant
 typing, and folder organization. This is a **read-only, propose-only** audit — it
 reports findings and lets the user decide what to change. It never edits code.

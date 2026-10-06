@@ -8,6 +8,8 @@ allowed-tools: [Read, Grep, Glob, Write, Bash(python3:*), Bash(node:*)]
 
 # Wireframe
 
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
 Low-fidelity wireframe creator for rapid prototyping and UI planning. Three
 modes: **ASCII** (text layouts, the default), **wiremd** (interactive
 prototypes that render to HTML/React), and **Mermaid** (diagrams for tickets and
