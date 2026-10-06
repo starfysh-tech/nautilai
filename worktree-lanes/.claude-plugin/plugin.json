@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "worktree-lanes",
   "displayName": "Worktree Lanes",
-  "version": "2.32.0",
+  "version": "2.32.1",
   "description": "Run parallel dev lanes in any repo with isolated git worktrees — per-lane env files, port allocation, dep linking, and service routing — driven by a per-repo .lanerc recipe the agent discovers and writes. One engine, any stack.",
   "author": {
     "name": "Randall Noval",
