@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.32.1](https://github.com/starfysh-tech/nautilai/compare/v2.32.0...v2.32.1) (2026-10-06)
+
+
+### Bug Fixes
+
+* tell omp and pi how to resolve the plugin root in skills ([#171](https://github.com/starfysh-tech/nautilai/issues/171)) ([ea4661c](https://github.com/starfysh-tech/nautilai/commit/ea4661c153c19de592d69ca3aee066e736db5180))
+
 ## [2.32.0](https://github.com/starfysh-tech/nautilai/compare/v2.31.0...v2.32.0) (2026-10-05)
 
 
