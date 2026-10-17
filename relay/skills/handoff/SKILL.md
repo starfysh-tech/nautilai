@@ -22,7 +22,7 @@ certain. If it exits nonzero, say so and fall back to writing the handoff purely
 from in-context knowledge — never abort the handoff over a missing transcript.
 
 Immediately start step 3's `haiku-narrative.sh` in the background now, before
-step 2 — it takes 20s–2.5min and should overlap the fact-pack read.
+step 2 — it takes 20s–1.5min and should overlap the fact-pack read.
 
 ## 2. Extract the fact pack
 
@@ -43,10 +43,11 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/haiku-narrative.sh <transcript>
 ```
 
 Prints a narrative pack — `## Decisions` / `## Dead ends` / `## Constraints` —
-recovered from ASSISTANT turns via headless Haiku, which the fact pack
+recovered from ASSISTANT turns (plus one line per tool call and per failed
+result) via headless Haiku, which the fact pack
 structurally can't see (it only reads tool_use/tool_result/user-text). This
-call can take ~20s for one chunk and up to ~2.5min for a huge transcript
-(chunked to at most 3 calls); it should already be running in the background
+call can take ~20s for one chunk and up to ~1.5min for a huge transcript
+(chunked to at most 3 concurrent calls); it should already be running in the background
 from step 1 by the time you reach this step. On exit 3 (degraded — `claude`
 missing, the call failed/timed out,
 output was empty, or the user set `RELAY_NARRATIVE=off`), proceed without it

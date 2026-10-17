@@ -146,19 +146,30 @@ nested_cwd=$(mktemp -d)
 jq -cR 'fromjson? | select(type=="object")' "$transcript" > "$clean"
 
 # Dialogue stream: user text (user-text.jq, shared with
-# extract-transcript.sh) and assistant text blocks only — no tool_use inputs,
-# no tool_results, no thinking. Those carry the decisions/dead-ends/reasoning
-# prose that the jq fact-pack structurally cannot get. Each turn is truncated
-# to 2000 chars and prefixed so Haiku can attribute speaker.
+# extract-transcript.sh), assistant text blocks, one TOOL: line per tool call
+# (name + main argument), and one TOOL ERROR: line per failed result. No
+# successful tool output, no thinking. The prose carries the decisions and
+# reasoning the jq fact-pack can't get; the tool lines tie dead ends to the
+# command and error that ended them. Each text turn is truncated to 2000
+# chars and prefixed so Haiku can attribute speaker.
 jq -r -L "$(dirname "$0")" 'include "user-text";
   select(.type=="user" or .type=="assistant") as $m
   | if $m.type=="user" then
-      $m | user_text
-      | "USER: " + (if (length) > 2000 then .[0:2000] else . end)
+      ($m | user_text
+       | "USER: " + (if (length) > 2000 then .[0:2000] else . end)),
+      ($m.message.content | arrays | .[] | select(.type=="tool_result" and .is_error==true)
+       | (.content | if type=="string" then . elif type=="array" then map(.text? // "") | join(" ") else "" end)
+       | "TOOL ERROR: " + (gsub("\\s+"; " ") | .[0:300]))
     else
-      $m.message.content[]? | select(.type=="text") | .text
-      | select(. != null and . != "")
-      | "ASSISTANT: " + (if (length) > 2000 then .[0:2000] else . end)
+      $m.message.content[]?
+      | if .type=="text" then
+          .text | select(. != null and . != "")
+          | "ASSISTANT: " + (if (length) > 2000 then .[0:2000] else . end)
+        elif .type=="tool_use" then
+          "TOOL: " + .name + " "
+          + ((.input.file_path // .input.command // .input.pattern // .input.url // .input.query // .input.description // "")
+             | tostring | gsub("\\s+"; " ") | .[0:200])
+        else empty end
     end
 ' "$clean" > "$dialogue"
 
@@ -202,7 +213,7 @@ else
   num_chunks="$i"
 fi
 
-prompt='Extract from this conversation excerpt, as terse markdown bullets under exactly these three headings: ## Decisions (each: what was decided AND the stated reason), ## Dead ends (approaches tried and abandoned, with why), ## Constraints (requirements/limits stated or discovered). Only include items explicitly present in the text; never invent; if a heading has no items write "_none_". Preserve distinctive technical tokens VERBATIM — exact numbers with units (e.g. 150ms, 8GB), status codes (e.g. HTTP 503), header/field/flag names (e.g. X-Request-Id, --dry-run), and named techniques or tools — never paraphrase these away; a reader must be able to search the bullets for the exact terms used in the conversation. No preamble, no code fences.'
+prompt='Extract from this conversation excerpt, as terse markdown bullets under exactly these three headings: ## Decisions (each: what was decided AND the stated reason), ## Dead ends (approaches tried and abandoned, with why), ## Constraints (requirements/limits stated or discovered). TOOL: lines are actions the assistant took and TOOL ERROR: lines are actions that failed; use them as evidence for dead ends and constraints, and name the files, commands, and errors they show. Only include items explicitly present in the text; never invent; if a heading has no items write "_none_". Preserve distinctive technical tokens VERBATIM — exact numbers with units (e.g. 150ms, 8GB), status codes (e.g. HTTP 503), header/field/flag names (e.g. X-Request-Id, --dry-run), and named techniques or tools — never paraphrase these away; a reader must be able to search the bullets for the exact terms used in the conversation. No preamble, no code fences.'
 
 # The default system prompt pulls in the invoking user's global CLAUDE.md. A
 # real transcript can be a session *about* editing that very file (e.g.
@@ -247,25 +258,31 @@ run_with_timeout() {
 
 # One retry per chunk: a single transient 429/503 from the API shouldn't kill
 # the whole narrative. Sleep 2s (enough for a momentary blip, not a real
-# backoff scheme) and retry once before treating the chunk as failed; the
-# short-circuit-on-first-failed-chunk behavior below still applies once the
-# retry itself fails.
+# backoff scheme) and retry once before treating the chunk as failed.
 run_with_retry() {
   run_with_timeout "$1" "$2" && return 0
   sleep 2
   run_with_timeout "$1" "$2"
 }
 
-# Short-circuit on the first failed chunk: the run degrades either way, so
-# later chunks would only burn API calls and up to 2 more timeout windows.
+# Chunks run concurrently: wall time is the slowest chunk, not the sum.
+# Any failed chunk still degrades the whole run.
 call_ok=1
-run_with_retry "$chunk_a" "$out_a" || call_ok=0
-if [ "$call_ok" -eq 1 ] && [ "$num_chunks" -ge 2 ]; then
-  run_with_retry "$chunk_b" "$out_b" || call_ok=0
+pid_b=""
+pid_c=""
+( run_with_retry "$chunk_a" "$out_a" ) &
+pid_a=$!
+if [ "$num_chunks" -ge 2 ]; then
+  ( run_with_retry "$chunk_b" "$out_b" ) &
+  pid_b=$!
 fi
-if [ "$call_ok" -eq 1 ] && [ "$num_chunks" -ge 3 ]; then
-  run_with_retry "$chunk_c" "$out_c" || call_ok=0
+if [ "$num_chunks" -ge 3 ]; then
+  ( run_with_retry "$chunk_c" "$out_c" ) &
+  pid_c=$!
 fi
+for p in $pid_a $pid_b $pid_c; do
+  wait "$p" || call_ok=0
+done
 
 if [ "$call_ok" -eq 0 ]; then
   degrade "claude -p call failed or timed out"

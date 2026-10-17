@@ -25,7 +25,7 @@ marker_dir=$(bash "$here/handoff-dir.sh" "$cwd")
 mkdir -p "$marker_dir"
 printf '%s\n' "$transcript" > "${marker_dir}/compacted-$(date +%s)"
 
-# The Haiku narrative (decisions, dead ends) takes 20s-2.5min, too slow for
+# The Haiku narrative (decisions, dead ends) takes 20s-1.5min, too slow for
 # this hook. Build it detached (perl setsid, so it outlives the hook);
 # prompt-recovery.sh injects it at the next prompt once it is ready.
 session_id=$(printf '%s' "$input" | jq -r '.session_id // empty')
