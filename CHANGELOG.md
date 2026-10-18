@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.33.0](https://github.com/starfysh-tech/nautilai/compare/v2.32.1...v2.33.0) (2026-10-18)
+
+
+### Features
+
+* **relay:** run narrative chunks concurrently and add tool lines ([#174](https://github.com/starfysh-tech/nautilai/issues/174)) ([84dcb67](https://github.com/starfysh-tech/nautilai/commit/84dcb673a06c5b101aeab9ad4b46ba465ac877ca))
+
 ## [2.32.1](https://github.com/starfysh-tech/nautilai/compare/v2.32.0...v2.32.1) (2026-10-06)
 
 
