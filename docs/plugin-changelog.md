@@ -14,6 +14,15 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-10-18
+
+- **relay — a long handoff doc no longer shrinks to a 2KB preview at pickup.** Claude
+  Code saves any hook injection over 10,000 characters to a file and shows the model only
+  its first 2KB, and 49 of 105 local handoff docs were over that. The pickup hook now
+  injects such a doc as its leading whole sections, up to 9,000 characters, names the
+  omitted ones, and tells the model to read the full doc at its path. See
+  [`relay/README.md`](../relay/README.md).
+
 ## 2026-10-05
 
 - **15 skills across 12 plugins — bundled scripts now run under omp and pi.** omp

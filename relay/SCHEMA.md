@@ -175,6 +175,20 @@ Confidence key:
   0 with no injection (fail-open by design) rather than erroring — so a
   missing field degrades to "no handoff picked up," silently.
 
+### SessionStart output: `additionalContext` size
+- **Where used:** `session-start-pickup.sh` injects a doc whole when it fits
+  in 10,000 UTF-16 units; past that it cuts the doc to 9,000 at a `## `
+  section boundary and adds the doc path.
+- **Observed (2026-10-18):** an `additionalContext` of 10,000 characters
+  reaches the model whole; 10,001 is saved to
+  `tool-results/hook-…-additionalContext.txt` and the model sees a 2KB
+  preview. The limit counts UTF-16 units: 9,990 `é` stayed inline, and 5,005
+  emoji (10,002 units) were persisted.
+- **Confidence:** Observed — measured with a throwaway SessionStart hook.
+- **What breaks if wrong:** if the limit drops below 9,000, a long doc again
+  reaches the model as a preview; the path sits in its first 600 characters,
+  so the model can still read the full doc.
+
 ### PreCompact hook: `.trigger`
 - **Where used:** `precompact-notify.sh` — gated to `trigger=="auto"` (manual
   `/compact` is intentionally excluded; the user typed their own
