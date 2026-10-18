@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.34.0](https://github.com/starfysh-tech/nautilai/compare/v2.33.0...v2.34.0) (2026-10-18)
+
+
+### Features
+
+* **relay:** fit long handoff docs under the hook injection limit ([#175](https://github.com/starfysh-tech/nautilai/issues/175)) ([2cc4eea](https://github.com/starfysh-tech/nautilai/commit/2cc4eeaaffd0743db1c59a0bb3ac170168e4ab30))
+
 ## [2.33.0](https://github.com/starfysh-tech/nautilai/compare/v2.32.1...v2.33.0) (2026-10-18)
 
 
