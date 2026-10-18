@@ -911,11 +911,17 @@ cat > "$HN_BIN/claude" <<'SHIM'
 if [ -n "${FAKE_CLAUDE_ENV:-}" ]; then
     printf '%s|%s\n' "$PWD" "${RELAY_NESTED:-}" > "$FAKE_CLAUDE_ENV"
 fi
+input=$(cat)
 if [ -n "${FAKE_CLAUDE_CAPTURE:-}" ]; then
-    cat > "$FAKE_CLAUDE_CAPTURE"
-else
-    cat > /dev/null
+    printf '%s\n' "$input" > "$FAKE_CLAUDE_CAPTURE"
 fi
+if [ -n "${FAKE_CLAUDE_CALLS:-}" ]; then
+    mktemp "$FAKE_CLAUDE_CALLS/call.XXXXXX" >/dev/null
+fi
+if [ -n "${FAKE_CLAUDE_FAIL_ON:-}" ]; then
+    case "$input" in *"$FAKE_CLAUDE_FAIL_ON"*) exit 1 ;; esac
+fi
+[ -z "${FAKE_CLAUDE_SLEEP:-}" ] || sleep "$FAKE_CLAUDE_SLEEP"
 case "${FAKE_CLAUDE_MODE:-ok}" in
     slow)
         sleep 5
@@ -977,6 +983,25 @@ PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_CAPTURE="$HN_CAPTURE" bash "$HN_
 assert_contains "haiku-narrative: dialogue keeps slash-command args" "$(cat "$HN_CAPTURE")" "USER: /relay:handoff focus on the ARGS-KEPT-7 auth work"
 rm -f "$HN_CAPTURE"
 
+# 3c. tool calls reach the dialogue as TOOL: lines (name + main argument) and
+# failed results as TOOL ERROR: lines; successful tool output stays out.
+HN_TOOLS="$(mktemp)"
+cat > "$HN_TOOLS" <<'EOF'
+{"type":"user","message":{"content":"Run the migration."}}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Running it."},{"type":"tool_use","id":"tu1","name":"Bash","input":{"command":"make migrate   --env stg","description":"x"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"tu1","is_error":true,"content":"ERR-TOKEN-42 relation users\nalready exists"}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"tu2","name":"Read","input":{"file_path":"db/schema.sql"}}]}}
+{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"tu2","is_error":false,"content":"OK-OUTPUT-SHOULD-NOT-APPEAR"}]}}
+EOF
+HN_CAPTURE="$(mktemp)"
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_CAPTURE="$HN_CAPTURE" bash "$HN_SCRIPT" "$HN_TOOLS" >/dev/null 2>&1
+hn_tools="$(cat "$HN_CAPTURE")"
+assert_contains "haiku-narrative: dialogue has TOOL: line with command" "$hn_tools" "TOOL: Bash make migrate --env stg"
+assert_contains "haiku-narrative: dialogue has TOOL: line with file_path" "$hn_tools" "TOOL: Read db/schema.sql"
+assert_contains "haiku-narrative: dialogue has TOOL ERROR: line, whitespace folded" "$hn_tools" "TOOL ERROR: ERR-TOKEN-42 relation users already exists"
+assert_not_contains "haiku-narrative: dialogue excludes successful tool output" "$hn_tools" "OK-OUTPUT-SHOULD-NOT-APPEAR"
+rm -f "$HN_CAPTURE" "$HN_TOOLS"
+
 # 4. claude emits empty output -> degrade (exit 3)
 PATH="$HN_PATH" FAKE_CLAUDE_MODE=empty bash "$HN_SCRIPT" "$HN_FIXTURE" >/dev/null 2>/dev/null
 assert "haiku-narrative: empty claude output degrades (exit 3)" "3" "$?"
@@ -1003,6 +1028,28 @@ assert "haiku-narrative: timed-out call exits 3 (degraded)" "3" "$hn_timeout_exi
 assert "haiku-narrative: timed-out call emits no stdout" "" "$hn_timeout_out"
 assert_contains "haiku-narrative: timeout degrade noted on stderr" "$(cat /tmp/hn-timeout-err.$$)" "degraded"
 rm -f /tmp/hn-timeout-err.$$
+
+# Multi-chunk: a dialogue over 150000 bytes splits into 3 chunks that run
+# concurrently. 3 calls sleeping 2s each finish well under the 6s a serial
+# run needs; one failed chunk still degrades the whole run.
+HN_BIG="$(mktemp)"
+hn_pad=$(printf 'x%.0s' $(seq 1 600))
+for i in $(seq 1 300); do
+    printf '{"type":"user","message":{"content":"turn %s %s"}}\n' "$i" "$hn_pad"
+done > "$HN_BIG"
+sed -i.bak '150s/turn 150 /turn 150 CHUNK-B-MARK /' "$HN_BIG" && rm -f "$HN_BIG.bak"
+HN_CALLS="$(mktemp -d)"
+hn_t0=$(date +%s)
+hn_big_out=$(PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_SLEEP=2 FAKE_CLAUDE_CALLS="$HN_CALLS" bash "$HN_SCRIPT" "$HN_BIG" 2>/dev/null)
+hn_big_exit=$?
+hn_big_secs=$(( $(date +%s) - hn_t0 ))
+assert "haiku-narrative: multi-chunk run exits 0" "0" "$hn_big_exit"
+assert "haiku-narrative: multi-chunk run makes 3 calls" "3" "$(find "$HN_CALLS" -name 'call.*' | wc -l | tr -d ' ')"
+assert_contains "haiku-narrative: multi-chunk output merges Decisions" "$hn_big_out" "## Decisions"
+assert_true "haiku-narrative: chunks run concurrently (${hn_big_secs}s < 5s)" "$(rc_of test "$hn_big_secs" -lt 5)"
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_FAIL_ON=CHUNK-B-MARK bash "$HN_SCRIPT" "$HN_BIG" >/dev/null 2>&1
+assert "haiku-narrative: one failed chunk degrades the run (exit 3)" "3" "$?"
+rm -rf "$HN_BIG" "$HN_CALLS"
 
 # =============================================================================
 # compact-recover.sh narrative + prompt-recovery.sh (claude stubbed via HN_PATH)

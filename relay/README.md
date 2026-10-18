@@ -106,7 +106,8 @@ flowchart TD
    provenance.
 3. `scripts/haiku-narrative.sh` reads the same transcript's dialogue turns and
    prints a narrative pack — Decisions, Dead ends, Constraints — recovered
-   from ASSISTANT prose via headless Haiku. The fact pack is structural (tool
+   from ASSISTANT prose, one line per tool call, and each failed result's
+   error, via headless Haiku. The fact pack is structural (tool
    calls, verbatim user text) and can't see this; the reasoning behind a
    decision or why an approach was abandoned only lives in assistant turns,
    which need a model to summarize. Degrades gracefully (exit 3) if the
@@ -140,7 +141,7 @@ auto-compaction:
   before the boundary (capped at 6,000 characters). Manual `/compact` is left
   alone.
 - **Next prompt:** the same hook starts the Haiku narrative (decisions, dead
-  ends, constraints) detached, because it takes 20 s to 2.5 min.
+  ends, constraints) detached, because it takes 20 s to 1.5 min.
   `scripts/prompt-recovery.sh` (`UserPromptSubmit`) injects it once, at the
   first prompt after it is ready, labelled unverified. `RELAY_NARRATIVE=off`
   turns this step off.

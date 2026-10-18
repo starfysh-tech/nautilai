@@ -23,6 +23,19 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   omitted ones, and tells the model to read the full doc at its path. See
   [`relay/README.md`](../relay/README.md).
 
+## 2026-10-17
+
+- **relay — the narrative step is about 2.5× faster on large sessions, and its dead ends
+  now name the failed command and its error.** We scored relay on real transcripts against
+  what each session went on to use ([hindsight ledger](../relay/tests/eval/HINDSIGHT-LEDGER.md)).
+  This found two problems. First, sessions with more than 150KB of dialogue ran their 3
+  Haiku chunks one after another, which took a mean of 151s; they now run concurrently,
+  in 60s, with the same recall. Second, Haiku never saw tool calls. Yet 39% of the tokens
+  a session reused after compaction, which the summary had dropped, sit in tool-call
+  inputs. The narrative dialogue now carries one line per tool call and one per failed
+  result. Recall rose on 11 of 27 size-matched cuts, and the planted-fact gate scored
+  12/12 three times.
+
 ## 2026-10-05
 
 - **15 skills across 12 plugins — bundled scripts now run under omp and pi.** omp
