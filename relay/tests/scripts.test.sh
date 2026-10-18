@@ -572,6 +572,68 @@ out2b="$(run_pickup "$SP_HOME2B" "{\"source\":\"clear\",\"cwd\":\"$CWD2B\"}")"
 assert_true "pickup: source=clear + multi-line doc emits valid JSON" "$(printf '%s' "$out2b" | jq empty >/dev/null 2>&1; echo $?)"
 ctx2b=$(printf '%s' "$out2b" | jq -r '.hookSpecificOutput.additionalContext // empty')
 assert_contains "pickup: multi-line doc content embedded" "$ctx2b" "Next: do Z"
+assert "pickup: under-budget doc is injected whole and unchanged" \
+    "A handoff document from the previous session was found and is included below. Treat it as the authoritative starting context.
+
+$(cat "$doc2b")" "$ctx2b"
+
+# 2c. a doc over the injection budget is cut at a section boundary. Claude
+# Code persists additionalContext over 10,000 characters and shows the model
+# only a 2KB preview; é is 2 bytes, so a byte count would cut too early.
+SP_HOME2C="$SP_TMP/home2c"
+CWD2C="/proj/case2c"
+slug2c=$(printf '%s' "$CWD2C" | tr '/.' '-')
+mkdir -p "$SP_HOME2C/.claude/handoffs/$slug2c"
+doc2c="$SP_TMP/doc2c.md"
+{
+    printf '# Big handoff\n\n## Goal\n'; printf 'é%.0s' $(seq 2000); printf '\nGOAL-END\n\n'
+    printf '## Next steps\n'; printf 'n%.0s' $(seq 3000); printf '\nNEXT-END\n\n'
+    printf '## Files touched\n'; printf 'f%.0s' $(seq 5000); printf '\nFILES-END\n\n'
+    printf '## Provenance\nPROV-END\n'
+} > "$doc2c"
+echo "$doc2c" > "$SP_HOME2C/.claude/handoffs/$slug2c/pending"
+out2c="$(run_pickup "$SP_HOME2C" "{\"source\":\"clear\",\"cwd\":\"$CWD2C\"}")"
+ctx2c=$(printf '%s' "$out2c" | jq -r '.hookSpecificOutput.additionalContext // empty')
+len2c=$(printf '%s' "$out2c" | jq '.hookSpecificOutput.additionalContext | length')
+assert_true "pickup: over-budget doc stays within 9000 characters" "$(rc_of test "$len2c" -le 9000)"
+assert_contains "pickup: over-budget doc keeps leading sections whole" "$ctx2c" "NEXT-END"
+assert_not_contains "pickup: over-budget doc cuts at a section boundary" "$ctx2c" "ffff"
+assert_contains "pickup: over-budget doc names the omitted sections" "$ctx2c" "Omitted sections: Files touched; Provenance."
+assert_contains "pickup: over-budget doc points at the full doc early" "${ctx2c:0:600}" "Read the full document at $doc2c"
+kept2c=$(printf '%s' "$ctx2c" | awk '/^# Big handoff$/{p=1} /^\[Excerpt ends/{exit} p' | sed '$d')
+assert "pickup: over-budget excerpt is an exact prefix of the doc" "$kept2c" "$(head -n "$(printf '%s\n' "$kept2c" | wc -l)" "$doc2c")"
+
+# 2c2. a doc that fits the 10,000-unit cap goes in whole even past 9,000; the
+# cap counts UTF-16 units, so 2,500 emoji (5,000 units) push a doc of under
+# 8,000 characters over it
+SP_HOME2E="$SP_TMP/home2e"
+CWD2E="/proj/case2e"
+slug2e=$(printf '%s' "$CWD2E" | tr '/.' '-')
+mkdir -p "$SP_HOME2E/.claude/handoffs/$slug2e"
+doc2e="$SP_TMP/doc2e.md"
+{ printf '## Goal\n'; printf 'g%.0s' $(seq 9600); printf '\nBAND-END\n'; } > "$doc2e"
+echo "$doc2e" > "$SP_HOME2E/.claude/handoffs/$slug2e/pending"
+out2e="$(run_pickup "$SP_HOME2E" "{\"source\":\"clear\",\"cwd\":\"$CWD2E\"}")"
+assert_contains "pickup: doc between 9,000 and 10,000 units goes in whole" "$out2e" "BAND-END"
+assert_not_contains "pickup: doc between 9,000 and 10,000 units is not cut" "$out2e" "Excerpt ends"
+mkdir -p "$SP_HOME2E/.claude/handoffs/$slug2e"
+{ printf '## Goal\n'; printf '😀%.0s' $(seq 2500); printf '\n## Next\n'; printf 'g%.0s' $(seq 4900); printf '\nEMOJI-END\n'; } > "$doc2e"
+echo "$doc2e" > "$SP_HOME2E/.claude/handoffs/$slug2e/pending"
+out2f="$(run_pickup "$SP_HOME2E" "{\"source\":\"clear\",\"cwd\":\"$CWD2E\"}")"
+assert_contains "pickup: emoji count twice toward the cap" "$out2f" "Omitted sections: Next."
+
+# 2d. an over-budget doc with no section headings is sliced to fit
+SP_HOME2D="$SP_TMP/home2d"
+CWD2D="/proj/case2d"
+slug2d=$(printf '%s' "$CWD2D" | tr '/.' '-')
+mkdir -p "$SP_HOME2D/.claude/handoffs/$slug2d"
+doc2d="$SP_TMP/doc2d.md"
+printf 'w%.0s' $(seq 12000) > "$doc2d"
+echo "$doc2d" > "$SP_HOME2D/.claude/handoffs/$slug2d/pending"
+out2d="$(run_pickup "$SP_HOME2D" "{\"source\":\"clear\",\"cwd\":\"$CWD2D\"}")"
+len2d=$(printf '%s' "$out2d" | jq '.hookSpecificOutput.additionalContext | length')
+assert_true "pickup: headingless over-budget doc stays within 9000 characters" "$(rc_of test "$len2d" -le 9000)"
+assert_contains "pickup: headingless over-budget doc ends with the path" "$out2d" "Full document: $doc2d]"
 
 # 3. stale marker (>30 min old) -> expired-*, {}
 SP_HOME3="$SP_TMP/home3"

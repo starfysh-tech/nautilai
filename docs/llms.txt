@@ -87,7 +87,8 @@ Claude Code only. After an auto-compaction, relay's SessionStart hook injects th
 own messages from before the boundary (capped at 6,000 characters); treat them as
 requirements still in force. A later prompt may carry the Haiku narrative of decisions and
 dead ends from the same transcript, labelled unverified. Neither touches the `pending`
-handoff marker. Handoff docs
+handoff marker. A picked-up handoff doc over 10,000 characters arrives cut at a section
+boundary with its path; read that file before acting. Handoff docs
 live under `~/.claude/handoffs/<slug>/`, where the slug comes from the git toplevel of the
 session's cwd — compute it with `scripts/handoff-dir.sh`, not from `pwd`.
 With `RELAY_AUTO_HANDOFF=on`, a `*-auto.md` doc (heading `# Auto handoff`) was written with no

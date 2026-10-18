@@ -93,7 +93,7 @@ flowchart TD
     G -->|"yes"| I["expired-EPOCH, nothing injected"]
     G -->|"no"| H
     H -->|"no"| J["broken-EPOCH, nothing injected"]
-    H -->|"yes"| K["inject doc as additionalContext"]
+    H -->|"yes"| K["inject doc as additionalContext; over 10,000 chars, leading sections plus the doc path"]
     K --> L["consumed-EPOCH, never injected again"]
     C -.->|"on every run, after the outcome above"| N["retention sweep deletes spent markers and docs older than RELAY_RETENTION_DAYS; pending is never swept"]
 ```
@@ -121,6 +121,9 @@ flowchart TD
 6. A `SessionStart` hook atomically claims that marker on the next session,
    injects the doc if it's still within its TTL, and renames the marker
    (`consumed-*`) so it only fires once — even with concurrent session starts.
+   A doc over Claude Code's 10,000-character hook limit is cut to 9,000 at a
+   section boundary; the injection names the omitted sections and tells the
+   model to read the full doc.
 
 ### Recovery
 

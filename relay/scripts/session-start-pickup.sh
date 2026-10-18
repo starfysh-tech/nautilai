@@ -151,7 +151,28 @@ case "$doc_path" in
 ' ;;
 esac
 
-context=$(jq -n --arg prefix "$prefix" --arg doc "$doc_contents" '$prefix + $doc')
+# Claude Code persists additionalContext over 10,000 UTF-16 units to a file and
+# shows the model only a 2KB preview. A doc that fits goes in whole; past that,
+# inject whole leading sections plus the doc path, so the model knows to Read
+# the rest. bash ${#} counts bytes or characters depending on the locale.
+context=$(jq -n --arg prefix "$prefix" --arg doc "$doc_contents" --arg path "$doc_path" '
+  def units: length + ([explode[] | select(. > 65535)] | length);
+  if ($prefix + $doc | units) <= 10000 then $prefix + $doc
+  else
+    ("This handoff is too long to inject whole. Below are its first sections. Read the full document at " + $path + " before you act.\n\n") as $note
+    | ("\n" + $doc | split("\n## ")) as $parts
+    | ([$parts[0][1:] | select(. != "")] + [$parts[1:][] | "## " + .]) as $chunks
+    | def footer($k):
+        ($chunks[$k:] | map(select(startswith("## ")) | split("\n")[0][3:]) | join("; ")) as $names
+        | "\n\n[Excerpt ends. Omitted sections: " + $names + ". Full document: " + $path + "]";
+      def body($k): $chunks[:$k] | join("\n");
+      ($prefix + $note) as $head
+      | ([range(1; $chunks | length) | select(($head + body(.) + footer(.) | units) <= 9000)] | max) as $k
+      | if $k then $head + body($k) + footer($k)
+        else (9000 - ($head + footer(0) | units)) as $room
+          | $head + ($doc | .[0:([$room, 0] | max)]) + "\n\n[Excerpt ends mid-document. Full document: " + $path + "]"
+        end
+  end')
 output=$(jq -n --argjson ctx "$context" '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $ctx}}')
 
 # Consume-once: the claimed marker becomes consumed only after the payload
