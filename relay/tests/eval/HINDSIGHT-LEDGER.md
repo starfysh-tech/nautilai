@@ -117,8 +117,36 @@ fast-jev-compaction, it broke three rules in TypeSafe's Noul guidance:
 
 The docs say a Noul at or below 0.5 can mean the state lacks the evidence,
 which matches the p99 of 0.24. So these numbers rate that plugin's request
-design, not Jev. A rerun that puts each result's text in state, asks one
-condition with criteria, and points at `results[i].text` has not run yet.
+design, not Jev.
+
+### Jev rerun per TypeSafe guidance (V4b)
+
+This rerun follows TypeSafe's Noul guidance:
+- Each result's text goes in state, abridged to the first 1,500 and last 300 characters.
+- The state also carries the task goal (the last 3 user prompts) and the last 12 messages.
+- Each question has one condition: "Does `results[i].text` contain specific facts … that the work described in `goal` will need again?" It has true/false criteria.
+- Batches of 8 results, at most 4 requests in flight.
+
+The sample is 40 results per cut, a subset of the first run's sample, for 1,524 results in total.
+
+| Measure | First run (same 1,524 calls) | V4b |
+| --- | --- | --- |
+| Probability p10 / p50 / p90 / max | — | 0.17 / 0.41 / 0.68 / 0.90 |
+| AUC (reused vs not) | 0.662 | 0.628 |
+| AUC, mean within result-size quintiles | — | 0.565 |
+| Precision at p ≥ 0.5 (keeps 34%) | — | 0.62 (base rate 0.49) |
+| Precision at p ≥ 0.7 (keeps 9%) | — | 0.71 |
+| Precision on lost tokens at p ≥ 0.5 | — | 0.29 (base rate 0.26) |
+
+At the same 34% keep rate, ranking by result size gives precision 0.80. On
+these calls, the last-Read rule gives 0.82 (n=92).
+
+With the evidence in state, Jev's probabilities spread out, but its ranking
+did not improve. Within a size band it is close to chance, and two
+zero-cost rules beat it. Not adopted.
+
+Limits: the label is token reuse, not semantic need. The goal is built from
+the prefix, as it would be at handoff time.
 
 ### V3: tool-call lines in the narrative dialogue
 
@@ -144,6 +172,50 @@ comparison, recall rose by +0.013 on average: 11 cuts better and 1 worse
 and error strings more often, and on some cuts they drop a prose-only
 decision nuance that V0 kept.
 
+### Reader probe: V0 vs V3 at the doc level
+
+This measures the doc, not the packs. For each cut, Sonnet:
+- writes 10–14 questions about pre-cut context that the suffix used, each one
+  with a prefix locator and suffix evidence; it keeps a question only when the
+  locators straddle the cut;
+- writes a handoff doc per SKILL.md from each variant's fact pack and narrative
+  pack, with no repo access;
+- answers each question from one doc;
+- grades every answer blind against the reference (correct 1, partial 0.5,
+  missing or wrong 0).
+
+37 of 39 cuts, 422 questions. s03 failed to parse and m01 kept 1 question.
+
+| Doc from | Cuts | Correct | Wrong | Missing | Mean bytes |
+| --- | --- | --- | --- | --- | --- |
+| V0 packs | 37 | 0.654 | 0.006 | 0.179 | 14,324 |
+| V3 packs | 37 | 0.697 | 0.008 | 0.146 | 14,703 |
+| Fact pack only | 37 | 0.100 | 0.004 | 0.842 | 12,691 |
+| Compaction summary only | 25 | 0.629 | 0.007 | 0.206 | 28,690 |
+
+Paired V3 − V0 per cut, with a 95% bootstrap CI:
+
+| Cut set | n | Mean | CI | Sign +/−/= |
+| --- | --- | --- | --- | --- |
+| All | 37 | +0.042 | +0.016, +0.071 | 22/11/4 |
+| Single-chunk | 30 | +0.031 | +0.002, +0.064 | 15/11/4 |
+| Compaction | 21 | +0.051 | +0.013, +0.093 | 12/6/3 |
+| Synthetic | 9 | −0.016 | −0.052, +0.013 | 3/5/1 |
+| Multi-chunk (V0 ×2 vs V3 ×1) | 7 | +0.092 | +0.057, +0.130 | 7/0/0 |
+
+By question type on single-chunk cuts, `state` gains (+0.055, CI +0.007,
++0.106). `decision` dips without significance (−0.014, CI −0.056, +0.031),
+which matches the hand-check note above. Run-to-run spread within a variant
+is about 0.10–0.12, so a single run decides nothing.
+
+V3 passes the gate: the CI excludes 0 on all cuts and on single-chunk cuts.
+The single-chunk gain is small.
+
+167 of the 201 V0/V3 docs are over 10,000 characters. The probe gives the
+reader the full doc. A real SessionStart injection above 10,000 characters
+shows the model a 2KB preview and a file path, so these scores overstate
+what a real pickup sees.
+
 ### V1 ported to `relay/scripts/haiku-narrative.sh`
 
 Live run of the repo script on m08: 47s, recall 0.106, 3 headings (V0 on
@@ -156,5 +228,7 @@ m08: 108s and 128s).
 - Packs are not the handoff doc: the main model writes the doc from packs plus
   in-window context, so these numbers bound the packs' contribution only.
 - Synthetic 50%/85% cuts are not real handoff points.
+- The reader probe uses one model family to write questions, docs, answers,
+  and grades. The writer cannot verify narrative claims against the repo.
 - `invented` counts tokens missing from the flattened prefix; flattening drops
   some content (skill text, non-string tool input), so it overcounts.
