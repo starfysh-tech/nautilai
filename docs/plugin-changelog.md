@@ -16,6 +16,13 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-10-18
 
+- **relay — a handoff doc no longer sends the next session to scratch files that may be
+  gone.** In 166 real pickups, 45% of next sessions hit a missing file, against 25% for
+  the same session before `/clear`, and 45 docs pointed at `/tmp` or scratch paths. The
+  skill now points only at committed files, PRs, issues, and repo docs, and copies what
+  the next session needs from temporary files into the doc. In a reader probe this cut
+  temporary-path pointers from 2.17 to 0.73 per doc with no loss in answer quality on
+  the full doc. See [`relay/skills/handoff/SKILL.md`](../relay/skills/handoff/SKILL.md).
 - **relay — a long handoff doc no longer shrinks to a 2KB preview at pickup.** Claude
   Code saves any hook injection over 10,000 characters to a file and shows the model only
   its first 2KB, and 49 of 105 local handoff docs were over that. The pickup hook now
