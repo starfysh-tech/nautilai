@@ -104,6 +104,11 @@ traces, function signatures and type definitions, and test names with their
 failure reasons. Noise to drop: raw file contents, exploratory chat, and
 intermediate reasoning that didn't change a decision.
 
+Point by path only to durable locations: committed files, PRs, issues, and
+repo docs. Treat scratch directories, `/tmp`, and other sessions' directories
+as gone by the next session: put what the next session needs from them into
+the doc itself.
+
 ## 6. Write the consume-once marker
 
 Write the doc's absolute path (and nothing else) to `$dir/pending`, overwriting
