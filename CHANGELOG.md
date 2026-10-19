@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.35.0](https://github.com/starfysh-tech/nautilai/compare/v2.34.0...v2.35.0) (2026-10-19)
+
+
+### Features
+
+* **relay:** point handoff docs only at durable paths ([#178](https://github.com/starfysh-tech/nautilai/issues/178)) ([1453301](https://github.com/starfysh-tech/nautilai/commit/1453301727a72c12400601f2c9f937ebcbab44fc))
+
 ## [2.34.0](https://github.com/starfysh-tech/nautilai/compare/v2.33.0...v2.34.0) (2026-10-18)
 
 
