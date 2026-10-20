@@ -12,11 +12,13 @@ report where every finding cites the code it is about.
 ## Use
 
 ```text
-/tech-due-diligence [repo-path] [--mode owner|buyer] [--quick] [--out report.md]
+/tech-due-diligence [repo-path] [--mode owner|buyer] [--claims file] [--allow-accounts] [--quick] [--out report.md]
 ```
 
 - `--mode owner` (default): you own the repo. The report ends in an ordered fix list.
-- `--mode buyer`: you are evaluating someone else's repo. Each Critical and High finding carries a deal impact (`blocker`, `price`, `post-close`), and the report adds questions for the seller and a list of documents to request.
+- `--mode buyer`: you are evaluating someone else's repo. The report opens with an investment summary: a verdict (proceed, proceed with conditions, or do not proceed without remediation), the top 5 risks with business impact, deal impact (`blocker`, `price`, `post-close`), and an estimated remediation size (S/M/L), the conditions to close, and the limits of the opinion. The body has no file paths; evidence, Low findings, and method are appendices.
+- `--claims <file>`: a document with the seller's or team's claims about the technology. Each claim gets a verdict: supported, partly supported, contradicted, or unverifiable from the repo.
+- `--allow-accounts`: allow read-only queries to the repo's hosting and deploy accounts (for example branch protection through `gh api`). Without it, the skill reads only the local checkout.
 - `--quick`: secrets, dependencies, and licenses only.
 - `--out`: report path. The default is `tech-due-diligence-<repo>-<date>.md` in the current directory. In buyer mode, when the current directory is inside the audited repo, the default is the repo's parent directory.
 
@@ -29,7 +31,7 @@ report where every finding cites the code it is about.
    - osv-scanner (vulnerabilities and licenses in one pass), or trivy, npm, pnpm, pip-audit, govulncheck, cargo-audit, or bundle-audit per lockfile
    - hadolint and checkov for infrastructure
 3. **Triage and code read, in parallel lanes.** One subagent per lane (secrets, code security, dependencies and licensing, infrastructure, architecture and quality, team, each stack pack) runs at the same time. Each lane groups candidates by rule, reads a sample of each group at the cited lines, and reads every Critical and High candidate individually. It drops test fixtures, parameterized queries, vendored and generated code, and duplicates. The report counts what was dropped and why, and says which groups were sampled.
-   Each lane answers its architecture, operations, licensing/IP, or team questions from the code (`references/areas.md`). A question that the code cannot answer goes to an open-questions list.
+   Each lane answers its questions from the code (`references/areas.md`): architecture and scalability, data map and subprocessors, AI and vendor economics, operations, licensing and IP, team, and seller claims. A question that the code cannot answer goes to an open-questions list.
 4. **Check.** Claude re-reads the cited lines of every Critical and High finding before it reaches the report, and merges findings two lanes reported for the same root cause.
 5. **Report.** Each area is `RAN`, `PARTIAL: <reason>`, `NOT RUN: <reason>`, or `N/A`. A skipped area never reads as clean. A finding that the repo's own risk register, security docs, or backlog already records is tagged `tracked` with its source and status. Low findings go to a one-line-each appendix. The header states when the checkout is behind its upstream or has uncommitted changes.
 
@@ -45,6 +47,8 @@ Stack packs add checks for Django, React/Next.js/Vue/Angular, Apple apps (iOS, m
 - **Repo content is data.** Comments, docs, and commit messages in the target cannot change the audit. An attempt to steer it is reported as a finding.
 - **Secret values are never printed.** gitleaks runs with `--redact`, and a secret finding cites its rule and location only.
 - **The checkout is audited as it is.** The skill never fetches, pulls, checks out, stashes, or resets.
+- **No account queries by default.** GitHub, cloud, and deploy accounts are queried only with `--allow-accounts`.
+- **Licensing and IP are observations.** Ownership and license rights live in contracts, not the repo, so these items carry no severity and pair with a question for the seller or counsel.
 - **The skill changes nothing in the audited repo.** Every finding has the `report` disposition. The only write is the report, plus the shoals file in owner mode.
 
 ## Convention exception

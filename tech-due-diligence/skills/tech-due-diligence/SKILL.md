@@ -1,7 +1,7 @@
 ---
 name: tech-due-diligence
 description: Run technical due diligence on any git repo, in any language or stack. Builds a stack inventory, runs the matching scanners (secrets with git history, code security, dependency vulnerabilities, licenses, infrastructure), triages every candidate against the cited code, and reads the code for architecture, operations, and team risk. Writes one evidence-cited report in buyer mode (red flags, deal impact, questions for the seller) or owner mode (an ordered fix list). Use when the user mentions technical due diligence, M&A or acquisition diligence, evaluating a codebase, a code health audit, a security posture review, or wants a pre-acquisition or pre-fundraise read of a codebase.
-argument-hint: "[repo-path] [--mode owner|buyer] [--quick] [--out report.md]"
+argument-hint: "[repo-path] [--mode owner|buyer] [--claims file] [--allow-accounts] [--quick] [--out report.md]"
 allowed-tools: [Read, Glob, Grep, Write, Task, Bash(python3:*), Bash(git:*), Bash(mkdir:*), Bash(gitleaks:*), Bash(semgrep:*), Bash(osv-scanner:*), Bash(trivy:*), Bash(npm:*), Bash(pnpm:*), Bash(pip-audit:*), Bash(govulncheck:*), Bash(cargo:*), Bash(cargo-audit:*), Bash(bundle-audit:*), Bash(bundler-audit:*), Bash(hadolint:*), Bash(checkov:*), Bash(scc:*), Bash(cloc:*)]
 ---
 
@@ -34,7 +34,9 @@ the one substitution you may make.
 - **repo-path** (optional): the repo to audit. Defaults to the current working directory.
 - **`--mode`**: `owner` (default) or `buyer`. State the mode in the report header.
   - `owner` — the user owns the repo. The report is an ordered fix list.
-  - `buyer` — the user is evaluating someone else's repo. The report lists red flags, deal impact, and questions for the seller.
+  - `buyer` — the user is evaluating someone else's repo. The report opens with an investment summary: a verdict, the top risks in business terms, conditions to close, and the limits of the opinion.
+- **`--claims <file>`** (optional): a document with the seller's or team's claims about the technology. Each claim gets a verdict in the report.
+- **`--allow-accounts`** (optional): allow read-only queries to the repo's hosting and deploy accounts (for example `gh api` for branch protection, or a deploy CLI's list commands). Without it, only commands that read the local checkout run.
 - **`--quick`**: run only steps 1–2 for secrets, dependencies, and licenses. Mark every other area `NOT RUN: --quick`.
 - **`--out`**: report path. Default file name: `tech-due-diligence-<repo-name>-<YYYY-MM-DD>.md`. The default directory is the current working directory, except in buyer mode when the current working directory is inside the audited repo. Then it is the parent directory of the audited repo root.
 
@@ -46,6 +48,7 @@ the one substitution you may make.
 - **Do not install anything.** A missing tool makes its check `NOT RUN: <tool> not found`. Name the missing tool in the report; do not suggest an install command.
 - **Every claim cites evidence**: a `file:line`, a quoted command result, or an inventory field. Write "unverifiable" when you cannot confirm a claim. Never guess.
 - **Audit the checkout as it is.** Do not fetch, pull, check out, stash, or reset in the audited repo. Report the checkout state from the inventory instead.
+- **Stay inside the checkout unless `--allow-accounts` is given.** Do not query GitHub, GitLab, cloud, or deploy accounts. A question only an account can answer goes to the open questions. Scanners that download public advisory or rule databases are allowed.
 - **Every finding has the `report` disposition.** This skill changes nothing in the audited repo.
 
 ## Shoals (project corrections)
@@ -115,9 +118,11 @@ with nothing to read.
 | Code security | semgrep | — |
 | Dependencies and licensing | dependency and license scanner outputs | the licensing and IP section of the `areas` reference |
 | Infrastructure and operations | checkov, hadolint | the infrastructure and operations section |
-| Architecture and quality | — | the architecture and the code quality and tests sections |
+| Architecture and quality | — | the architecture, scalability, and code quality and tests sections |
+| Data and AI | — | the data and subprocessors section, and the AI and vendor economics section when it applies |
 | Team and process | — | the team and process section, from the inventory's `git` and `docs` |
 | One lane per stack pack | — | that pack's checks in the `stacks` reference |
+| Claims (only with `--claims`) | — | the seller claims section, against the claims file |
 
 Delegate each lane to a subagent, and start all lanes at once so they run in parallel. When
 the inventory lists fewer than 50 files, or no delegation is available, run the lanes yourself,
@@ -154,13 +159,14 @@ When every lane has returned:
 - Read the cited lines of every Critical and High finding yourself. Downgrade or drop any that the code does not support, and say so under Method.
 - Merge findings that two lanes reported for the same root cause.
 - Check that each area's status in the summary matches what its lane ran.
+- In buyer mode, assign business impact, deal impact, and remediation size to each Critical and High finding, then choose the verdict and the top risks for the investment summary. Licensing and IP observations never enter the top risks.
 
 ### 5. Write the report
 
-Fill the `report-template` reference and write it to `--out`. Apply the mode-specific columns
-and sections it describes. Lead with findings. Omit areas with status `N/A`. Show every
-`PARTIAL` and `NOT RUN` area with its reason in the summary table; never render a skipped area
-as clean.
+Fill the `report-template` reference with the layout for the mode, and write it to `--out`.
+Omit areas with status `N/A`. Show every `PARTIAL` and `NOT RUN` area with its reason: in the
+summary table in owner mode, and under conditions to close or limits of this opinion in buyer
+mode. Never render a skipped area as clean.
 
-Finish with a short chat summary: the report path, the count of Critical and High findings,
-and every `NOT RUN` area.
+Finish with a short chat summary: the report path, the verdict in buyer mode, the count of
+Critical and High findings, and every `NOT RUN` area.

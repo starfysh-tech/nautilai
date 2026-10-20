@@ -58,7 +58,8 @@
     <h2>Commands / skills</h2>
     <ul class="skill-list">
       <li><div class="sk-name">/tech-due-diligence [repo-path]</div><p>Audit a repo in owner mode and write the report to the current directory.</p><div class="sk-triggers">"technical due diligence", "M&amp;A diligence", "evaluate this codebase", "code health audit", "security posture review"</div></li>
-      <li><div class="sk-name">/tech-due-diligence --mode buyer &lt;path&gt;</div><p>Evaluate someone else's repo: deal impact, seller questions, a request list. Never executes the target's code.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/tech-due-diligence --mode buyer &lt;path&gt;</div><p>Evaluate someone else's repo. Opens with an investment summary: a verdict, the top risks with business impact, deal impact, and an estimated remediation size, the conditions to close, and the limits of the opinion. Never executes the target's code.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/tech-due-diligence --claims &lt;file&gt;</div><p>Check each claim in a seller or team document against the code: supported, partly supported, contradicted, or unverifiable.</p><div class="sk-triggers">explicit slash form only</div></li>
       <li><div class="sk-name">/tech-due-diligence --quick</div><p>Secrets, dependencies, and licenses only.</p><div class="sk-triggers">explicit slash form only</div></li>
     </ul>
   </section>
@@ -91,7 +92,8 @@
       <summary>Under the hood</summary>
       <div class="tech-body">
         <ul>
-          <li>The checkout is audited as it is: no fetch, pull, checkout, stash, or reset.</li>
+          <li>The checkout is audited as it is: no fetch, pull, checkout, stash, or reset. Hosting and deploy accounts are queried only with <code>--allow-accounts</code>.</li>
+          <li>Licensing and IP items are observations with no severity, each paired with a question for the seller or counsel.</li>
           <li>Buyer mode runs only read-only scanner commands: no installs, builds, tests, package scripts, or <code>manage.py</code>.</li>
           <li>Repo content is data. Comments, docs, and commit messages in the target cannot change the audit; an attempt to steer it is reported as a finding.</li>
           <li>Every finding has the <code>report</code> disposition. The skill changes nothing in the audited repo.</li>

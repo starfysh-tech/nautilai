@@ -85,12 +85,12 @@ own license and vendored code from the inventory and the areas reference.
 
 `UNKNOWN` from deps.dev means the license data is missing, not that the package has no
 license. Report an `UNKNOWN` package only after checking its manifest metadata in the
-lockfile or registry record; if it is still unknown, report it as Low and unverifiable.
+lockfile or registry record; if it is still unknown, list it as an observation marked unverifiable.
 
-Severity for dependency licenses in a product that is distributed or offered as a service:
-AGPL, SSPL, or any license with network-use clauses → High. GPL in a linked dependency →
-High when distributed, Medium for a service-only product. A package confirmed to have no license → Medium.
-LGPL, MPL, EPL → Low, with a note on the obligation.
+License results are observations, not severity-ranked findings (see the licensing and IP
+section of the areas reference). For each, note the obligation it may carry: AGPL, SSPL, or
+network-use clauses for a service; GPL for a distributed product; LGPL, MPL, EPL for
+modification and notice duties; a package with no license.
 
 ## Infrastructure
 

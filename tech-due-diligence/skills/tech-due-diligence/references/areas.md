@@ -34,9 +34,44 @@ in buyer mode, the team in owner mode.
 
 ## Licensing and IP
 
-- The repo's own license file. In buyer mode, a permissive open-source license on code the seller calls proprietary is a High finding.
-- Vendored or copied third-party code: directories like `vendor/` or `third_party/`, files with a foreign copyright header. Cite each one with its license.
-- Contributor provenance: authors in `git.top_authors` whose names or domains suggest contractors or outside parties. In buyer mode, ask for IP assignment for each one.
+Report everything in this area as an **observation**: no severity, not counted in the summary
+table, never in the investment summary's top risks. IP ownership and license rights live in
+contracts and assignments, not in the repo, so each observation pairs with a question for the
+seller or counsel.
+
+- The repo's own license file, and any license the code or API metadata declares.
+- Dependency licenses from the license scan: copyleft (GPL, AGPL, SSPL) and packages with no license.
+- Vendored or copied third-party code, and third-party content the product ships: directories like `vendor/` or `third_party/`, files with a foreign copyright header, copied standards or datasets. Cite each one.
+- Contributor provenance: authors in `git.top_authors` whose names or domains suggest contractors or outside parties. Ask for an IP assignment for each one.
+
+## Data and subprocessors
+
+- A data map: which customer and personal data the product stores, where (database, object storage, logs, traces, analytics), and for how long. Cite the model, schema, or config for each store.
+- Subprocessors: every external service that receives customer data, with what it receives. Include LLM providers, document parsers, error tracking, analytics, and tracing. Cite the call site.
+- Data that leaves the product's own infrastructure to a place without access control or retention limits is High.
+- Regulated data (health, payment, children's, biometric) and where it is handled. Name the regime it implies (HIPAA, PCI DSS, COPPA, GDPR special categories).
+
+## AI and vendor economics
+
+Only when the product calls an LLM or another paid per-use API.
+
+- The calls made per unit of work (per analysis, per request, per document): which models, how many calls, and whether inputs are cached or batched. Cite the orchestration code.
+- Cost signals in the repo: token limits, budget guards, cost logging, per-tenant quotas. Their absence on an unauthenticated or unmetered path is High.
+- Vendor concentration: which features stop working if one provider is unavailable or changes terms, and whether a fallback provider exists in code.
+- Model quality controls: evals, golden fixtures, regression tests on prompts, and whether CI runs them.
+
+## Scalability
+
+- What limits growth: single instance or process, in-process background work, shared global state, per-tenant locks, database connection limits, synchronous calls to slow vendors.
+- What happens at 10× today's load for each limit, judged from the code and deploy config. Say which limit is hit first.
+- Whether the deploy config can run more than one instance safely. Cite the setting or code that decides it.
+
+## Seller claims
+
+Only when `--claims` names a file. For each claim the file makes about the technology
+(architecture, security, compliance, scale, test coverage, proprietary technology), give a
+verdict with evidence: `supported`, `partly supported`, `contradicted`, or `unverifiable from
+the repo`. A contradicted claim is a finding at the severity of the gap it hides.
 
 ## Team and process
 
@@ -60,3 +95,6 @@ Add each item that the repo does not already contain to the report's request lis
 - IP assignment agreements for every contributor
 - open-source license policy and any license audits
 - the third-party service contracts the product depends on
+- data processing agreements with each subprocessor
+- monthly cloud and per-use vendor (LLM, parsing) spend for the last 6 months
+- the growth plan the system must support (customers, documents, requests per month)

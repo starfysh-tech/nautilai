@@ -166,6 +166,24 @@ def test_checkout_staleness():
         check("uncommitted counted", c["uncommitted_changes"] == 1, c)
 
 
+def test_identity_merge():
+    """One person committing under two names and two emails counts as one author."""
+    with tempfile.TemporaryDirectory() as root:
+        write(root, "a.txt", "0\n")
+        git(root, "init", "-q")
+        ids = [("Pat", "pat@home.invalid"), ("Pat Lee", "pat@home.invalid"),
+               ("Pat Lee", "pat@work.invalid"), ("Sam", "sam@work.invalid")]
+        for i, (name, email) in enumerate(ids):
+            write(root, "a.txt", f"{i}\n")
+            subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True)
+            env = {**os.environ, "GIT_AUTHOR_NAME": name, "GIT_AUTHOR_EMAIL": email,
+                   "GIT_COMMITTER_NAME": name, "GIT_COMMITTER_EMAIL": email}
+            subprocess.run(["git", "commit", "-qm", str(i)], cwd=root, check=True, capture_output=True, env=env)
+        g = inv.inventory(Path(root))["git"]
+        check("two people, not four", g["authors_all_time"] == 2, g["top_authors"])
+        check("merged share is 0.75", g["top_authors"][0]["share"] == 0.75, g["top_authors"])
+
+
 def test_android_app():
     """A Gradle Android app is detected and its config files listed."""
     with tempfile.TemporaryDirectory() as root:

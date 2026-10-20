@@ -27,8 +27,11 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   `git ls-files` (the inventory runs in under a second on that repo). It uses
   established scanners in place of the hand-written regex, and triages every
   candidate against its cited line. Every area reports `RAN`, `PARTIAL`, or
-  `NOT RUN: <reason>`, so a gap never reads as clean. `--mode buyer` serves acquisition
-  diligence (deal impact, seller questions, never executes the target's code), and
+  `NOT RUN: <reason>`, so a gap never reads as clean. `--mode buyer` is written for the
+  deal decision rather than the engineers. It opens with a verdict, the top risks in
+  business terms with deal impact and an estimated remediation size, the conditions to
+  close, and the limits of the opinion. Licensing and IP are observations, because
+  ownership lives in contracts, not the repo. Buyer mode never executes the target's code.
   `--mode owner` writes a fix list. Triage and the code read run as parallel subagent
   lanes, one per area. On two real repos that raised confirmed High findings (2 → 7 and
   0 → 1) at about 3–6× the cost and no wall-time gain. The lanes stay on because the skill

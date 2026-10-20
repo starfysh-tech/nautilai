@@ -268,15 +268,37 @@ def detect_infra(root: Path, files: list[str]) -> dict[str, list[str]]:
     return infra
 
 
+def merge_identities(raw: list[list[str]]) -> list[str]:
+    """Label each commit with one person, joining author names and emails that co-occur."""
+    parent: dict[str, str] = {}
+
+    def find(k: str) -> str:
+        while parent.setdefault(k, k) != k:
+            parent[k] = parent[parent[k]]
+            k = parent[k]
+        return k
+
+    for name, email, _ in raw:
+        a, b = find("n:" + name.strip().lower()), find("e:" + email.strip().lower())
+        if a != b:
+            parent[a] = b
+    names: dict[str, Counter] = {}
+    for name, email, _ in raw:
+        names.setdefault(find("e:" + email.strip().lower()), Counter())[name] += 1
+    label = {root: c.most_common(1)[0][0] for root, c in names.items()}
+    return [label[find("e:" + email.strip().lower())] for _, email, _ in raw]
+
+
 def git_history(root: Path) -> dict | None:
     if run(["git", "rev-parse", "--git-dir"], root) is None:
         return None
-    log = run(["git", "log", "--no-merges", "--format=%aN%x09%aI"], root)
+    log = run(["git", "log", "--no-merges", "--format=%aN%x09%aE%x09%aI"], root)
     if log is None:
         return {"commits": 0}
-    rows = [line.split("\t", 1) for line in log.splitlines() if "\t" in line]
-    if not rows:
+    raw = [line.split("\t", 2) for line in log.splitlines() if line.count("\t") == 2]
+    if not raw:
         return {"commits": 0}
+    rows = [(person, d) for person, d in zip(merge_identities(raw), (r[2] for r in raw))]
     authors = Counter(a for a, _ in rows)
     year_ago = datetime.now(timezone.utc) - timedelta(days=365)
     recent = Counter(a for a, d in rows if datetime.fromisoformat(d.replace("Z", "+00:00")) >= year_ago)
