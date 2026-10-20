@@ -85,6 +85,9 @@ jobs:
       - name: rbac-django route-scan tests
         run: python3 rbac-django/tests/test_route_scan.py
 
+      - name: tech-due-diligence inventory tests
+        run: python3 tech-due-diligence/tests/test_inventory.py
+
       # Validate the repo's community-health config against GitHub's own schemas
       # (vendored by check-jsonschema). Pinned so an upstream release can't red-light
       # main on an unrelated commit. python3 is already a CI dep (the sync check is a

@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "tech-due-diligence",
+  "displayName": "Tech Due Diligence",
+  "version": "2.34.0",
+  "description": "Technical due diligence for any git repo and any stack — a stack inventory, secret, code-security, dependency, license, and infrastructure scanners, AI triage of every candidate against the cited code, and a code read of architecture, operations, and team risk. One evidence-cited report in buyer mode (red flags, deal impact, seller questions) or owner mode (ordered fix list).",
+  "author": {
+    "name": "Randall Noval",
+    "email": "randall@starfysh.net",
+    "url": "https://github.com/starfysh-tech"
+  },
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/tech-due-diligence#readme",
+  "repository": "https://github.com/starfysh-tech/nautilai",
+  "license": "MIT",
+  "keywords": [
+    "due-diligence",
+    "audit",
+    "security",
+    "licenses",
+    "dependencies",
+    "m-and-a",
+    "claude-code"
+  ],
+  "skills": "./skills/"
+}

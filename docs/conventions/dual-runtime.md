@@ -1,6 +1,6 @@
 # Dual-runtime plugins (Claude Code + Hermes Agent)
 
-Five nautilai skills run in **both** Claude Code and Hermes Agent from this one repo.
+Six nautilai skills run in **both** Claude Code and Hermes Agent from this one repo.
 This is the rule set for keeping that true, and the lessons that produced it.
 
 **Claude Code is the primary runtime. Hermes support is additive and must stay that way.**
@@ -230,7 +230,7 @@ that fails.
 ### 6. Publishing a public repo is publishing
 
 skills.sh **auto-indexes any public GitHub repo containing a `SKILL.md`** — no tap, no opt-in,
-no way to hide. Every skill in this marketplace is Hermes-resolvable, not just the five
+no way to hide. Every skill in this marketplace is Hermes-resolvable, not just the six
 supported ones, and `docs/llms.txt` says so plainly. The throwaway probe repo was also, briefly,
 a publicly installable Hermes skill.
 

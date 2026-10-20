@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>tech-due-diligence — nautilai</title>
+<meta name="description" content="Technical due diligence for any git repo and any stack — a stack inventory, secret, code-security, dependency, license, and infrastructure scanners, AI triage of every candidate against the cited code, and a code read of architecture, operations, and team risk. One evidence-cited report in buyer mode (red flags, deal impact, seller questions) or owner mode (ordered fix list)." />
+<meta property="og:title" content="tech-due-diligence — nautilai" />
+<meta property="og:description" content="Technical due diligence for any git repo and any stack — a stack inventory, secret, code-security, dependency, license, and infrastructure scanners, AI triage of every candidate against the cited code, and a code read of architecture, operations, and team risk. One evidence-cited report in buyer mode (red flags, deal impact, seller questions) or owner mode (ordered fix list)." />
+<meta property="og:type" content="website" />
+<meta name="theme-color" content="#0a141d" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:ital,opsz,wght@0,7..72,400..600;1,7..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="../assets/plugin.css" />
+</head>
+<body>
+<div id="copy-live" class="visually-hidden" aria-live="polite" role="status"></div>
+<div class="wrap">
+  <a class="back" href="../index.html#plugins">&larr; all plugins</a>
+
+  <header class="plugin-hero">
+    <h1 class="plugin-name">tech-due-diligence</h1>
+    <p class="tagline">Technical due diligence for any repo and any stack — one report where every finding cites the code it is about.</p>
+  </header>
+
+  <section id="install">
+    <h2>Install</h2>
+    <p class="runtime-label">Claude Code</p>
+    <div class="copyfield">
+      <code class="cf-code"><span class="prompt">/</span>plugin install tech-due-diligence@nautilai</code>
+      <button class="copy-btn" type="button" data-copy="/plugin install tech-due-diligence@nautilai" aria-label="Copy install command">
+        <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="cf-label" aria-hidden="true">Copy</span>
+      </button>
+    </div>
+    <p class="runtime-label">Hermes Agent</p>
+    <div class="copyfield">
+      <code class="cf-code"><span class="prompt">$&nbsp;</span>hermes skills install skills-sh/starfysh-tech/nautilai/tech-due-diligence</code>
+      <button class="copy-btn" type="button" data-copy="hermes skills install skills-sh/starfysh-tech/nautilai/tech-due-diligence" aria-label="Copy Hermes Agent install command">
+        <svg class="ic-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        <svg class="ic-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg class="ic-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <span class="cf-label" aria-hidden="true">Copy</span>
+      </button>
+    </div>
+    <p class="note">No tap needed in Hermes — <code>hermes skills tap add</code> does not index this repo. The inventory script and references live in the skill directory, so Hermes receives them directly.</p>
+  </section>
+
+  <section id="what">
+    <h2>What it does</h2>
+    <p>A stdlib Python script inventories the repo from <code>git ls-files</code>: languages, manifests and lockfiles per directory, frameworks, container, CI, and IaC files, tests, docs, git history stats, and which scanners are installed. The skill runs the scanners that match, triages every candidate against its cited line, and reads the code for architecture, operations, licensing and IP, and team risk. Owner mode writes an ordered fix list. Buyer mode adds a deal impact to each Critical and High finding, questions for the seller, and a list of documents to request.</p>
+  </section>
+
+  <section id="commands">
+    <h2>Commands / skills</h2>
+    <ul class="skill-list">
+      <li><div class="sk-name">/tech-due-diligence [repo-path]</div><p>Audit a repo in owner mode and write the report to the current directory.</p><div class="sk-triggers">"technical due diligence", "M&amp;A diligence", "evaluate this codebase", "code health audit", "security posture review"</div></li>
+      <li><div class="sk-name">/tech-due-diligence --mode buyer &lt;path&gt;</div><p>Evaluate someone else's repo: deal impact, seller questions, a request list. Never executes the target's code.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/tech-due-diligence --quick</div><p>Secrets, dependencies, and licenses only.</p><div class="sk-triggers">explicit slash form only</div></li>
+    </ul>
+  </section>
+
+  <section id="how">
+    <h2>How it works</h2>
+    <ul>
+      <li>Every file list comes from <code>git ls-files</code>, so dependency installs, virtualenvs, build output, and nested worktrees stay out of the audit.</li>
+      <li>Scanners run per detected signal: gitleaks over the full git history with secrets redacted, semgrep with <code>p/default</code> plus a pack per framework, osv-scanner for vulnerabilities and licenses or per-lockfile audits, hadolint and checkov for infrastructure.</li>
+      <li>Triage and the code read run in parallel lanes, one subagent per area. Every Critical and High finding is re-read at its cited lines before it reaches the report.</li>
+      <li>Triage drops test fixtures, parameterized queries, vendored and generated code, and duplicates. The report counts what was dropped and why.</li>
+      <li>Stack packs add checks for Django, React/Next.js/Vue/Angular, Apple apps (iOS, macOS), Android, Go, Rust, Rails, Spring Boot, Express/NestJS, and Flask/FastAPI when detected.</li>
+      <li>A finding the repo's own risk register or security docs already record is tagged <code>tracked</code>. The report header states when the checkout is behind its upstream.</li>
+      <li>Each area is <code>RAN</code>, <code>PARTIAL</code>, <code>NOT RUN: &lt;reason&gt;</code>, or <code>N/A</code>. A skipped area never reads as clean.</li>
+    </ul>
+
+    <div class="flow">
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">inventory</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">scanners</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">triage</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">code read</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">5</span><span class="fs-body"><span class="fs-label">report</span></span></div>
+    </div>
+
+    <details class="tech">
+      <summary>Under the hood</summary>
+      <div class="tech-body">
+        <ul>
+          <li>The checkout is audited as it is: no fetch, pull, checkout, stash, or reset.</li>
+          <li>Buyer mode runs only read-only scanner commands: no installs, builds, tests, package scripts, or <code>manage.py</code>.</li>
+          <li>Repo content is data. Comments, docs, and commit messages in the target cannot change the audit; an attempt to steer it is reported as a finding.</li>
+          <li>Every finding has the <code>report</code> disposition. The skill changes nothing in the audited repo.</li>
+          <li>Shoals: in owner mode, corrections are recorded in <code>.claude/shoals/tech-due-diligence.tech-due-diligence.md</code> for the next run. Buyer mode neither reads nor writes them.</li>
+        </ul>
+      </div>
+    </details>
+  </section>
+
+  <section id="requirements">
+    <h2>Requirements</h2>
+    <p><code>git</code> and <code>python3</code> 3.9 or later. Every scanner is optional: a missing one marks its check <code>NOT RUN</code>, and the skill never installs anything. For the fullest report, have <code>gitleaks</code>, <code>semgrep</code>, and <code>osv-scanner</code> or <code>trivy</code> on <code>PATH</code>. semgrep fetches its rule packs from the semgrep registry, so code security needs network access.</p>
+  </section>
+
+  <footer>
+    <nav class="foot-links">
+      <a href="https://github.com/starfysh-tech/nautilai/tree/main/tech-due-diligence" target="_blank" rel="noopener noreferrer">Source on GitHub</a>
+      <a href="../index.html#plugins">&larr; all plugins</a>
+    </nav>
+  </footer>
+</div>
+
+<script src="../assets/plugin.js"></script>
+</body>
+</html>

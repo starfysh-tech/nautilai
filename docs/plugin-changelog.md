@@ -14,6 +14,29 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-10-19
+
+- **tech-due-diligence — new plugin: technical due diligence for any repo, where every
+  finding is triaged against its cited line.** It replaces a project-local Django/React
+  auditor. On its first real target, that auditor ran for 269 seconds and reported 122
+  findings, none of them about the project's own code. It walked 811,561 files on disk
+  instead of 2,959 tracked ones, so it audited copies in nested worktrees and a
+  third-party package's `settings.py`. Its SQL rule flagged safe parameterized queries
+  as critical. Its licensing and npm-audit paths could never report a finding, and a
+  crashed or skipped area showed as risk "None". The new skill scopes everything to
+  `git ls-files` (the inventory runs in under a second on that repo). It uses
+  established scanners in place of the hand-written regex, and triages every
+  candidate against its cited line. Every area reports `RAN`, `PARTIAL`, or
+  `NOT RUN: <reason>`, so a gap never reads as clean. `--mode buyer` serves acquisition
+  diligence (deal impact, seller questions, never executes the target's code), and
+  `--mode owner` writes a fix list. Triage and the code read run as parallel subagent
+  lanes, one per area. On two real repos that raised confirmed High findings (2 → 7 and
+  0 → 1) at about 3–6× the cost and no wall-time gain. The lanes stay on because the skill
+  runs rarely and report quality comes first. A live eval with planted issues
+  ([`tests/eval/LEDGER.md`](../tech-due-diligence/tests/eval/LEDGER.md)) gates prose
+  changes. It ships to Claude Code and Hermes. See
+  [`tech-due-diligence/README.md`](../tech-due-diligence/README.md).
+
 ## 2026-10-18
 
 - **relay — a handoff doc no longer sends the next session to scratch files that may be

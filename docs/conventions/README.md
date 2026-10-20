@@ -127,7 +127,7 @@ doesn't repeat a mistake the user already flagged.
 
 ## 12. Dual-runtime: Claude Code + Hermes Agent
 
-Five skills run in both runtimes from this one repo. **Claude Code is primary; Hermes
+Six skills run in both runtimes from this one repo. **Claude Code is primary; Hermes
 support is additive.** A Claude regression is never an acceptable price for it — and
 never necessary, since every constraint has a Hermes-only solution.
 
