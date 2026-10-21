@@ -204,17 +204,18 @@ def detect_frameworks(root: Path, files: list[str], manifests: list[dict]) -> di
                 add("android", f)
         elif p.name == "AndroidManifest.xml":
             add("android", f)
-        elif APPLE_CONFIG_RE.search(f) or (p.name == "project.yml" and XCODEGEN_RE.search(read_text(root, f))):
+        elif is_apple_config(root, f):
             add("apple-app", f)
     return fw
 
 
+def is_apple_config(root: Path, f: str) -> bool:
+    return bool(APPLE_CONFIG_RE.search(f)
+                or (PurePosixPath(f).name == "project.yml" and XCODEGEN_RE.search(read_text(root, f))))
+
+
 def apple_config(root: Path, files: list[str]) -> list[str]:
-    return [
-        f for f in files
-        if APPLE_CONFIG_RE.search(f)
-        or (PurePosixPath(f).name == "project.yml" and XCODEGEN_RE.search(read_text(root, f)))
-    ]
+    return [f for f in files if is_apple_config(root, f)]
 
 
 def django_settings(files: list[str]) -> list[str]:
@@ -255,7 +256,7 @@ def detect_infra(root: Path, files: list[str]) -> dict[str, list[str]]:
             add("pulumi", f)
         elif name in ("serverless.yml", "serverless.yaml"):
             add("serverless", f)
-        elif name in ("cdk.json",):
+        elif name == "cdk.json":
             add("aws-cdk", f)
         elif name in ("Procfile", "app.yaml", "fly.toml", "render.yaml", "vercel.json", "netlify.toml"):
             add("paas", f)
@@ -298,15 +299,13 @@ def container_images(root: Path, files: list[str], infra: dict[str, list[str]]) 
     """Image references named by compose, Kubernetes, Helm, and Dockerfiles, as written."""
     found = []
     yaml_files = set(infra.get("compose", []) + infra.get("kubernetes", []))
-    yaml_files.update(f for f in files if "/templates/" in f and f.endswith((".yaml", ".yml")) and infra.get("helm"))
-    for f in sorted(yaml_files):
-        text = read_text(root, f)
-        for m in IMAGE_LINE_RE.finditer(text):
-            found.append({"ref": m.group(1), "file": f, "line": text.count("\n", 0, m.start()) + 1})
-    for f in infra.get("paas", []):
-        if f.endswith(".toml"):
+    if infra.get("helm"):
+        yaml_files.update(f for f in files if "/templates/" in f and f.endswith((".yaml", ".yml")))
+    tomls = [f for f in infra.get("paas", []) if f.endswith(".toml")]
+    for rx, group in ((IMAGE_LINE_RE, sorted(yaml_files)), (TOML_IMAGE_RE, tomls)):
+        for f in group:
             text = read_text(root, f)
-            for m in TOML_IMAGE_RE.finditer(text):
+            for m in rx.finditer(text):
                 found.append({"ref": m.group(1), "file": f, "line": text.count("\n", 0, m.start()) + 1})
     for f in infra.get("dockerfile", []):
         stages = {"scratch"}
@@ -331,17 +330,20 @@ def git_history(root: Path) -> dict | None:
     raw = [line.split("\t", 2) for line in log.splitlines() if line.count("\t") == 2]
     if not raw:
         return {"commits": 0}
-    rows = [(person, d) for person, d in zip(merge_identities(raw), (r[2] for r in raw))]
+    rows = list(zip(merge_identities(raw), (r[2] for r in raw)))
     authors = Counter(a for a, _ in rows)
     year_ago = datetime.now(timezone.utc) - timedelta(days=365)
     recent = Counter(a for a, d in rows if datetime.fromisoformat(d.replace("Z", "+00:00")) >= year_ago)
     total = len(rows)
     top = authors.most_common(10)
+    def git(*args: str) -> str | None:
+        return (run(["git", *args], root) or "").strip() or None
+
     shallow = run(["git", "rev-parse", "--is-shallow-repository"], root)
     checkout = {
-        "branch": (run(["git", "rev-parse", "--abbrev-ref", "HEAD"], root) or "").strip() or None,
-        "head": (run(["git", "rev-parse", "--short", "HEAD"], root) or "").strip() or None,
-        "upstream": (run(["git", "rev-parse", "--abbrev-ref", "@{u}"], root) or "").strip() or None,
+        "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
+        "head": git("rev-parse", "--short", "HEAD"),
+        "upstream": git("rev-parse", "--abbrev-ref", "@{u}"),
         "ahead": None, "behind": None, "last_fetch": None,
         "uncommitted_changes": len((run(["git", "status", "--porcelain"], root) or "").splitlines()),
     }
@@ -349,7 +351,7 @@ def git_history(root: Path) -> dict | None:
         counts = (run(["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"], root) or "").split()
         if len(counts) == 2:
             checkout["ahead"], checkout["behind"] = int(counts[0]), int(counts[1])
-    fetch_head = (run(["git", "rev-parse", "--git-path", "FETCH_HEAD"], root) or "").strip()
+    fetch_head = git("rev-parse", "--git-path", "FETCH_HEAD")
     if fetch_head:
         try:
             mtime = (root / fetch_head).stat().st_mtime
@@ -386,8 +388,8 @@ def count_lines(root: Path, files: list[str]) -> tuple[dict[str, dict[str, int]]
             path = root / f
             if path.stat().st_size > LINE_COUNT_MAX_BYTES:
                 continue
-            with open(path, "rb") as fh:
-                n = sum(1 for _ in fh)
+            data = path.read_bytes()
+            n = data.count(b"\n") + (bool(data) and not data.endswith(b"\n"))
         except OSError:
             continue
         entry["lines"] += n

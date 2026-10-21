@@ -33,6 +33,7 @@ This eval calls the model, so it is manual and not in CI. Run it before shipping
 | 2026-10-20 | 765e905+wt | claude-opus-5-5 | 8/8 | 7/7 | 281 s | $1.77 | After `config_secrets.py` and the redacted-view rule. First grade 7/8: a Medium row cited `app/db.py:10` and said "parameterized, so this is data exposure, not injection". The check now also skips lines that say parameterized or "not injection"; all four eval reports regrade 8/8, and a report that calls line 10 injection still fails. |
 | 2026-10-21 | f9cc5fc+wt | claude-opus-5-5 | 8/8 | 7/7 | 315 s | $1.77 | After the per-run `mktemp -d` work directory. The run created `tdd-orders-api-RljBs5`. |
 | 2026-10-21 | 57b405b+wt | claude-opus-5-5 | 8/8 | 7/7 | 264 s | $1.70 | After `config_secrets.py context` and the rule that gitleaks hits are read only through it. The run triaged gitleaks with `context` and ran no `git show`. |
+| 2026-10-21 | 2b93d94+wt | claude-opus-5-5 | 8/8 | 7/7 | 429 s | $2.51 | After a simplify pass on both scripts and the read-rule wording. `inventory.py` and `config_secrets.py` output was byte-identical to the previous commit on gapbot-crew, mqol-aerie, and fluxe. |
 
 ## Reference runs on real repos
 

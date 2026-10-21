@@ -10,8 +10,6 @@ Stdlib only.
 gitleaks matches known token shapes; a hand-picked password in a TOML, YAML, or env file has
 no shape, so it passes. This script matches on the setting's name instead.
 """
-from __future__ import annotations
-
 import json
 import re
 import subprocess
@@ -57,9 +55,12 @@ PLACEHOLDER_RE = re.compile(
 MAX_BYTES = 300_000
 
 
+def is_env_file(path: str) -> bool:
+    return bool(ENV_NAME_RE.search(PurePosixPath(path).name))
+
+
 def is_config(path: str) -> bool:
-    p = PurePosixPath(path)
-    return p.suffix.lower() in CONFIG_SUFFIXES or bool(ENV_NAME_RE.search(p.name))
+    return PurePosixPath(path).suffix.lower() in CONFIG_SUFFIXES or is_env_file(path)
 
 
 def unquote(val: str) -> str:
@@ -89,9 +90,8 @@ def scan_lines(text: str, env_file: bool):
         m = ASSIGN_RE.match(line)
         if not m or not m.group("val"):
             continue
-        key, val = m.group("key"), m.group("val")
-        if env_file or is_cred_key(key) or CRED_URL_RE.search(val):
-            yield n, line, m, key, val
+        if env_file or is_cred_key(m.group("key")) or CRED_URL_RE.search(m.group("val")):
+            yield n, m
 
 
 def scan(root: Path) -> list[dict]:
@@ -107,14 +107,14 @@ def scan(root: Path) -> list[dict]:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
-        env_file = bool(ENV_NAME_RE.search(PurePosixPath(f).name))
-        for n, _line, _m, key, val in scan_lines(text, env_file):
+        for n, m in scan_lines(text, False):
+            key, val = m.group("key"), m.group("val")
             kind = "credential-url" if CRED_URL_RE.search(val) else classify(val)
-            if kind in ("structured", "number") or (not is_cred_key(key) and kind != "credential-url"):
+            if kind in ("structured", "number"):
                 continue
             out.append({
                 "file": f, "line": n, "key": key, "kind": kind,
-                "value_length": len(unquote(val)), "env_file": env_file,
+                "value_length": len(unquote(val)), "env_file": is_env_file(f),
                 "template": bool(TEMPLATE_RE.search(f)),
                 "tracked_in_git": source == "git ls-files",
             })
@@ -123,7 +123,8 @@ def scan(root: Path) -> list[dict]:
 
 def mask_lines(text: str, env_file: bool) -> list[str]:
     masked = text.splitlines()
-    for n, line, m, _key, val in scan_lines(text, env_file):
+    for n, m in scan_lines(text, env_file):
+        val = m.group("val")
         if env_file or CRED_URL_RE.search(val) or classify(val) in ("literal", "placeholder"):
             masked[n - 1] = f"{m.group('pre')}<redacted, {len(unquote(val))} chars>"
     return masked
@@ -131,7 +132,7 @@ def mask_lines(text: str, env_file: bool) -> list[str]:
 
 def view(path: Path) -> str:
     text = path.read_text(encoding="utf-8", errors="replace")
-    masked = mask_lines(text, bool(ENV_NAME_RE.search(path.name)))
+    masked = mask_lines(text, is_env_file(path.name))
     return "\n".join(f"{i:6}\t{l}" for i, l in enumerate(masked, 1))
 
 
@@ -140,7 +141,7 @@ def _source(root: Path, name: str, commit: str):
         got = subprocess.run(["git", "-C", str(root), "show", f"{commit}:{name}"],
                              capture_output=True, text=True, errors="replace")
         return got.stdout if got.returncode == 0 else None
-    path = Path(name) if Path(name).is_absolute() else root / name
+    path = root / name
     return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else None
 
 
@@ -159,34 +160,30 @@ def _locate(f: dict, line: str):
 
 
 def context(root: Path, report: Path, around: int = 3) -> str:
-    findings = json.loads(report.read_text() or "[]") or []
-    texts = {(f["File"], f.get("Commit") or ""): None for f in findings}
-    for key in texts:
-        texts[key] = _source(root, *key)
+    hits = [(f, f["File"], f.get("Commit") or "", f["StartLine"], f.get("EndLine") or f["StartLine"])
+            for f in json.loads(report.read_text() or "[]") or []]
+    sources = {}
+    for _, name, commit, _, _ in hits:
+        if (name, commit) not in sources:
+            text = _source(root, name, commit)
+            sources[name, commit] = None if text is None else (text.splitlines(), mask_lines(text, is_env_file(name)))
     spans, values = {}, set()
-    for i, f in enumerate(findings):
-        text = texts[(f["File"], f.get("Commit") or "")]
-        if text is None or f["StartLine"] != (f.get("EndLine") or f["StartLine"]):
-            continue
-        lines = text.splitlines()
-        if f["StartLine"] <= len(lines):
-            spans[i] = _locate(f, lines[f["StartLine"] - 1])
+    for i, (f, name, commit, start, end) in enumerate(hits):
+        src = sources[name, commit]
+        if src is not None and start == end and start <= len(src[0]):
+            spans[i] = _locate(f, src[0][start - 1])
             if spans[i] and len(spans[i][2]) >= 4:
                 values.add(spans[i][2])
     # The same value often recurs on nearby lines or in other hits, so mask every recovered value everywhere.
-    values = sorted(values, key=len, reverse=True)
+    recur = re.compile("|".join(map(re.escape, sorted(values, key=len, reverse=True)))) if values else None
 
     out = []
-    for i, f in enumerate(findings):
-        name, commit = f["File"], f.get("Commit") or ""
-        start, end = f["StartLine"], f.get("EndLine") or f["StartLine"]
+    for i, (f, name, commit, start, end) in enumerate(hits):
         out.append(f"## {i + 1}. {f['RuleID']} {name}:{start}" + (f" @ {commit[:8]}" if commit else ""))
-        text = texts[(name, commit)]
-        if text is None:
+        if sources[name, commit] is None:
             out.append("(source not readable)")
             continue
-        raw = text.splitlines()
-        masked = mask_lines(text, bool(ENV_NAME_RE.search(PurePosixPath(name).name)))
+        raw, masked = sources[name, commit]
         for n in range(max(1, start - around), min(len(raw), end + around) + 1):
             line = masked[n - 1]
             if start <= n <= end:
@@ -196,8 +193,8 @@ def context(root: Path, report: Path, around: int = 3) -> str:
                     line = f"{raw[n - 1][:a]}<redacted match, {b - a} chars>{raw[n - 1][b:]}"
                 else:
                     line = "<redacted line>"
-            for v in values:
-                line = line.replace(v, f"<redacted, {len(v)} chars>")
+            if recur:
+                line = recur.sub(lambda m: f"<redacted, {len(m.group())} chars>", line)
             out.append(f"{n:6}\t{line}")
     return "\n".join(out)
 

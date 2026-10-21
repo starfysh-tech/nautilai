@@ -40,10 +40,10 @@ def write(root, rel, body=""):
     p.write_text(body)
 
 
-def git(root, *args):
+def git(root, *args, name="t", email="t@example.invalid"):
     # CI runners have no git identity; pass one per call instead of mutating config.
-    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
-           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.invalid"}
+    env = {**os.environ, "GIT_AUTHOR_NAME": name, "GIT_AUTHOR_EMAIL": email,
+           "GIT_COMMITTER_NAME": name, "GIT_COMMITTER_EMAIL": email}
     subprocess.run(["git", *args], cwd=root, check=True, capture_output=True, env=env)
 
 
@@ -184,10 +184,8 @@ def test_identity_merge():
                ("Pat Lee", "pat@work.invalid"), ("Sam", "sam@work.invalid")]
         for i, (name, email) in enumerate(ids):
             write(root, "a.txt", f"{i}\n")
-            subprocess.run(["git", "add", "."], cwd=root, check=True, capture_output=True)
-            env = {**os.environ, "GIT_AUTHOR_NAME": name, "GIT_AUTHOR_EMAIL": email,
-                   "GIT_COMMITTER_NAME": name, "GIT_COMMITTER_EMAIL": email}
-            subprocess.run(["git", "commit", "-qm", str(i)], cwd=root, check=True, capture_output=True, env=env)
+            git(root, "add", ".")
+            git(root, "commit", "-qm", str(i), name=name, email=email)
         g = inv.inventory(Path(root))["git"]
         check("two people, not four", g["authors_all_time"] == 2, g["top_authors"])
         check("merged share is 0.75", g["top_authors"][0]["share"] == 0.75, g["top_authors"])
@@ -207,10 +205,9 @@ def test_android_app():
 
 
 def test_no_manifests():
-    """An empty repo yields empty sections, not errors."""
+    """A repo with no package manifests yields empty sections, not errors."""
     with tempfile.TemporaryDirectory() as root:
         write(root, "notes.txt", "x\n")
-        d = inv.inventory(Path(root))
         write(root, "fly.toml", "app = 'demo'\n\n[build]\n  image = 'acme/app:2.1'\n")
         d = inv.inventory(Path(root))
         check("fly.toml image listed", d["container_images"] == [{"ref": "acme/app:2.1", "file": "fly.toml", "line": 4}],
