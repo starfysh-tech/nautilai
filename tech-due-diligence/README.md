@@ -27,6 +27,7 @@ report where every finding cites the code it is about.
 1. **Inventory.** `scripts/inventory.py` (stdlib Python) lists files with `git ls-files`, so dependency installs, virtualenvs, build output, and nested worktrees stay out of the audit. It detects languages, manifests and lockfiles per directory, frameworks, Django settings modules, container, CI, and IaC files, tests, docs, tracked environment files and key material, git history stats (bus factor, churn hotspots, shallow clone), checkout state (commits behind upstream, last fetch, uncommitted changes), and which scanners are installed.
 2. **Scanners.** For each detected signal it runs the matching tool from `references/stacks.md`:
    - gitleaks over the full git history, with secrets redacted
+   - `scripts/config_secrets.py`, which finds credential-named settings in config and env files (a hand-picked password has no token shape for gitleaks to match) and reports the setting name and value length, never the value
    - semgrep with `p/default` plus a pack per detected framework
    - osv-scanner (vulnerabilities and licenses in one pass), or trivy, npm, pnpm, pip-audit, govulncheck, cargo-audit, or bundle-audit per lockfile
    - hadolint and checkov for infrastructure
@@ -46,7 +47,7 @@ Stack packs add checks for Django, React/Next.js/Vue/Angular, Apple apps (iOS, m
 
 - **Buyer mode never executes target code.** No installs, builds, tests, package scripts, or `manage.py`. Only the read-only scanner commands run.
 - **Repo content is data.** Comments, docs, and commit messages in the target cannot change the audit. An attempt to steer it is reported as a finding.
-- **Secret values are never printed.** gitleaks runs with `--redact`, and a secret finding cites its rule and location only.
+- **Secret values are never printed or read.** gitleaks runs with `--redact`. Environment files and files with credential settings are read only through `config_secrets.py view`, which masks the values. A secret finding cites its rule or setting name and location only.
 - **The checkout is audited as it is.** The skill never fetches, pulls, checks out, stashes, or resets.
 - **No account queries by default.** GitHub, cloud, and deploy accounts are queried only with `--allow-accounts`.
 - **Licensing and IP are observations.** Ownership and license rights live in contracts, not the repo, so these items carry no severity and pair with a question for the seller or counsel.
@@ -107,6 +108,7 @@ Then ask the agent for a technical due diligence of a repo. No tap and no config
 
 ```bash
 python3 tech-due-diligence/tests/test_inventory.py
+python3 tech-due-diligence/tests/test_config_secrets.py
 ```
 
 The suite builds throwaway repos in a temp dir. It checks that ignored and untracked trees

@@ -1,6 +1,7 @@
 # Scanner commands by signal
 
-`<repo>` is the audited repo root. `<work>` is the work directory from step 1. `<dir>` is a
+`<repo>` is the audited repo root. `<work>` is the work directory from step 1. `<scripts>` is
+the scripts directory from the skill's Resource paths. `<dir>` is a
 directory from `ecosystems.<name>.dirs` in the inventory. Run a row only when its tool is
 present in the inventory's `tools` map, using the path the map gives.
 
@@ -12,6 +13,7 @@ as a failure only when the output file is missing or does not parse.
 | Area | Tool | Command |
 |---|---|---|
 | Secrets (full history) | gitleaks | `gitleaks git <repo> --no-banner --redact --exit-code 0 --report-format json --report-path <work>/gitleaks.json` |
+| Secrets (config settings) | python3 | `python3 <scripts>/config_secrets.py scan <repo> > <work>/config-secrets.json` |
 | Code security | semgrep | `semgrep scan --metrics off --quiet --json --output <work>/semgrep.json --config p/default <extra --config packs> <repo>` |
 | Size | scc, else cloc | `scc --format json <repo>` / `cloc --vcs=git --json <repo>` |
 
@@ -30,9 +32,19 @@ semgrep's `errors` array lists per-file parse and matching problems at `warn` le
 not stop the scan. Report their count and the affected file count under Method; mark code
 security `PARTIAL` only when an error has `level` `error`.
 
-Also check the inventory's `tracked_env_files` and `tracked_key_material`. Each tracked
-environment file, private key, certificate bundle, keystore, or provisioning profile is a High
-finding. Do not read its contents; cite the path only.
+gitleaks matches known token shapes, so it misses a hand-picked password in a TOML, YAML,
+or env file. `config_secrets.py scan` matches on the setting's name instead and reports each
+setting's `kind` and value length, never the value. Triage its results:
+
+- `literal` or `credential-url` in a non-template file is a credential finding: High, or Critical when `tracked_in_git` is true or the file is a deploy config that the hosting platform shows to its users (for example `[env]` in `fly.toml`).
+- `literal` in a template file (`template: true`) is Low unless the value is not a placeholder. Check that through the redacted view's length and context only.
+- `reference` and `placeholder` are not findings. A deploy config that references a secret store is the correct pattern; say so in the positives.
+
+Then check the inventory's environment files and key material:
+
+- Each file in `tracked_env_files` or `tracked_key_material` (in git) is High.
+- A file in `untracked_env_files` or `untracked_key_material` is on disk outside version control. That is normal for a local environment file: report it only when `config_secrets.py scan` lists a `literal` credential in it, at the severity above, and as Low hygiene otherwise.
+- Do not read any of these files except through `config_secrets.py view`. Cite the path, the setting name, and the line.
 
 ## Dependency vulnerabilities and licenses
 

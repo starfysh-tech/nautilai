@@ -128,6 +128,8 @@ def test_non_git_walk():
         check("walk prunes node_modules", "vue" not in d["frameworks"], d["frameworks"])
         check("walk prunes .venv", not any(".venv" in s for s in d["django_settings_modules"]),
               d["django_settings_modules"])
+        check("walk lists env files as untracked", d["tracked_env_files"] == [] and
+              d["untracked_env_files"] == [".env.production"], (d["tracked_env_files"], d["untracked_env_files"]))
 
 
 def test_apple_app():
@@ -147,7 +149,8 @@ def test_apple_app():
               ["App/App.entitlements", "App/Info.plist", "project.yml"], d["apple_config_files"])
         check("swift lockfile found", d["ecosystems"].get("swift", {}).get("lockfiles") == ["pods/Podfile.lock"],
               d["ecosystems"])
-        check("key material listed", d["tracked_key_material"] == ["certs/dist.p12"], d["tracked_key_material"])
+        check("key material listed as untracked outside git", d["untracked_key_material"] == ["certs/dist.p12"]
+              and d["tracked_key_material"] == [], (d["tracked_key_material"], d["untracked_key_material"]))
         check("swift lines counted", d["languages"].get("Swift", {}).get("files") == 1, d["languages"])
 
 
@@ -208,6 +211,10 @@ def test_no_manifests():
     with tempfile.TemporaryDirectory() as root:
         write(root, "notes.txt", "x\n")
         d = inv.inventory(Path(root))
+        write(root, "fly.toml", "app = 'demo'\n\n[build]\n  image = 'acme/app:2.1'\n")
+        d = inv.inventory(Path(root))
+        check("fly.toml image listed", d["container_images"] == [{"ref": "acme/app:2.1", "file": "fly.toml", "line": 4}],
+              d["container_images"])
         check("no ecosystems", d["ecosystems"] == {}, d["ecosystems"])
         check("no frameworks", d["frameworks"] == {}, d["frameworks"])
         check("tools probed", "git" in d["tools"], d["tools"])

@@ -290,6 +290,7 @@ def merge_identities(raw: list[list[str]]) -> list[str]:
 
 
 IMAGE_LINE_RE = re.compile(r"^\s*(?:-\s*)?image:\s*['\"]?([^'\"\s#]+)", re.M)
+TOML_IMAGE_RE = re.compile(r"^\s*image\s*=\s*['\"]([^'\"]+)['\"]", re.M)
 FROM_LINE_RE = re.compile(r"^\s*FROM\s+(?:--platform=\S+\s+)?(\S+)", re.M | re.I)
 
 
@@ -302,6 +303,11 @@ def container_images(root: Path, files: list[str], infra: dict[str, list[str]]) 
         text = read_text(root, f)
         for m in IMAGE_LINE_RE.finditer(text):
             found.append({"ref": m.group(1), "file": f, "line": text.count("\n", 0, m.start()) + 1})
+    for f in infra.get("paas", []):
+        if f.endswith(".toml"):
+            text = read_text(root, f)
+            for m in TOML_IMAGE_RE.finditer(text):
+                found.append({"ref": m.group(1), "file": f, "line": text.count("\n", 0, m.start()) + 1})
     for f in infra.get("dockerfile", []):
         stages = {"scratch"}
         for n, line in enumerate(read_text(root, f).splitlines(), 1):
@@ -414,10 +420,12 @@ def inventory(root: Path) -> dict:
 
     frameworks = detect_frameworks(root, files, manifests)
     docs = {k: [f for f in files if rx.search(f)][:20] for k, rx in DOC_SIGNALS.items()}
-    tracked_env = [
+    env_files = [
         f for f in files
         if ENV_NAME_RE.match(PurePosixPath(f).name) and not ENV_TEMPLATE_RE.search(f)
     ]
+    key_files = [f for f in files if KEY_MATERIAL_RE.search(f)]
+    in_git = source == "git ls-files"
 
     languages, largest = count_lines(root, files)
     infra = detect_infra(root, files)
@@ -437,8 +445,11 @@ def inventory(root: Path) -> dict:
         "tests": {"test_files": sum(1 for f in files if TEST_RE.search(f)),
                   "coverage_reports": [f for f in files if PurePosixPath(f).name in COVERAGE_REPORTS]},
         "docs": {k: v for k, v in docs.items() if v},
-        "tracked_env_files": tracked_env,
-        "tracked_key_material": [f for f in files if KEY_MATERIAL_RE.search(f)],
+        # Outside git nothing is "tracked": the files are only present on disk.
+        "tracked_env_files": env_files if in_git else [],
+        "tracked_key_material": key_files if in_git else [],
+        "untracked_env_files": [] if in_git else env_files,
+        "untracked_key_material": [] if in_git else key_files,
         "git": git_history(root),
         "tools": probe_tools(),
     }

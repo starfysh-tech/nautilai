@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+"""Self-contained tests for tech-due-diligence's config_secrets.py.
+
+Builds throwaway config files under a temp dir. Run directly:
+
+    python3 tech-due-diligence/tests/test_config_secrets.py
+"""
+import importlib.util
+import sys
+import tempfile
+from pathlib import Path
+
+_SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "tech-due-diligence" / "scripts"
+sys.path.insert(0, str(_SCRIPTS))
+_spec = importlib.util.spec_from_file_location("config_secrets", _SCRIPTS / "config_secrets.py")
+assert _spec and _spec.loader
+cs = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(cs)
+
+FAILURES = []
+
+# Assembled at runtime so no secret-shaped literal sits in this repo.
+LIVE = "Kq7" + "-mule-Orbit-" + "Fen42"
+DB_URL = "postgres://app:" + LIVE + "@db:5432/app"
+
+
+def check(label, cond, detail=""):
+    print(f"  {'ok  ' if cond else 'FAIL'} {label}" + ("" if cond else f" {detail}"))
+    if not cond:
+        FAILURES.append(label)
+
+
+def write(root, rel, body):
+    p = Path(root) / rel
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(body)
+
+
+def by_key(found):
+    return {(f["file"], f["key"]): f for f in found}
+
+
+def test_scan_and_view():
+    with tempfile.TemporaryDirectory() as root:
+        write(root, "fly.toml", f"[env]\n  SMTP_PASS = '{LIVE}'\n  APP_PORT = '8080'\n  API_TOKEN = '${{API_TOKEN}}'\n")
+        write(root, "config/app.yaml", f"db:\n  password: changeme\n  url: {DB_URL}\n  min_password_length: 12\n")
+        write(root, "deploy.yml", "permissions:\n  id-token: write\nenv:\n  DB_SECRET_ID: prod/app/db\n")
+        write(root, "env.example", f"SECRET_KEY={LIVE}\n")
+        write(root, ".env", f"BUCKET=assets\nAWS_SECRET_ACCESS_KEY={LIVE}\n")
+        found = by_key(cs.scan(Path(root)))
+
+        check("literal password in fly.toml found", found.get(("fly.toml", "SMTP_PASS"), {}).get("kind") == "literal", found)
+        check("value length reported, not value", found[("fly.toml", "SMTP_PASS")]["value_length"] == len(LIVE))
+        check("no value anywhere in scan output", LIVE not in repr(list(found.values())))
+        check("env reference classified", found.get(("fly.toml", "API_TOKEN"), {}).get("kind") == "reference", found)
+        check("non-credential key skipped", ("fly.toml", "APP_PORT") not in found, found)
+        check("placeholder classified", found.get(("config/app.yaml", "password"), {}).get("kind") == "placeholder", found)
+        check("credential URL found", found.get(("config/app.yaml", "url"), {}).get("kind") == "credential-url", found)
+        check("numeric length setting skipped", ("config/app.yaml", "min_password_length") not in found, found)
+        check("id-token permission skipped", ("deploy.yml", "id-token") not in found, found)
+        check("secret identifier skipped", ("deploy.yml", "DB_SECRET_ID") not in found, found)
+        check("template flagged", found.get(("env.example", "SECRET_KEY"), {}).get("template") is True, found)
+        check("env file secret found", found.get((".env", "AWS_SECRET_ACCESS_KEY"), {}).get("env_file") is True, found)
+        check("non-credential env key skipped", (".env", "BUCKET") not in found, found)
+        check("outside git, nothing is tracked", not any(f["tracked_in_git"] for f in found.values()))
+
+        for rel in ("fly.toml", "config/app.yaml", ".env"):
+            text = cs.view(Path(root) / rel)
+            check(f"view of {rel} hides the value", LIVE not in text, text)
+        env_view = cs.view(Path(root) / ".env")
+        check("view masks every value in an env file", "assets" not in env_view and "<redacted" in env_view, env_view)
+        check("view keeps ordinary settings", "8080" in cs.view(Path(root) / "fly.toml"))
+
+
+if __name__ == "__main__":
+    for name, fn in list(globals().items()):
+        if name.startswith("test_") and callable(fn):
+            print(name)
+            fn()
+    if FAILURES:
+        print(f"\n{len(FAILURES)} failed")
+        sys.exit(1)
+    print("\nall passed")

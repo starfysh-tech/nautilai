@@ -30,6 +30,7 @@ This eval calls the model, so it is manual and not in CI. Run it before shipping
 | 2026-10-20 | 1453301+wt | claude-opus-5-5 | 8/8 | 7/7 | 383 s | $2.25 | First graded run scored 7/8: the "db.py:10 in any table row" check failed on a real, separate finding (the unauthenticated `/users/<name>` route cites that line). The check was narrowed to "db.py:10 called injection" and the same report regraded 8/8. The skill ran its lanes inline for the 11-file repo and said so under Method. |
 | 2026-10-20 | 37bc417+wt | claude-opus-5-5 | 8/8 | 7/7 | 335 s | $1.80 | After the buyer-mode template, data/AI/scalability areas, and account rule. First grade 7/8: the injection row cited `app/db.py:10` as the safe pattern to copy. The check now ignores lines that also cite `app/db.py:16`; both reports regrade 8/8, and a report that calls line 10 injection still fails. |
 | 2026-10-20 | cd4b06e+wt | claude-opus-5-5 | 8/8 | 7/7 | 350 s | $1.92 | After container image scanning, the "No opinion on the product" verdict, and the renumbering rule. The run scanned `python:latest` with `trivy image --image-src remote` and noted that a floating tag describes today's image only. |
+| 2026-10-20 | 765e905+wt | claude-opus-5-5 | 8/8 | 7/7 | 281 s | $1.77 | After `config_secrets.py` and the redacted-view rule. First grade 7/8: a Medium row cited `app/db.py:10` and said "parameterized, so this is data exposure, not injection". The check now also skips lines that say parameterized or "not injection"; all four eval reports regrade 8/8, and a report that calls line 10 injection still fails. |
 
 ## Reference runs on real repos
 
@@ -45,6 +46,15 @@ Not graded. Recorded so a later change can be compared on cost, time, and findin
 | 2026-10-20 | gapbot-crew, buyer mode, `--claims README.md` | 673 | 9 parallel | 1,589 s | $23.91 | 2/7/15/36 |
 
 | 2026-10-20 | mattermost/docker (deployment kit), buyer mode | 17 | inline (< 50 files) | 535 s | $3.13 | 0/0/6/10 |
+| 2026-10-20 | n8n Fly deploy folder (not a git repo), owner mode | 5 | inline | 223 s | $1.50 | 1/2/4/4 |
+| 2026-10-20 | same, after `config_secrets.py` | 5 | inline | 402 s | $2.72 | 1/1/5/… |
+
+The first n8n run found two plaintext passwords in `fly.toml` only by printing the whole file,
+which put both values in the session log; gitleaks found nothing. It also tried to read `.env`
+key names, which only a local hook blocked, and rated a local untracked `.env` High. The
+re-run found the same two passwords plus an AWS secret in `.env` through `config_secrets.py
+scan`, read config only through the redacted view, and neither password appears in its report
+or transcript.
 
 The mattermost run flagged that the repo is a deployment kit, not the product, but still
 said "Proceed with conditions", skipped container image scanning, and numbered findings out
