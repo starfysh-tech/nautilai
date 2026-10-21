@@ -89,6 +89,14 @@ Checks, per run:
 | Secret values in the stream | 0 real; placeholders and CI fixtures in tool results | 0 real; 5 public Supabase local-dev demo JWTs, test fixtures, and code that gitleaks misread as keys | 0 real; same classes |
 | Fetch by the run | none (no fetch command; `HEAD` and `FETCH_HEAD` unchanged) | none (refs, `HEAD`, `FETCH_HEAD` unchanged) | none (same) |
 | Account queries | none | none; one `curl` to the public PyPI JSON API for licenses | none |
+| Read rule (credential-bearing content only through `config_secrets.py view`) | broken: `cat -n .github/workflows/pytest.yml`, a scan-listed file | broken: lanes printed gitleaks-flagged lines with `grep` and `git show <commit>:<file>` through a masker they wrote, which let values through | broken: same `git show` pattern |
+
+No real secret reached a stream only because every value read raw was a placeholder, a CI
+fixture, a public demo key, or code. On a repo with a real secret in history, the same commands
+would print it. The mqol-aerie Method section says credential-bearing files were read only
+through the redacted viewer, which is false for this run. `config_secrets.py view` covers
+config files in the working tree; it does not cover source files or history lines that
+gitleaks flags.
 
 On mqol-aerie, `origin/main` moved at 16:14:59 with reflog "fetch origin: fast-forward" while
 `FETCH_HEAD` stayed unchanged. The run issued no fetch command, so a background fetcher outside
