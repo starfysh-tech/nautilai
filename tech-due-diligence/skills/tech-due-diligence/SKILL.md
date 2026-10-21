@@ -82,7 +82,7 @@ Create a work directory `tdd-<repo-name>-<YYYY-MM-DD>/` under the system temp di
 there as `inventory.json`, and save every scanner output there. If `python3` is missing,
 build the inventory by hand with `git ls-files`, `Glob`, and `Grep`, and say so in the report.
 
-Read these fields first: `file_source`, `ecosystems`, `frameworks`, `infra`, `tools`,
+Read these fields first: `file_source`, `ecosystems`, `frameworks`, `infra`, `container_images`, `tools`,
 `git.shallow_clone`, and `git.checkout`. When the repo is a shallow clone, every history-based
 result (secrets in history, bus factor, cadence) covers only the fetched commits. Mark those
 results `PARTIAL`. When `git.checkout.behind` is above 0 or `uncommitted_changes` is above 0,
@@ -116,7 +116,7 @@ with nothing to read.
 |---|---|---|
 | Secrets | gitleaks; `tracked_env_files`; `tracked_key_material` | — |
 | Code security | semgrep | — |
-| Dependencies and licensing | dependency and license scanner outputs | the licensing and IP section of the `areas` reference |
+| Dependencies and licensing | dependency, license, and container image scanner outputs | the licensing and IP section of the `areas` reference |
 | Infrastructure and operations | checkov, hadolint | the infrastructure and operations section |
 | Architecture and quality | — | the architecture, scalability, and code quality and tests sections |
 | Data and AI | — | the data and subprocessors section, and the AI and vendor economics section when it applies |

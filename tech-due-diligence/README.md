@@ -16,7 +16,7 @@ report where every finding cites the code it is about.
 ```
 
 - `--mode owner` (default): you own the repo. The report ends in an ordered fix list.
-- `--mode buyer`: you are evaluating someone else's repo. The report opens with an investment summary: a verdict (proceed, proceed with conditions, or do not proceed without remediation), the top 5 risks with business impact, deal impact (`blocker`, `price`, `post-close`), and an estimated remediation size (S/M/L), the conditions to close, and the limits of the opinion. The body has no file paths; evidence, Low findings, and method are appendices.
+- `--mode buyer`: you are evaluating someone else's repo. The report opens with an investment summary: a verdict (proceed, proceed with conditions, do not proceed without remediation, or no opinion on the product when the repo is a deployment kit, SDK, or other side component), the top 5 risks with business impact, deal impact (`blocker`, `price`, `post-close`), and an estimated remediation size (S/M/L), the conditions to close, and the limits of the opinion. The body has no file paths; evidence, Low findings, and method are appendices.
 - `--claims <file>`: a document with the seller's or team's claims about the technology. Each claim gets a verdict: supported, partly supported, contradicted, or unverifiable from the repo.
 - `--allow-accounts`: allow read-only queries to the repo's hosting and deploy accounts (for example branch protection through `gh api`). Without it, the skill reads only the local checkout.
 - `--quick`: secrets, dependencies, and licenses only.
@@ -30,6 +30,7 @@ report where every finding cites the code it is about.
    - semgrep with `p/default` plus a pack per detected framework
    - osv-scanner (vulnerabilities and licenses in one pass), or trivy, npm, pnpm, pip-audit, govulncheck, cargo-audit, or bundle-audit per lockfile
    - hadolint and checkov for infrastructure
+   - trivy for every container image that compose, Kubernetes, or Dockerfiles name, pulled from the registry and never run
 3. **Triage and code read, in parallel lanes.** One subagent per lane (secrets, code security, dependencies and licensing, infrastructure, architecture and quality, team, each stack pack) runs at the same time. Each lane groups candidates by rule, reads a sample of each group at the cited lines, and reads every Critical and High candidate individually. It drops test fixtures, parameterized queries, vendored and generated code, and duplicates. The report counts what was dropped and why, and says which groups were sampled.
    Each lane answers its questions from the code (`references/areas.md`): architecture and scalability, data map and subprocessors, AI and vendor economics, operations, licensing and IP, team, and seller claims. A question that the code cannot answer goes to an open-questions list.
 4. **Check.** Claude re-reads the cited lines of every Critical and High finding before it reaches the report, and merges findings two lanes reported for the same root cause.

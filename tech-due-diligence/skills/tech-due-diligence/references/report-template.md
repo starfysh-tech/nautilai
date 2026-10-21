@@ -91,7 +91,9 @@ evidence out of the body; it goes in Appendix B, keyed by finding number.
 
 ## Investment summary
 
-**Verdict:** <one of: Proceed · Proceed with conditions · Do not proceed without remediation> — <one sentence on why>.
+**Verdict:** <one of: Proceed · Proceed with conditions · Do not proceed without remediation · No opinion on the product> — <one sentence on why>.
+
+<Use "No opinion on the product" when the repo is not the product the deal concerns: a deployment kit, docs, an SDK, a fork, or one component of a larger system whose core is elsewhere. Still report this repo's findings, and make "audit the product repositories" the first condition to close.>
 
 <3–4 sentences: what the technology is, what it does well, and the risks that drive the verdict. Plain language, no file paths.>
 
@@ -161,3 +163,9 @@ Both modes end with this block:
 - Lanes: <lane names>; Critical and High findings re-checked: <N>, changed: <N, with what changed>.
 
 Omit a summary-table row whose area is `N/A`.
+
+Before writing, renumber the findings 1…N in the order they appear in the report, and update
+every cross-reference and appendix key to match. Every count that appears more than once
+(commits, findings, candidates) must have the same value and the same basis each time; say
+the basis when two bases are needed (for example, "99 non-merge commits; 135 including
+merges").

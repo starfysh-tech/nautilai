@@ -92,6 +92,24 @@ section of the areas reference). For each, note the obligation it may carry: AGP
 network-use clauses for a service; GPL for a distributed product; LGPL, MPL, EPL for
 modification and notice duties; a package with no license.
 
+## Container images
+
+For each entry in the inventory's `container_images`, resolve the reference first. Replace each
+`${VAR}` or `${VAR:-default}` with its value from the repo's env template (`env.example`,
+`.env.example`, `.env.sample`) or the compose default. Never read a real environment file to
+resolve it. Skip a reference built by this repo (a compose service with a `build:` key). Scan
+each distinct resolved reference once:
+
+| Tool | Command |
+|---|---|
+| trivy | `trivy image --image-src remote --scanners vuln,license --format json --output <work>/trivy-image-<n>.json <ref>` |
+
+`--image-src remote` pulls the image layers from the registry and runs nothing, so this is
+allowed in buyer mode. A reference that stays unresolved, or a private registry that refuses
+the pull, is `PARTIAL: <ref> not scanned (<reason>)`. A floating tag (`latest`, `alpine`, a
+bare major version) means the scan describes today's image, not what installs run; say so.
+Report image vulnerabilities under Dependencies and image licenses as licensing observations.
+
 ## Infrastructure
 
 | Signal | Tool | Command |

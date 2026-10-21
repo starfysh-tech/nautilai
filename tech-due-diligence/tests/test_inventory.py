@@ -58,11 +58,11 @@ def mixed_repo(root):
     write(root, "web/src/App.test.tsx", "test('x', () => {})\n")
     write(root, "svc/go.mod", "module x\n")
     write(root, "svc/go.sum", "")
-    write(root, "Dockerfile", "FROM python:3.12\n")
-    write(root, "docker-compose.yml", "services: {}\n")
+    write(root, "Dockerfile", "FROM python:3.12 AS builder\nRUN true\nFROM builder\n")
+    write(root, "docker-compose.yml", "services:\n  db:\n    image: postgres:16-alpine\n")
     write(root, ".github/workflows/ci.yml", "on: push\n")
     write(root, "infra/main.tf", 'resource "x" "y" {}\n')
-    write(root, "k8s/deploy.yaml", "apiVersion: apps/v1\nkind: Deployment\n")
+    write(root, "k8s/deploy.yaml", "apiVersion: apps/v1\nkind: Deployment\nspec:\n  containers:\n    - image: ghcr.io/acme/api:1.4\n")
     write(root, "README.md", "# x\n")
     write(root, "docs/adr/0001-record.md", "# ADR\n")
     write(root, ".env.production", "placeholder\n")
@@ -105,6 +105,12 @@ def test_git_repo():
         check("tracked .env reported, template skipped", d["tracked_env_files"] == [".env.production"],
               d["tracked_env_files"])
         check("adr and readme found", {"adr", "readme"} <= set(d["docs"]), d["docs"])
+        refs = {(i["ref"], i["file"]) for i in d["container_images"]}
+        check("Dockerfile base image listed", ("python:3.12", "Dockerfile") in refs, d["container_images"])
+        check("k8s image listed", ("ghcr.io/acme/api:1.4", "k8s/deploy.yaml") in refs, d["container_images"])
+        check("compose image listed", ("postgres:16-alpine", "docker-compose.yml") in refs, d["container_images"])
+        check("build stage alias not listed", not any(i["ref"] == "builder" for i in d["container_images"]),
+              d["container_images"])
         check("git history counted", d["git"]["commits"] == 1 and d["git"]["authors_all_time"] == 1, d["git"])
         check("python lines counted", d["languages"]["Python"]["files"] >= 3, d["languages"])
         check("largest files listed", d["largest_source_files"][0]["lines"] >= 1, d["largest_source_files"])

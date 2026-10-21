@@ -289,6 +289,33 @@ def merge_identities(raw: list[list[str]]) -> list[str]:
     return [label[find("e:" + email.strip().lower())] for _, email, _ in raw]
 
 
+IMAGE_LINE_RE = re.compile(r"^\s*(?:-\s*)?image:\s*['\"]?([^'\"\s#]+)", re.M)
+FROM_LINE_RE = re.compile(r"^\s*FROM\s+(?:--platform=\S+\s+)?(\S+)", re.M | re.I)
+
+
+def container_images(root: Path, files: list[str], infra: dict[str, list[str]]) -> list[dict]:
+    """Image references named by compose, Kubernetes, Helm, and Dockerfiles, as written."""
+    found = []
+    yaml_files = set(infra.get("compose", []) + infra.get("kubernetes", []))
+    yaml_files.update(f for f in files if "/templates/" in f and f.endswith((".yaml", ".yml")) and infra.get("helm"))
+    for f in sorted(yaml_files):
+        text = read_text(root, f)
+        for m in IMAGE_LINE_RE.finditer(text):
+            found.append({"ref": m.group(1), "file": f, "line": text.count("\n", 0, m.start()) + 1})
+    for f in infra.get("dockerfile", []):
+        stages = {"scratch"}
+        for n, line in enumerate(read_text(root, f).splitlines(), 1):
+            m = FROM_LINE_RE.match(line)
+            if not m:
+                continue
+            if m.group(1).lower() not in stages:
+                found.append({"ref": m.group(1), "file": f, "line": n})
+            alias = re.search(r"\bAS\s+(\S+)", line, re.I)
+            if alias:
+                stages.add(alias.group(1).lower())
+    return found
+
+
 def git_history(root: Path) -> dict | None:
     if run(["git", "rev-parse", "--git-dir"], root) is None:
         return None
@@ -393,6 +420,7 @@ def inventory(root: Path) -> dict:
     ]
 
     languages, largest = count_lines(root, files)
+    infra = detect_infra(root, files)
     return {
         "root": str(root),
         "file_source": source,
@@ -404,7 +432,8 @@ def inventory(root: Path) -> dict:
         "django_settings_modules": django_settings(files) if "django" in frameworks else [],
         "apple_config_files": apple_config(root, files) if "apple-app" in frameworks else [],
         "android_config_files": [f for f in files if ANDROID_CONFIG_RE.search(f)] if "android" in frameworks else [],
-        "infra": detect_infra(root, files),
+        "infra": infra,
+        "container_images": container_images(root, files, infra),
         "tests": {"test_files": sum(1 for f in files if TEST_RE.search(f)),
                   "coverage_reports": [f for f in files if PurePosixPath(f).name in COVERAGE_REPORTS]},
         "docs": {k: v for k, v in docs.items() if v},

@@ -68,7 +68,7 @@
     <h2>How it works</h2>
     <ul>
       <li>Every file list comes from <code>git ls-files</code>, so dependency installs, virtualenvs, build output, and nested worktrees stay out of the audit.</li>
-      <li>Scanners run per detected signal: gitleaks over the full git history with secrets redacted, semgrep with <code>p/default</code> plus a pack per framework, osv-scanner for vulnerabilities and licenses or per-lockfile audits, hadolint and checkov for infrastructure.</li>
+      <li>Scanners run per detected signal: gitleaks over the full git history with secrets redacted, semgrep with <code>p/default</code> plus a pack per framework, osv-scanner for vulnerabilities and licenses or per-lockfile audits, trivy for every container image the repo names, hadolint and checkov for infrastructure.</li>
       <li>Triage and the code read run in parallel lanes, one subagent per area. Every Critical and High finding is re-read at its cited lines before it reaches the report.</li>
       <li>Triage drops test fixtures, parameterized queries, vendored and generated code, and duplicates. The report counts what was dropped and why.</li>
       <li>Stack packs add checks for Django, React/Next.js/Vue/Angular, Apple apps (iOS, macOS), Android, Go, Rust, Rails, Spring Boot, Express/NestJS, and Flask/FastAPI when detected.</li>
