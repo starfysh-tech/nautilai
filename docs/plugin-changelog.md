@@ -32,6 +32,10 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   business terms with deal impact and an estimated remediation size, the conditions to
   close, and the limits of the opinion. Licensing and IP are observations, because
   ownership lives in contracts, not the repo. Buyer mode never executes the target's code.
+  On a Fly deploy folder, gitleaks missed two hand-picked passwords in `fly.toml`, and an
+  early run found them only by printing the file into the transcript. The skill now finds
+  credential settings by name and reads config files and gitleaks hits only through
+  masked views, so no secret value reaches the report or the transcript.
   `--mode owner` writes a fix list. Triage and the code read run as parallel subagent
   lanes, one per area. On two real repos that raised confirmed High findings (2 → 7 and
   0 → 1) at about 3–6× the cost and no wall-time gain. The lanes stay on because the skill
