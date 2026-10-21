@@ -175,7 +175,7 @@ Both runtimes. The script and references live in the skill directory, so Hermes 
 - **Licensing and IP are observations, not severity-ranked findings**, and never enter the investment summary's top risks.
 - **Shallow clones under-report history.** Check `git.shallow_clone` in the inventory; history-based results are `PARTIAL` when it is true.
 - **semgrep fetches rule packs from its registry.** Offline, code security is `NOT RUN: semgrep registry unreachable`.
-- **Secret values are never printed or read.** gitleaks runs with `--redact`. Read environment files and any file `config_secrets.py scan` lists only through `config_secrets.py view`, which masks values; never `cat` them. gitleaks misses hand-picked passwords in TOML/YAML/env files, which is what the config scan is for.
+- **Secret values are never printed or read.** gitleaks runs with `--redact`. Read environment files and any file `config_secrets.py scan` lists only through `config_secrets.py view`, which masks values; never `cat` them. Read gitleaks hits, including ones in history, only through `config_secrets.py context <repo> <gitleaks.json>`; never `git show` them, and never hand-roll a masker. gitleaks misses hand-picked passwords in TOML/YAML/env files, which is what the config scan is for.
 
 ## Optional
 

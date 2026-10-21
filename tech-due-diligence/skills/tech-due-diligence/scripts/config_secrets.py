@@ -5,6 +5,7 @@ Stdlib only.
 
     python3 config_secrets.py scan <repo-path>     # JSON list of findings
     python3 config_secrets.py view <file>          # the file, credential values masked
+    python3 config_secrets.py context <repo-path> <gitleaks.json>   # each gitleaks hit, masked
 
 gitleaks matches known token shapes; a hand-picked password in a TOML, YAML, or env file has
 no shape, so it passes. This script matches on the setting's name instead.
@@ -13,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path, PurePosixPath
 
@@ -119,17 +121,91 @@ def scan(root: Path) -> list[dict]:
     return out
 
 
-def view(path: Path) -> str:
-    text = path.read_text(encoding="utf-8", errors="replace")
-    env_file = bool(ENV_NAME_RE.search(path.name))
+def mask_lines(text: str, env_file: bool) -> list[str]:
     masked = text.splitlines()
     for n, line, m, _key, val in scan_lines(text, env_file):
         if env_file or CRED_URL_RE.search(val) or classify(val) in ("literal", "placeholder"):
             masked[n - 1] = f"{m.group('pre')}<redacted, {len(unquote(val))} chars>"
+    return masked
+
+
+def view(path: Path) -> str:
+    text = path.read_text(encoding="utf-8", errors="replace")
+    masked = mask_lines(text, bool(ENV_NAME_RE.search(path.name)))
     return "\n".join(f"{i:6}\t{l}" for i, l in enumerate(masked, 1))
 
 
+def _source(root: Path, name: str, commit: str):
+    if commit:
+        got = subprocess.run(["git", "-C", str(root), "show", f"{commit}:{name}"],
+                             capture_output=True, text=True, errors="replace")
+        return got.stdout if got.returncode == 0 else None
+    path = Path(name) if Path(name).is_absolute() else root / name
+    return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else None
+
+
+def _locate(f: dict, line: str):
+    """Span and value of a single-line redacted gitleaks hit, or None when it cannot be pinned."""
+    prefix, sep, suffix = f.get("Match", "").partition("REDACTED")
+    size = f["EndColumn"] - f["StartColumn"] + 1 - len(prefix) - len(suffix)
+    if not sep or size < 1:
+        return None
+    # Columns drift by one in some gitleaks hits, so find the match text instead of slicing by column.
+    hits = list(re.finditer(re.escape(prefix) + f"(.{{{size}}})" + re.escape(suffix), line))
+    if not hits:
+        return None
+    m = min(hits, key=lambda h: abs(h.start() - (f["StartColumn"] - 1)))
+    return m.start(), m.end(), m.group(1)
+
+
+def context(root: Path, report: Path, around: int = 3) -> str:
+    findings = json.loads(report.read_text() or "[]") or []
+    texts = {(f["File"], f.get("Commit") or ""): None for f in findings}
+    for key in texts:
+        texts[key] = _source(root, *key)
+    spans, values = {}, set()
+    for i, f in enumerate(findings):
+        text = texts[(f["File"], f.get("Commit") or "")]
+        if text is None or f["StartLine"] != (f.get("EndLine") or f["StartLine"]):
+            continue
+        lines = text.splitlines()
+        if f["StartLine"] <= len(lines):
+            spans[i] = _locate(f, lines[f["StartLine"] - 1])
+            if spans[i] and len(spans[i][2]) >= 4:
+                values.add(spans[i][2])
+    # The same value often recurs on nearby lines or in other hits, so mask every recovered value everywhere.
+    values = sorted(values, key=len, reverse=True)
+
+    out = []
+    for i, f in enumerate(findings):
+        name, commit = f["File"], f.get("Commit") or ""
+        start, end = f["StartLine"], f.get("EndLine") or f["StartLine"]
+        out.append(f"## {i + 1}. {f['RuleID']} {name}:{start}" + (f" @ {commit[:8]}" if commit else ""))
+        text = texts[(name, commit)]
+        if text is None:
+            out.append("(source not readable)")
+            continue
+        raw = text.splitlines()
+        masked = mask_lines(text, bool(ENV_NAME_RE.search(PurePosixPath(name).name)))
+        for n in range(max(1, start - around), min(len(raw), end + around) + 1):
+            line = masked[n - 1]
+            if start <= n <= end:
+                span = spans.get(i)
+                if span:
+                    a, b, _ = span
+                    line = f"{raw[n - 1][:a]}<redacted match, {b - a} chars>{raw[n - 1][b:]}"
+                else:
+                    line = "<redacted line>"
+            for v in values:
+                line = line.replace(v, f"<redacted, {len(v)} chars>")
+            out.append(f"{n:6}\t{line}")
+    return "\n".join(out)
+
+
 def main() -> int:
+    if sys.argv[1:2] == ["context"] and len(sys.argv) == 4:
+        print(context(Path(sys.argv[2]).resolve(), Path(sys.argv[3])))
+        return 0
     if len(sys.argv) != 3 or sys.argv[1] not in ("scan", "view"):
         print(__doc__, file=sys.stderr)
         return 2

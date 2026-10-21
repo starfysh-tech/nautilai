@@ -32,6 +32,7 @@ This eval calls the model, so it is manual and not in CI. Run it before shipping
 | 2026-10-20 | cd4b06e+wt | claude-opus-5-5 | 8/8 | 7/7 | 350 s | $1.92 | After container image scanning, the "No opinion on the product" verdict, and the renumbering rule. The run scanned `python:latest` with `trivy image --image-src remote` and noted that a floating tag describes today's image only. |
 | 2026-10-20 | 765e905+wt | claude-opus-5-5 | 8/8 | 7/7 | 281 s | $1.77 | After `config_secrets.py` and the redacted-view rule. First grade 7/8: a Medium row cited `app/db.py:10` and said "parameterized, so this is data exposure, not injection". The check now also skips lines that say parameterized or "not injection"; all four eval reports regrade 8/8, and a report that calls line 10 injection still fails. |
 | 2026-10-21 | f9cc5fc+wt | claude-opus-5-5 | 8/8 | 7/7 | 315 s | $1.77 | After the per-run `mktemp -d` work directory. The run created `tdd-orders-api-RljBs5`. |
+| 2026-10-21 | 57b405b+wt | claude-opus-5-5 | 8/8 | 7/7 | 264 s | $1.70 | After `config_secrets.py context` and the rule that gitleaks hits are read only through it. The run triaged gitleaks with `context` and ran no `git show`. |
 
 ## Reference runs on real repos
 
@@ -94,9 +95,10 @@ Checks, per run:
 No real secret reached a stream only because every value read raw was a placeholder, a CI
 fixture, a public demo key, or code. On a repo with a real secret in history, the same commands
 would print it. The mqol-aerie Method section says credential-bearing files were read only
-through the redacted viewer, which is false for this run. `config_secrets.py view` covers
-config files in the working tree; it does not cover source files or history lines that
-gitleaks flags.
+through the redacted viewer, which is false for this run. `config_secrets.py view` covered
+config files in the working tree only. The new `config_secrets.py context` mode covers the
+lines gitleaks flags, in source and in history. On the redacted gitleaks reports for both
+repos it printed 0 secret values (gapbot-crew 25 hits, mqol-aerie 41).
 
 On mqol-aerie, `origin/main` moved at 16:14:59 with reflog "fetch origin: fast-forward" while
 `FETCH_HEAD` stayed unchanged. The run issued no fetch command, so a background fetcher outside

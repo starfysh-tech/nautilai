@@ -6,6 +6,8 @@ Builds throwaway config files under a temp dir. Run directly:
     python3 tech-due-diligence/tests/test_config_secrets.py
 """
 import importlib.util
+import json
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -70,6 +72,35 @@ def test_scan_and_view():
         env_view = cs.view(Path(root) / ".env")
         check("view masks every value in an env file", "assets" not in env_view and "<redacted" in env_view, env_view)
         check("view keeps ordinary settings", "8080" in cs.view(Path(root) / "fly.toml"))
+
+
+def test_context():
+    with tempfile.TemporaryDirectory() as root:
+        git = ["git", "-C", root, "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+        body = f"import os\n\n\ndef client():\n    key = '{LIVE}'\n    backup = '{LIVE}'\n    return key\n"
+        write(root, "app/client.py", body)
+        write(root, "notes.txt", f"one\ntwo\n{LIVE}\nfour\n")
+        subprocess.run(git[:3] + ["init", "-q"], check=True)
+        subprocess.run(git + ["add", "."], check=True)
+        subprocess.run(git + ["commit", "-qm", "add"], check=True)
+        commit = subprocess.run(git[:3] + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        write(root, "app/client.py", "import os\n")
+        col = body.splitlines()[4].index("key") + 1
+        report = [
+            # Columns shifted by one, as gitleaks reports for some hits.
+            {"RuleID": "generic-api-key", "File": "app/client.py", "Commit": commit, "StartLine": 5, "EndLine": 5,
+             "StartColumn": col + 1, "EndColumn": col + len(f"key = '{LIVE}'"), "Match": "key = 'REDACTED'"},
+            {"RuleID": "private-key", "File": "notes.txt", "Commit": "", "StartLine": 2, "EndLine": 3,
+             "StartColumn": 1, "EndColumn": 4, "Match": "REDACTED"},
+        ]
+        rp = Path(root) / "gitleaks.json"
+        rp.write_text(json.dumps(report))
+        out = cs.context(Path(root), rp)
+        check("context hides the flagged value", LIVE not in out, out)
+        check("context hides the value on an unflagged nearby line", "backup = '<redacted" in out, out)
+        check("context reads the flagged commit, not the working tree", "def client" in out, out)
+        check("context keeps surrounding lines", "return key" in out and "four" in out, out)
+        check("context masks a multi-line hit whole", out.count("<redacted line>") == 2, out)
 
 
 if __name__ == "__main__":

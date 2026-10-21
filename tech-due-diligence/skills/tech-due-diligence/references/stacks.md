@@ -45,6 +45,7 @@ Then check the inventory's environment files and key material:
 - Each file in `tracked_env_files` or `tracked_key_material` (in git) is High.
 - A file in `untracked_env_files` or `untracked_key_material` is on disk outside version control. That is normal for a local environment file: report it only when `config_secrets.py scan` lists a `literal` credential in it, at the severity above, and as Low hygiene otherwise.
 - Do not read any of these files except through `config_secrets.py view`. Cite the path, the setting name, and the line.
+- Triage gitleaks hits with `python3 <scripts>/config_secrets.py context <repo> <work>/gitleaks.json`. It reads each hit from its commit, or from the working tree for `gitleaks dir`, and masks the value wherever it recurs.
 
 ## Dependency vulnerabilities and licenses
 
