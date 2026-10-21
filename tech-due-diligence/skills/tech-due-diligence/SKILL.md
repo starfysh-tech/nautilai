@@ -80,7 +80,8 @@ outside `.claude/shoals/`. In buyer mode, neither read nor write shoals.
 python3 ${CLAUDE_PLUGIN_ROOT}/skills/tech-due-diligence/scripts/inventory.py <repo-path>
 ```
 
-Create a work directory `tdd-<repo-name>-<YYYY-MM-DD>/` under the system temp directory. Save the inventory
+Create a new work directory for this run with `mktemp -d "${TMPDIR:-/tmp}/tdd-<repo-name>-XXXXXX"`.
+Never reuse an existing work directory. Save the inventory
 there as `inventory.json`, and save every scanner output there. If `python3` is missing,
 build the inventory by hand with `git ls-files`, `Glob`, and `Grep`, and say so in the report.
 
