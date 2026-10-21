@@ -17,13 +17,12 @@ import sys
 from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from inventory import list_files  # noqa: E402
+from inventory import is_env_file, list_files  # noqa: E402
 
 CONFIG_SUFFIXES = {
     ".toml", ".yaml", ".yml", ".json", ".ini", ".cfg", ".conf", ".properties",
     ".xcconfig", ".tfvars", ".plist", ".env",
 }
-ENV_NAME_RE = re.compile(r"^\.env(\..+)?$|\.env$|^env\.(example|sample|template)$")
 CRED_URL_RE = re.compile(r"://[^/\s:@'\"]+:[^@\s'\"]+@")
 CRED_WORDS = {"pass", "password", "passwd", "pwd", "secret", "token", "credential", "credentials",
               "apikey", "dsn", "passphrase"}
@@ -53,10 +52,6 @@ PLACEHOLDER_RE = re.compile(
     re.I,
 )
 MAX_BYTES = 300_000
-
-
-def is_env_file(path: str) -> bool:
-    return bool(ENV_NAME_RE.search(PurePosixPath(path).name))
 
 
 def is_config(path: str) -> bool:

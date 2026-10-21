@@ -67,6 +67,8 @@ def mixed_repo(root):
     write(root, "docs/adr/0001-record.md", "# ADR\n")
     write(root, ".env.production", "placeholder\n")
     write(root, ".env.example", "placeholder\n")
+    write(root, "config/production.env", "placeholder\n")
+    write(root, "env.example", "placeholder\n")
     write(root, ".gitignore", "node_modules/\n.venv/\n")
     # Ignored or untracked trees that must never reach the inventory.
     write(root, "web/node_modules/lodash/package.json", '{"dependencies": {"vue": "3"}}')
@@ -102,7 +104,8 @@ def test_git_repo():
         for kind in ("dockerfile", "compose", "ci:github-actions", "terraform", "kubernetes"):
             check(f"infra {kind}", kind in d["infra"], d["infra"])
         check("test files counted", d["tests"]["test_files"] == 2, d["tests"])
-        check("tracked .env reported, template skipped", d["tracked_env_files"] == [".env.production"],
+        check("tracked env files reported, templates skipped",
+              sorted(d["tracked_env_files"]) == [".env.production", "config/production.env"],
               d["tracked_env_files"])
         check("adr and readme found", {"adr", "readme"} <= set(d["docs"]), d["docs"])
         refs = {(i["ref"], i["file"]) for i in d["container_images"]}
@@ -129,7 +132,7 @@ def test_non_git_walk():
         check("walk prunes .venv", not any(".venv" in s for s in d["django_settings_modules"]),
               d["django_settings_modules"])
         check("walk lists env files as untracked", d["tracked_env_files"] == [] and
-              d["untracked_env_files"] == [".env.production"], (d["tracked_env_files"], d["untracked_env_files"]))
+              sorted(d["untracked_env_files"]) == [".env.production", "config/production.env"], (d["tracked_env_files"], d["untracked_env_files"]))
 
 
 def test_apple_app():

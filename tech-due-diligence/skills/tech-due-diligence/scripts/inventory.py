@@ -101,7 +101,7 @@ KEY_MATERIAL_RE = re.compile(
     r"\.(p12|pfx|pem|key|keystore|jks|mobileprovision|provisionprofile|cer|der|ppk)$"
     r"|(^|/)id_(rsa|dsa|ecdsa|ed25519)$", re.I
 )
-ENV_NAME_RE = re.compile(r"^\.env(\..+)?$")
+ENV_NAME_RE = re.compile(r"^\.env(\..+)?$|\.env$|^env\.(example|sample|template)$")
 ENV_TEMPLATE_RE = re.compile(r"\.(example|sample|template|dist|defaults?)$", re.I)
 
 TOOLS = [
@@ -118,6 +118,10 @@ EXTRA_BIN_DIRS = [
 ]
 
 LINE_COUNT_MAX_BYTES = 2_000_000
+
+
+def is_env_file(path: str) -> bool:
+    return bool(ENV_NAME_RE.search(PurePosixPath(path).name))
 
 
 def run(cmd: list[str], cwd: Path) -> str | None:
@@ -424,7 +428,7 @@ def inventory(root: Path) -> dict:
     docs = {k: [f for f in files if rx.search(f)][:20] for k, rx in DOC_SIGNALS.items()}
     env_files = [
         f for f in files
-        if ENV_NAME_RE.match(PurePosixPath(f).name) and not ENV_TEMPLATE_RE.search(f)
+        if is_env_file(f) and not ENV_TEMPLATE_RE.search(f)
     ]
     key_files = [f for f in files if KEY_MATERIAL_RE.search(f)]
     in_git = source == "git ls-files"
