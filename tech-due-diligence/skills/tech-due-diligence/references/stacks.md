@@ -44,7 +44,7 @@ setting's `kind` and value length, never the value. Triage its results:
 
 - `literal` or `credential-url` in a non-template file is a credential finding: High, or Critical when `tracked_in_git` is true or the file is a deploy config that the hosting platform shows to its users (for example `[env]` in `fly.toml`).
 - `literal` in a template file (`template: true`) is Low unless the value is not a placeholder. Check that through the redacted view's length and context only.
-- `reference` and `placeholder` are not findings. A deploy config that references a secret store is the correct pattern; say so in the positives.
+- `reference` and `placeholder` are not findings. A deploy config that references a secret store is the correct pattern; say so in the strengths.
 
 Then check the inventory's environment files and key material:
 

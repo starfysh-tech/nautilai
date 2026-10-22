@@ -58,7 +58,7 @@
     <h2>Commands / skills</h2>
     <ul class="skill-list">
       <li><div class="sk-name">/tech-due-diligence [repo-path]</div><p>Audit a repo in owner mode and write the report to the current directory.</p><div class="sk-triggers">"technical due diligence", "M&amp;A diligence", "evaluate this codebase", "code health audit", "security posture review"</div></li>
-      <li><div class="sk-name">/tech-due-diligence --mode buyer &lt;path&gt;</div><p>Evaluate someone else's repo. Opens with an investment summary: a verdict, the top risks with business impact, deal impact, and an estimated remediation size, the conditions to close, and the limits of the opinion. Never executes the target's code.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/tech-due-diligence --mode buyer &lt;path&gt;</div><p>Evaluate someone else's repo. Opens with an investment summary: a verdict, strengths, the top risks with business impact, deal impact, and an estimated remediation size, the conditions to close, an area status table, and the limits of the opinion. Every finding states its evidence basis, and all seller questions sit in one follow-up list. Never executes the target's code.</p><div class="sk-triggers">explicit slash form only</div></li>
       <li><div class="sk-name">/tech-due-diligence --claims &lt;file&gt;</div><p>Check each claim in a seller or team document against the code: supported, partly supported, contradicted, or unverifiable.</p><div class="sk-triggers">explicit slash form only</div></li>
       <li><div class="sk-name">/tech-due-diligence --quick</div><p>Secrets, dependencies, and licenses only.</p><div class="sk-triggers">explicit slash form only</div></li>
     </ul>

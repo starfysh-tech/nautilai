@@ -135,7 +135,7 @@ self-contained brief:
 - the absolute path of each reference section it needs, from Resource paths
 - the triage rules and evidence rules below, and every rule under **Rules** above
 - the paths it must read only through `config_secrets.py`: each file in `config-secrets.json` and each file in `gitleaks.json`
-- an instruction to return its result as text, not to write files: finding rows in the mode's columns from the `report-template` reference, its answers with `file:line` evidence, its open questions, its area statuses, and its dropped-candidate counts by reason
+- an instruction to return its result as text, not to write files: finding rows in the mode's columns from the `report-template` reference, the basis of each finding (`tool`, `code`, or `inferred`), the strengths it confirmed, its answers with `file:line` evidence, its open questions, its area statuses, and its dropped-candidate counts by reason
 
 **Triage rules.** Group candidates by rule ID. For each group, read the cited lines of a
 sample with enough context to judge them. Read every candidate in a group only when the
@@ -167,9 +167,9 @@ When every lane has returned:
 ### 5. Write the report
 
 Fill the `report-template` reference with the layout for the mode, and write it to `--out`.
-Omit areas with status `N/A`. Show every `PARTIAL` and `NOT RUN` area with its reason: in the
-summary table in owner mode, and under conditions to close or limits of this opinion in buyer
-mode. Never render a skipped area as clean.
+Omit areas with status `N/A`. Show every `PARTIAL` and `NOT RUN` area with its reason in the
+area status table: the summary table in owner mode, the area status table in buyer mode. Never
+render a skipped area as clean.
 
 Finish with a short chat summary: the report path, the verdict in buyer mode, the count of
 Critical and High findings, and every `NOT RUN` area.

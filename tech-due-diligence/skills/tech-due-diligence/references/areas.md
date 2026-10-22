@@ -1,8 +1,8 @@
 # Code-read areas
 
 Answer each question from the code with `file:line` evidence. A question the code cannot
-answer goes to the open-questions list, worded for the person who can answer it: the seller
-in buyer mode, the team in owner mode.
+answer goes to the follow-up list in buyer mode, worded for the seller, and to the open
+questions in owner mode, worded for the team.
 
 ## Architecture
 
@@ -81,11 +81,11 @@ the repo`. A contradicted claim is a finding at the severity of the gap it hides
 - Documentation: README setup steps, ADRs, runbooks, security policy, from the inventory's `docs`.
 
 The repo cannot show branch protection, incident history, on-call coverage, or team
-retention. List them as open questions.
+retention. List them as open questions (the follow-up list in buyer mode).
 
 ## Buyer mode: also request
 
-Add each item that the repo does not already contain to the report's request list:
+Add each item that the repo does not already contain to the report's follow-up list:
 
 - architecture and data-flow diagrams
 - the production infrastructure inventory and cloud account structure

@@ -13,6 +13,12 @@ people who decide on a deal. Omit a section only when this template says so.
 
 Licensing and IP items are **observations** with no severity (see the areas reference).
 
+Every Critical, High, and Medium finding states its **basis**, the kind of evidence behind it:
+
+- `tool` — a scanner reported it and you confirmed it at the cited lines.
+- `code` — you read it in the code, config, or git history at the cited lines.
+- `inferred` — you reasoned it from indirect evidence, such as code that was not built or run. Name that evidence.
+
 Buyer mode adds three fields to each Critical and High finding:
 
 - **Business impact** — one category: `breach and regulatory`, `customer and revenue`, `key person`, `scalability and cost`, or `operational continuity`.
@@ -45,8 +51,8 @@ Buyer mode adds three fields to each Critical and High finding:
 
 <Critical, High, and Medium only. Group by area. Order by severity, then by blast radius. One row per finding. Group repeats of one root cause in a single row and list every location. Put `tracked: <file:line>, <status>` in the Finding cell when a known-risk file records it.>
 
-| # | Severity | Finding | Evidence | Fix |
-|---|---|---|---|---|
+| # | Severity | Basis | Finding | Evidence | Fix |
+|---|---|---|---|---|---|
 
 ## Low findings
 
@@ -95,29 +101,36 @@ evidence out of the body; it goes in Appendix B, keyed by finding number.
 
 <Use "No opinion on the product" only when the repo does not contain the product's own code: a deployment kit, docs, an SDK, or a fork. Then still report this repo's findings, and make "audit the product repositories" the first condition to close. A product that depends on a backend, service, or shared component kept in another repo, or one that is still planned, gets a normal verdict: report the dependency as a finding and its audit as a condition to close.>
 
-<3–4 sentences: what the technology is, what it does well, and the risks that drive the verdict. Plain language, no file paths.>
+<3–4 sentences: what the technology is and the risks that drive the verdict. Plain language, no file paths.>
+
+**Strengths**
+
+<3–5 bullets, `S<n>. <strength>`: what the technology does well that a buyer can rely on, each confirmed in the code. Plain language; the evidence goes in Appendix B.>
 
 **Top risks**
 
-| # | Risk | Business impact | Deal impact | Remediation size (estimate) | Timing |
-|---|---|---|---|---|---|
-
-<At most 5 rows, from Critical and High findings only, ordered by deal impact then severity. Timing is `pre-close` or `post-close`.>
+<At most 5 lines, from Critical and High findings only, ordered by deal impact then severity: `<finding #>. <the risk in one sentence> — pre-close | post-close`. The finding's row carries its impact, deal impact, and remediation size; do not repeat them here.>
 
 **Conditions to close**
 
-<Numbered list: each `blocker` finding, and each security, dependency, or operations area that must be completed before sign-off because it did not run. Licensing and IP observations never appear here; their questions go to Observations and the request list.>
+<Numbered list: each `blocker` finding, and each security, dependency, or operations area that must be completed before sign-off because it did not run. Licensing and IP observations never appear here.>
+
+**Area status**
+
+| Area | Status | Critical | High | Medium | Low |
+|---|---|---|---|---|---|
+| <one row per area that applies> | RAN \| PARTIAL: … \| NOT RUN: … | | | | |
 
 **Limits of this opinion**
 
-<What the audit did not see: production data, cloud accounts and their configuration, contracts and DPAs, real usage and cost figures, runtime behaviour. Plus every NOT RUN and PARTIAL area.>
+<What the audit could not see from the repo: production data, cloud accounts and their configuration, contracts and DPAs, real usage and cost figures, runtime behaviour. Area gaps are in the area status table; do not repeat them here.>
 
 ## Findings
 
-<Critical, High, and Medium only, grouped by business impact category. One row per root cause. No file paths in this table.>
+<Critical, High, and Medium only, grouped by business impact category. One row per root cause. No file paths in this table. The Follow-up cell names the follow-up item numbers for this finding.>
 
-| # | Severity | Finding | Business impact | Deal impact | Remediation size (estimate) | Question for seller |
-|---|---|---|---|---|---|---|
+| # | Severity | Basis | Finding | Business impact | Deal impact | Remediation size (estimate) | Follow-up |
+|---|---|---|---|---|---|---|---|
 
 <One line under the table: "<N> Low hygiene items are listed in Appendix A.">
 
@@ -127,15 +140,11 @@ evidence out of the body; it goes in Appendix B, keyed by finding number.
 
 ## Observations
 
-<Licensing and IP items, one line each, with the question for the seller or counsel. Omit when there are none.>
+<Licensing and IP items, one line each, `O<n>. <observation>`. Their questions go in the follow-up list. Omit when there are none.>
 
-## Request list
+## Follow-up list
 
-<Each document or access to request, from the areas reference, that the repo does not already contain.>
-
-## Open questions
-
-<The questions the code cannot answer, addressed to the seller.>
+<Every question for the seller and every document or access to request, in one numbered list. Include each item from the areas reference's request list that the repo does not already contain, and each question the code cannot answer. Tag an item with the finding or observation it serves, for example `(finding 3)` or `(O2)`. List each item once.>
 
 ## Appendix A — Low findings
 
@@ -143,7 +152,7 @@ evidence out of the body; it goes in Appendix B, keyed by finding number.
 
 ## Appendix B — Evidence
 
-<Per finding number: the `file:line` evidence and the triage notes.>
+<Per strength and per finding number: the `file:line` evidence and the triage notes.>
 
 ## Appendix C — Method
 
