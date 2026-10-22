@@ -20,11 +20,17 @@ as a failure only when the output file is missing or does not parse.
 Without git history (`git` is null in the inventory), run `gitleaks dir <repo>` with the same
 flags and mark the secrets area `PARTIAL: no git history`.
 
-Add a semgrep `--config` pack for each detected framework or infra kind:
+Add a semgrep `--config` pack for each language in the inventory's `languages`:
+Python → `p/python`, JavaScript → `p/javascript`, TypeScript → `p/typescript`,
+Go → `p/golang` and `p/gosec`, Rust → `p/rust`, Ruby → `p/ruby`, Java → `p/java`,
+Kotlin → `p/kotlin`, Scala → `p/scala`, C# → `p/csharp`, PHP → `p/php`, Swift → `p/swift`,
+Elixir → `p/elixir`, C and C++ → `p/c`. A language not in this list gets `p/default` only;
+say so under Method. Never pass a pack name that is not listed here: semgrep fails the whole
+scan on an unknown pack.
+
+Also add a pack for each detected framework or infra kind:
 `django` → `p/django`, `flask` → `p/flask`, `react` → `p/react`, `nextjs` → `p/nextjs`,
-`express` → `p/expressjs`, `go` ecosystem → `p/golang` and `p/gosec`, `ruby` ecosystem → `p/ruby`,
-`java` ecosystem → `p/java`, Kotlin files or `android` → `p/kotlin`, `rust` ecosystem →
-`p/rust`, Swift files or `apple-app` → `p/swift`, `terraform` → `p/terraform`, `dockerfile` → `p/dockerfile`,
+`express` → `p/expressjs`, `terraform` → `p/terraform`, `dockerfile` → `p/dockerfile`,
 `ci:github-actions` → `p/github-actions`. When the registry is unreachable, semgrep fails
 on fetch. Mark code security `NOT RUN: semgrep registry unreachable`.
 

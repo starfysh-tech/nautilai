@@ -93,7 +93,7 @@ evidence out of the body; it goes in Appendix B, keyed by finding number.
 
 **Verdict:** <one of: Proceed · Proceed with conditions · Do not proceed without remediation · No opinion on the product> — <one sentence on why>.
 
-<Use "No opinion on the product" when the repo is not the product the deal concerns: a deployment kit, docs, an SDK, a fork, or one component of a larger system whose core is elsewhere. Still report this repo's findings, and make "audit the product repositories" the first condition to close.>
+<Use "No opinion on the product" only when the repo does not contain the product's own code: a deployment kit, docs, an SDK, or a fork. Then still report this repo's findings, and make "audit the product repositories" the first condition to close. A product that depends on a backend, service, or shared component kept in another repo, or one that is still planned, gets a normal verdict: report the dependency as a finding and its audit as a condition to close.>
 
 <3–4 sentences: what the technology is, what it does well, and the risks that drive the verdict. Plain language, no file paths.>
 
