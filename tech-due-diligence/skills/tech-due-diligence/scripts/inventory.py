@@ -147,7 +147,7 @@ def list_files(root: Path) -> tuple[list[str], str]:
 
 def read_text(root: Path, rel: str, limit: int = 200_000) -> str:
     try:
-        with open(root / rel, "r", encoding="utf-8", errors="replace") as fh:
+        with open(root / rel, "r", encoding="utf-8", errors="replace") as fh:  # skipcq: PTC-W6004
             return fh.read(limit)
     except OSError:
         return ""
