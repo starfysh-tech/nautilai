@@ -16,7 +16,7 @@ report where every finding cites the code it is about.
 ```
 
 - `--mode owner` (default): you own the repo. The report ends in an ordered fix list.
-- `--mode buyer`: you are evaluating someone else's repo. The report opens with an investment summary: a verdict (proceed, proceed with conditions, do not proceed without remediation, or no opinion on the product when the repo is a deployment kit, SDK, or other side component), the top 5 risks with business impact, deal impact (`blocker`, `price`, `post-close`), and an estimated remediation size (S/M/L), the conditions to close, and the limits of the opinion. The body has no file paths; evidence, Low findings, and method are appendices.
+- `--mode buyer`: you are evaluating someone else's repo. The report opens with an investment summary: a verdict (proceed, proceed with conditions, do not proceed without remediation, or no opinion on the product when the repo does not contain the product's own code, such as a deployment kit, SDK, or fork), strengths, the top 5 risks, the conditions to close, an area status table, and the limits of the opinion. Severity, deal impact (`blocker`, `price`, `post-close`), and the verdict follow defined rules in `references/report-template.md`: any `blocker` means "do not proceed without remediation". Each finding states its evidence basis (`tool`, `code`, `inferred`). A snapshot more than 30 days old is named in the verdict and adds a re-run condition. The summary is in business terms; evidence, Low findings, and method are appendices. Seller questions sit in one follow-up list that opens with the 5 to ask first.
 - `--claims <file>`: a document with the seller's or team's claims about the technology. Each claim gets a verdict: supported, partly supported, contradicted, or unverifiable from the repo.
 - `--allow-accounts`: allow read-only queries to the repo's hosting and deploy accounts (for example branch protection through `gh api`). Without it, the skill reads only the local checkout.
 - `--quick`: secrets, dependencies, and licenses only.
@@ -28,16 +28,16 @@ report where every finding cites the code it is about.
 2. **Scanners.** For each detected signal it runs the matching tool from `references/stacks.md`:
    - gitleaks over the full git history, with secrets redacted
    - `scripts/config_secrets.py`, which finds credential-named settings in config and env files (a hand-picked password has no token shape for gitleaks to match) and reports the setting name and value length, never the value
-   - semgrep with `p/default` plus a pack per detected framework
+   - semgrep with `p/default` plus a pack per detected language and framework
    - osv-scanner (vulnerabilities and licenses in one pass), or trivy, npm, pnpm, pip-audit, govulncheck, cargo-audit, or bundle-audit per lockfile
    - hadolint and checkov for infrastructure
    - trivy for every container image that compose, Kubernetes, or Dockerfiles name, pulled from the registry and never run
 3. **Triage and code read, in parallel lanes.** One subagent per lane (secrets, code security, dependencies and licensing, infrastructure, architecture and quality, team, each stack pack) runs at the same time. Each lane groups candidates by rule, reads a sample of each group at the cited lines, and reads every Critical and High candidate individually. It drops test fixtures, parameterized queries, vendored and generated code, and duplicates. The report counts what was dropped and why, and says which groups were sampled.
-   Each lane answers its questions from the code (`references/areas.md`): architecture and scalability, data map and subprocessors, AI and vendor economics, operations, licensing and IP, team, and seller claims. A question that the code cannot answer goes to an open-questions list.
+   Each lane answers its questions from the code (`references/areas.md`): architecture and scalability, data map and subprocessors, AI and vendor economics, operations, licensing and IP, team, and seller claims. A question that the code cannot answer goes to the open questions (the follow-up list in buyer mode).
 4. **Check.** Claude re-reads the cited lines of every Critical and High finding before it reaches the report, and merges findings two lanes reported for the same root cause.
 5. **Report.** Each area is `RAN`, `PARTIAL: <reason>`, `NOT RUN: <reason>`, or `N/A`. A skipped area never reads as clean. A finding that the repo's own risk register, security docs, or backlog already records is tagged `tracked` with its source and status. Low findings go to a one-line-each appendix. The header states when the checkout is behind its upstream or has uncommitted changes.
 
-Stack packs add checks for Django, React/Next.js/Vue/Angular, Apple apps (iOS, macOS), Android, Go, Rust, Rails, Spring Boot, Express/NestJS, and Flask/FastAPI when the inventory detects them.
+Stack packs add checks for Django, React/Next.js/Vue/Angular, Apple apps (iOS, macOS), Android, Go, Rust, Rails, Spring Boot, Express/NestJS, and Flask/FastAPI when the inventory detects them. For any other detected stack (for example PHP, .NET, Elixir, Svelte), the lead builds a pack at run time from the repo's entry points, config, auth, and data access (`references/build-stack-pack.md`).
 
 ## Requirements
 

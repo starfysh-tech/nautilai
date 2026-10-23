@@ -32,6 +32,12 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   business terms with deal impact and an estimated remediation size, the conditions to
   close, and the limits of the opinion. Licensing and IP are observations, because
   ownership lives in contracts, not the repo. Buyer mode never executes the target's code.
+  Three buyer runs on one repo gave two verdicts and three severity mixes, so severity,
+  deal impact, and the verdict now follow defined terms (untrusted party, reachable, user
+  action); a repeat on a second repo matched every predicted rating. A standalone Android
+  app got "no opinion" because its planned backend lived in another repo; that verdict
+  now applies only when the repo lacks the product's own code. Stacks with no written
+  pack get one built at run time; a Tauri/Svelte run built and ran one.
   On a Fly deploy folder, gitleaks missed two hand-picked passwords in `fly.toml`, and an
   early run found them only by printing the file into the transcript. The skill now finds
   credential settings by name and reads config files and gitleaks hits only through

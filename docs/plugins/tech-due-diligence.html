@@ -68,10 +68,10 @@
     <h2>How it works</h2>
     <ul>
       <li>Every file list comes from <code>git ls-files</code>, so dependency installs, virtualenvs, build output, and nested worktrees stay out of the audit.</li>
-      <li>Scanners run per detected signal: gitleaks over the full git history with secrets redacted, semgrep with <code>p/default</code> plus a pack per framework, osv-scanner for vulnerabilities and licenses or per-lockfile audits, trivy for every container image the repo names, hadolint and checkov for infrastructure.</li>
+      <li>Scanners run per detected signal: gitleaks over the full git history with secrets redacted, semgrep with <code>p/default</code> plus a pack per language and framework, osv-scanner for vulnerabilities and licenses or per-lockfile audits, trivy for every container image the repo names, hadolint and checkov for infrastructure.</li>
       <li>Triage and the code read run in parallel lanes, one subagent per area. Every Critical and High finding is re-read at its cited lines before it reaches the report.</li>
       <li>Triage drops test fixtures, parameterized queries, vendored and generated code, and duplicates. The report counts what was dropped and why.</li>
-      <li>Stack packs add checks for Django, React/Next.js/Vue/Angular, Apple apps (iOS, macOS), Android, Go, Rust, Rails, Spring Boot, Express/NestJS, and Flask/FastAPI when detected.</li>
+      <li>Stack packs add checks for Django, React/Next.js/Vue/Angular, Apple apps (iOS, macOS), Android, Go, Rust, Rails, Spring Boot, Express/NestJS, and Flask/FastAPI when detected. For any other stack, the skill builds a pack at run time from the repo's entry points, config, auth, and data access.</li>
       <li>A finding the repo's own risk register or security docs already record is tagged <code>tracked</code>. The report header states when the checkout is behind its upstream.</li>
       <li>Each area is <code>RAN</code>, <code>PARTIAL</code>, <code>NOT RUN: &lt;reason&gt;</code>, or <code>N/A</code>. A skipped area never reads as clean.</li>
     </ul>
