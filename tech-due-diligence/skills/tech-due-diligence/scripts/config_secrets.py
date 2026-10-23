@@ -164,9 +164,9 @@ def context(root: Path, report: Path, around: int = 3) -> str:
     for i, (f, name, commit, start, end) in enumerate(hits):
         src = sources[name, commit]
         if src is not None and start == end and start <= len(src[0]):
-            spans[i] = _locate(f, src[0][start - 1])
-            if spans[i] and len(spans[i][2]) >= 4:
-                values.add(spans[i][2])
+            span = spans[i] = _locate(f, src[0][start - 1])
+            if span and len(span[2]) >= 4:
+                values.add(span[2])
     # The same value often recurs on nearby lines or in other hits, so mask every recovered value everywhere.
     recur = re.compile("|".join(map(re.escape, sorted(values, key=len, reverse=True)))) if values else None
 
