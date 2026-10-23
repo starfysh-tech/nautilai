@@ -13,7 +13,8 @@ people who decide on a deal. Omit a section only when this template says so.
 
 Licensing and IP items are **observations** with no severity (see the areas reference).
 
-Every Critical, High, and Medium finding states its **basis**, the kind of evidence behind it:
+Every Critical, High, and Medium finding states its **basis**, the kind of evidence behind it.
+Combine values when parts of a finding rest on different evidence, for example `code + inferred`:
 
 - `tool` — a scanner reported it and you confirmed it at the cited lines.
 - `code` — you read it in the code, config, or git history at the cited lines.
@@ -84,13 +85,18 @@ Buyer mode adds three fields to each Critical and High finding:
 The body is for a reader who decides on the deal and does not read code. Keep `file:line`
 evidence out of the body; it goes in Appendix B, keyed by finding number.
 
+Write the investment summary in business terms. It names no tools, libraries, protocols,
+file paths, or audit process labels (lanes, packs, scanners). Describe each issue by what can
+happen to users, data, or the business. The technical detail goes in the findings table and
+the appendices.
+
 ````markdown
 # Tech due diligence: <repo-name>
 
 | | |
 |---|---|
 | Target | <product or company name, if known>; repo `<path>` at `<SHA>` (`<branch>`) |
-| Checkout | <as in owner mode> |
+| Checkout | <one sentence: the snapshot date (last fetch, or the clone date when never fetched) and whether it is current; details go in Appendix C> |
 | Date | <YYYY-MM-DD> |
 | Scope | full \| quick |
 | Stack | <languages by size>; <frameworks>; <infra kinds> |
@@ -101,7 +107,9 @@ evidence out of the body; it goes in Appendix B, keyed by finding number.
 
 <Use "No opinion on the product" only when the repo does not contain the product's own code: a deployment kit, docs, an SDK, or a fork. Then still report this repo's findings, and make "audit the product repositories" the first condition to close. A product that depends on a backend, service, or shared component kept in another repo, or one that is still planned, gets a normal verdict: report the dependency as a finding and its audit as a condition to close.>
 
-<3–4 sentences: what the technology is and the risks that drive the verdict. Plain language, no file paths.>
+<When the snapshot is more than 30 days older than the report date, the verdict sentence says so, and "re-run this audit on the current code" is a condition to close.>
+
+<3–4 sentences: what the technology is and the risks that drive the verdict.>
 
 **Strengths**
 
@@ -109,7 +117,7 @@ evidence out of the body; it goes in Appendix B, keyed by finding number.
 
 **Top risks**
 
-<At most 5 lines, from Critical and High findings only, ordered by deal impact then severity: `<finding #>. <the risk in one sentence> — pre-close | post-close`. The finding's row carries its impact, deal impact, and remediation size; do not repeat them here.>
+<At most 5 lines, from Critical and High findings only, ordered by deal impact then severity: `<finding #>. <the risk in one sentence> — pre-close | post-close`. Mark a risk `pre-close` only when it appears under conditions to close. The finding's row carries its impact, deal impact, and remediation size; do not repeat them here.>
 
 **Conditions to close**
 
@@ -120,6 +128,8 @@ evidence out of the body; it goes in Appendix B, keyed by finding number.
 | Area | Status | Critical | High | Medium | Low |
 |---|---|---|---|---|---|
 | <one row per area that applies> | RAN \| PARTIAL: … \| NOT RUN: … | | | | |
+
+<Use plain area names. Put all stack packs, written or built, in one row named "Stack-specific checks". State each PARTIAL or NOT RUN reason by what was not checked, not by tool name.>
 
 **Limits of this opinion**
 
@@ -144,7 +154,7 @@ evidence out of the body; it goes in Appendix B, keyed by finding number.
 
 ## Follow-up list
 
-<Every question for the seller and every document or access to request, in one numbered list. Include each item from the areas reference's request list that the repo does not already contain, and each question the code cannot answer. Tag an item with the finding or observation it serves, for example `(finding 3)` or `(O2)`. List each item once.>
+<Open with **Ask first**: at most 5 items, the ones that decide the conditions to close and the `blocker` and `price` findings. Then the rest. Every question for the seller and every document or access to request, in one numbered list. Include each item from the areas reference's request list that the repo does not already contain, and each question the code cannot answer. Tag an item with the finding or observation it serves, for example `(finding 3)` or `(O2)`. List each item once.>
 
 ## Appendix A — Low findings
 
