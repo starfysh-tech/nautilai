@@ -123,7 +123,7 @@ with nothing to read.
 | Architecture and quality | — | the architecture, scalability, and code quality and tests sections |
 | Data and AI | — | the data and subprocessors section, and the AI and vendor economics section when it applies |
 | Team and process | — | the team and process section, from the inventory's `git` and `docs` |
-| One lane per stack pack | — | that pack's checks in the `stacks` reference |
+| One lane per stack pack | — | that pack's checks in the `stacks` reference; for a detected stack with no written pack, a pack built with the `build-stack-pack` reference |
 | Claims (only with `--claims`) | — | the seller claims section, against the claims file |
 
 Delegate each lane to a subagent, and start all lanes at once so they run in parallel. When

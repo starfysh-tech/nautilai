@@ -141,7 +141,8 @@ the areas reference.
 
 ## Stack packs
 
-Run a pack only when the inventory lists its framework.
+Run a pack only when the inventory lists its framework. For a detected stack that no pack below
+names, build one with the `build-stack-pack` reference.
 
 ### Django
 
