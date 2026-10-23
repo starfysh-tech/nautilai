@@ -35,6 +35,7 @@ This eval calls the model, so it is manual and not in CI. Run it before shipping
 | 2026-10-21 | 57b405b+wt | claude-opus-5-5 | 8/8 | 7/7 | 264 s | $1.70 | After `config_secrets.py context` and the rule that gitleaks hits are read only through it. The run triaged gitleaks with `context` and ran no `git show`. |
 | 2026-10-21 | 2b93d94+wt | claude-opus-5-5 | 8/8 | 7/7 | 429 s | $2.51 | After a simplify pass on both scripts and the read-rule wording. `inventory.py` and `config_secrets.py` output was byte-identical to the previous commit on gapbot-crew, mqol-aerie, and fluxe. |
 | 2026-10-22 | cab44fa+wt | claude-opus-5-5 | 8/8 | 7/7 | 286 s | $2.01 | After the verdict rule for products with an external backend, semgrep packs by language, the buyer-report restructure (basis per finding, strengths, one area status table, one follow-up list), and the run-time stack-pack reference. All 14 finding rows carry a basis. The Flask fixture has a written pack, so the stack-pack reference was not exercised. |
+| 2026-10-23 | 14f0dc1 | claude-opus-5-5 | 8/8 | 7/7 | 343 s | $2.02 | After the executive-readable buyer summary and the defined severity, deal impact, and verdict rules. Owner mode, so the verdict rules were not exercised; they were checked on tool-manager and parlaypartner buyer runs. |
 
 ## Reference runs on real repos
 
