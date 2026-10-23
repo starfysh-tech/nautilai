@@ -151,44 +151,61 @@ def _locate(f: dict, line: str):
     return m.start(), m.end(), m.group(1)
 
 
-def context(root: Path, report: Path, around: int = 3) -> str:
-    hits = [(f, f["File"], f.get("Commit") or "", f["StartLine"], f.get("EndLine") or f["StartLine"])
-            for f in json.loads(report.read_text() or "[]") or []]
+def _read_sources(root: Path, hits: list) -> dict:
     sources = {}
     for _, name, commit, _, _ in hits:
         if (name, commit) not in sources:
             text = _source(root, name, commit)
             sources[name, commit] = None if text is None else (text.splitlines(), mask_lines(text, is_env_file(name)))
+    return sources
+
+
+def _spans(hits: list, sources: dict) -> dict:
     spans: dict[int, tuple | None] = {}
-    values: set[str] = set()
     for i, (f, name, commit, start, end) in enumerate(hits):
         src = sources[name, commit]
         if src is not None and start == end and start <= len(src[0]):
-            span = spans[i] = _locate(f, src[0][start - 1])
-            if span and len(span[2]) >= 4:
-                values.add(span[2])
-    # The same value often recurs on nearby lines or in other hits, so mask every recovered value everywhere.
-    recur = re.compile("|".join(map(re.escape, sorted(values, key=len, reverse=True)))) if values else None
+            spans[i] = _locate(f, src[0][start - 1])
+    return spans
 
+
+def _recur_re(spans: dict):
+    # The same value often recurs on nearby lines or in other hits, so mask every recovered value everywhere.
+    values = {s[2] for s in spans.values() if s and len(s[2]) >= 4}
+    return re.compile("|".join(map(re.escape, sorted(values, key=len, reverse=True)))) if values else None
+
+
+def _hit_line(raw_line: str, span) -> str:
+    if not span:
+        return "<redacted line>"
+    a, b, _ = span
+    return f"{raw_line[:a]}<redacted match, {b - a} chars>{raw_line[b:]}"
+
+
+def _render(start: int, end: int, src: tuple, span, recur, around: int) -> list[str]:
+    raw, masked = src
+    out = []
+    for n in range(max(1, start - around), min(len(raw), end + around) + 1):
+        line = _hit_line(raw[n - 1], span) if start <= n <= end else masked[n - 1]
+        if recur:
+            line = recur.sub(lambda m: f"<redacted, {len(m.group())} chars>", line)
+        out.append(f"{n:6}\t{line}")
+    return out
+
+
+def context(root: Path, report: Path, around: int = 3) -> str:
+    hits = [(f, f["File"], f.get("Commit") or "", f["StartLine"], f.get("EndLine") or f["StartLine"])
+            for f in json.loads(report.read_text() or "[]") or []]
+    sources = _read_sources(root, hits)
+    spans = _spans(hits, sources)
+    recur = _recur_re(spans)
     out = []
     for i, (f, name, commit, start, end) in enumerate(hits):
         out.append(f"## {i + 1}. {f['RuleID']} {name}:{start}" + (f" @ {commit[:8]}" if commit else ""))
         if sources[name, commit] is None:
             out.append("(source not readable)")
             continue
-        raw, masked = sources[name, commit]
-        for n in range(max(1, start - around), min(len(raw), end + around) + 1):
-            line = masked[n - 1]
-            if start <= n <= end:
-                span = spans.get(i)
-                if span:
-                    a, b, _ = span
-                    line = f"{raw[n - 1][:a]}<redacted match, {b - a} chars>{raw[n - 1][b:]}"
-                else:
-                    line = "<redacted line>"
-            if recur:
-                line = recur.sub(lambda m: f"<redacted, {len(m.group())} chars>", line)
-            out.append(f"{n:6}\t{line}")
+        out.extend(_render(start, end, sources[name, commit], spans.get(i), recur, around))
     return "\n".join(out)
 
 

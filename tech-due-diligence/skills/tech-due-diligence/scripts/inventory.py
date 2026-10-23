@@ -162,6 +162,40 @@ def probe_tools() -> dict[str, str | None]:
     return found
 
 
+PY_FRAMEWORKS = [("django", r"\bdjango\b"), ("flask", r"\bflask\b"),
+                 ("fastapi", r"\bfastapi\b"), ("celery", r"\bcelery\b"),
+                 ("djangorestframework", r"djangorestframework")]
+NODE_FRAMEWORKS = [("react", "react"), ("next", "nextjs"), ("vue", "vue"),
+                   ("nuxt", "nuxt"), ("@angular/core", "angular"),
+                   ("svelte", "svelte"), ("express", "express"),
+                   ("@nestjs/core", "nestjs"), ("react-native", "react-native")]
+
+
+def package_deps(root: Path, path: str) -> dict:
+    if PurePosixPath(path).name != "package.json":
+        return {}
+    try:
+        pkg = json.loads(read_text(root, path))
+    except ValueError:
+        return {}
+    return {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+
+
+def file_frameworks(root: Path, f: str) -> list[str]:
+    name = PurePosixPath(f).name
+    if name == "manage.py":
+        return ["django"]
+    if f.endswith("config/application.rb"):
+        return ["rails"]
+    if name in ("pom.xml", "build.gradle", "build.gradle.kts"):
+        text = read_text(root, f)
+        found = ["spring-boot"] if "spring-boot" in text else []
+        return found + (["android"] if re.search(r"com\.android\.(application|library)", text) else [])
+    if name == "AndroidManifest.xml":
+        return ["android"]
+    return ["apple-app"] if is_apple_config(root, f) else []
+
+
 def detect_frameworks(root: Path, files: list[str], manifests: list[dict]) -> dict[str, list[str]]:
     fw: dict[str, list[str]] = {}
 
@@ -170,47 +204,18 @@ def detect_frameworks(root: Path, files: list[str], manifests: list[dict]) -> di
         if evidence not in fw[name] and len(fw[name]) < 10:
             fw[name].append(evidence)
 
-    py_text = ""
-    for m in manifests:
-        if m["ecosystem"] == "python":
-            py_text += read_text(root, m["path"]).lower() + "\n"
-    for name, pat in [("django", r"\bdjango\b"), ("flask", r"\bflask\b"),
-                      ("fastapi", r"\bfastapi\b"), ("celery", r"\bcelery\b"),
-                      ("djangorestframework", r"djangorestframework")]:
+    py_text = "".join(read_text(root, m["path"]).lower() + "\n" for m in manifests if m["ecosystem"] == "python")
+    for name, pat in PY_FRAMEWORKS:
         if re.search(pat, py_text):
             add(name, "python dependency")
-
     for m in manifests:
-        if PurePosixPath(m["path"]).name != "package.json":
-            continue
-        try:
-            pkg = json.loads(read_text(root, m["path"]))
-        except ValueError:
-            continue
-        deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
-        for dep, name in [("react", "react"), ("next", "nextjs"), ("vue", "vue"),
-                          ("nuxt", "nuxt"), ("@angular/core", "angular"),
-                          ("svelte", "svelte"), ("express", "express"),
-                          ("@nestjs/core", "nestjs"), ("react-native", "react-native")]:
+        deps = package_deps(root, m["path"])
+        for dep, name in NODE_FRAMEWORKS:
             if dep in deps:
                 add(name, m["path"])
-
     for f in files:
-        p = PurePosixPath(f)
-        if p.name == "manage.py":
-            add("django", f)
-        elif f.endswith("config/application.rb"):
-            add("rails", f)
-        elif p.name in ("pom.xml", "build.gradle", "build.gradle.kts"):
-            text = read_text(root, f)
-            if "spring-boot" in text:
-                add("spring-boot", f)
-            if re.search(r"com\.android\.(application|library)", text):
-                add("android", f)
-        elif p.name == "AndroidManifest.xml":
-            add("android", f)
-        elif is_apple_config(root, f):
-            add("apple-app", f)
+        for name in file_frameworks(root, f):
+            add(name, f)
     return fw
 
 
@@ -224,43 +229,48 @@ def django_settings(files: list[str]) -> list[str]:
             and (p.name == "settings.py" or p.parent.name == "settings")]
 
 
+INFRA_NAMES = {
+    "Chart.yaml": "helm", "kustomization.yaml": "kustomize", "kustomization.yml": "kustomize",
+    "Pulumi.yaml": "pulumi", "serverless.yml": "serverless", "serverless.yaml": "serverless",
+    "cdk.json": "aws-cdk",
+    **dict.fromkeys(("Procfile", "app.yaml", "fly.toml", "render.yaml", "vercel.json", "netlify.toml"), "paas"),
+}
+
+
+def sniff_infra(head: str) -> str | None:
+    if "AWSTemplateFormatVersion" in head:
+        return "cloudformation"
+    if re.search(r"^apiVersion:", head, re.M) and re.search(r"^kind:", head, re.M):
+        return "kubernetes"
+    return None
+
+
+def infra_kind(root: Path, f: str) -> str | None:
+    p = PurePosixPath(f)
+    name = p.name
+    if name.startswith("Dockerfile") or name.endswith(".dockerfile"):
+        return "dockerfile"
+    if re.match(r"^(docker-)?compose[\w.-]*\.ya?ml$", name):
+        return "compose"
+    if f.startswith(".github/workflows/") and p.suffix in (".yml", ".yaml"):
+        return "ci:github-actions"
+    if f in CI_FILES:
+        return "ci:" + CI_FILES[f]
+    if p.suffix == ".tf":
+        return "terraform"
+    if name in INFRA_NAMES:
+        return INFRA_NAMES[name]
+    if p.suffix in (".yml", ".yaml", ".json") and not name.startswith("."):
+        return sniff_infra(read_text(root, f, 4_000))
+    return None
+
+
 def detect_infra(root: Path, files: list[str]) -> dict[str, list[str]]:
     infra: dict[str, list[str]] = {}
-
-    def add(kind: str, path: str) -> None:
-        infra.setdefault(kind, []).append(path)
-
     for f in files:
-        p = PurePosixPath(f)
-        name = p.name
-        if name.startswith("Dockerfile") or name.endswith(".dockerfile"):
-            add("dockerfile", f)
-        elif re.match(r"^(docker-)?compose[\w.-]*\.ya?ml$", name):
-            add("compose", f)
-        elif f.startswith(".github/workflows/") and p.suffix in (".yml", ".yaml"):
-            add("ci:github-actions", f)
-        elif f in CI_FILES:
-            add("ci:" + CI_FILES[f], f)
-        elif p.suffix == ".tf":
-            add("terraform", f)
-        elif name == "Chart.yaml":
-            add("helm", f)
-        elif name in ("kustomization.yaml", "kustomization.yml"):
-            add("kustomize", f)
-        elif name == "Pulumi.yaml":
-            add("pulumi", f)
-        elif name in ("serverless.yml", "serverless.yaml"):
-            add("serverless", f)
-        elif name == "cdk.json":
-            add("aws-cdk", f)
-        elif name in ("Procfile", "app.yaml", "fly.toml", "render.yaml", "vercel.json", "netlify.toml"):
-            add("paas", f)
-        elif p.suffix in (".yml", ".yaml", ".json") and not name.startswith("."):
-            head = read_text(root, f, 4_000)
-            if "AWSTemplateFormatVersion" in head:
-                add("cloudformation", f)
-            elif re.search(r"^apiVersion:", head, re.M) and re.search(r"^kind:", head, re.M):
-                add("kubernetes", f)
+        kind = infra_kind(root, f)
+        if kind:
+            infra.setdefault(kind, []).append(f)
     return infra
 
 
@@ -316,6 +326,52 @@ def container_images(root: Path, files: list[str], infra: dict[str, list[str]]) 
     return found
 
 
+def git_out(root: Path, *args: str) -> str | None:
+    return (run(["git", *args], root) or "").strip() or None
+
+
+def git_checkout(root: Path) -> dict:
+    checkout = {
+        "branch": git_out(root, "rev-parse", "--abbrev-ref", "HEAD"),
+        "head": git_out(root, "rev-parse", "--short", "HEAD"),
+        "upstream": git_out(root, "rev-parse", "--abbrev-ref", "@{u}"),
+        "ahead": None, "behind": None, "last_fetch": None,
+        "uncommitted_changes": len((git_out(root, "status", "--porcelain") or "").splitlines()),
+    }
+    if checkout["upstream"]:
+        counts = (git_out(root, "rev-list", "--left-right", "--count", "HEAD...@{u}") or "").split()
+        if len(counts) == 2:
+            checkout["ahead"], checkout["behind"] = int(counts[0]), int(counts[1])
+    fetch_head = git_out(root, "rev-parse", "--git-path", "FETCH_HEAD")
+    if fetch_head:
+        try:
+            mtime = (root / fetch_head).stat().st_mtime
+            checkout["last_fetch"] = datetime.fromtimestamp(mtime, timezone.utc).isoformat(timespec="seconds")
+        except OSError:
+            pass
+    return checkout
+
+
+def author_stats(rows: list[tuple[str, str]]) -> dict:
+    authors = Counter(a for a, _ in rows)
+    year_ago = datetime.now(timezone.utc) - timedelta(days=365)
+    recent = Counter(a for a, d in rows if datetime.fromisoformat(d.replace("Z", "+00:00")) >= year_ago)
+    recent_total = sum(recent.values())
+    return {
+        "authors_all_time": len(authors),
+        "authors_last_12_months": len(recent),
+        "commits_last_12_months": recent_total,
+        "top_authors": [{"name": a, "commits": n, "share": round(n / len(rows), 3)} for a, n in authors.most_common(10)],
+        "top_author_share_last_12_months": round(recent.most_common(1)[0][1] / recent_total, 3) if recent else None,
+    }
+
+
+def churn(root: Path) -> list[dict]:
+    names = run(["git", "log", "--no-merges", "--since=12 months ago", "--format=", "--name-only"], root) or ""
+    counts = Counter(n for n in names.splitlines() if n)
+    return [{"path": p, "commits": n} for p, n in counts.most_common(20)]
+
+
 def git_history(root: Path) -> dict | None:
     if run(["git", "rev-parse", "--git-dir"], root) is None:
         return None
@@ -326,46 +382,14 @@ def git_history(root: Path) -> dict | None:
     if not raw:
         return {"commits": 0}
     rows = list(zip(merge_identities(raw), (r[2] for r in raw)))
-    authors = Counter(a for a, _ in rows)
-    year_ago = datetime.now(timezone.utc) - timedelta(days=365)
-    recent = Counter(a for a, d in rows if datetime.fromisoformat(d.replace("Z", "+00:00")) >= year_ago)
-    recent_total = sum(recent.values())
-
-    def git(*args: str) -> str | None:
-        return (run(["git", *args], root) or "").strip() or None
-
-    checkout = {
-        "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
-        "head": git("rev-parse", "--short", "HEAD"),
-        "upstream": git("rev-parse", "--abbrev-ref", "@{u}"),
-        "ahead": None, "behind": None, "last_fetch": None,
-        "uncommitted_changes": len((git("status", "--porcelain") or "").splitlines()),
-    }
-    if checkout["upstream"]:
-        counts = (git("rev-list", "--left-right", "--count", "HEAD...@{u}") or "").split()
-        if len(counts) == 2:
-            checkout["ahead"], checkout["behind"] = int(counts[0]), int(counts[1])
-    fetch_head = git("rev-parse", "--git-path", "FETCH_HEAD")
-    if fetch_head:
-        try:
-            mtime = (root / fetch_head).stat().st_mtime
-            checkout["last_fetch"] = datetime.fromtimestamp(mtime, timezone.utc).isoformat(timespec="seconds")
-        except OSError:
-            pass
-    names = run(["git", "log", "--no-merges", "--since=12 months ago", "--format=", "--name-only"], root) or ""
-    churn = Counter(n for n in names.splitlines() if n)
     return {
         "commits": len(rows),
-        "checkout": checkout,
-        "shallow_clone": git("rev-parse", "--is-shallow-repository") == "true",
+        "checkout": git_checkout(root),
+        "shallow_clone": git_out(root, "rev-parse", "--is-shallow-repository") == "true",
         "first_commit": rows[-1][1],
         "last_commit": rows[0][1],
-        "authors_all_time": len(authors),
-        "authors_last_12_months": len(recent),
-        "commits_last_12_months": recent_total,
-        "top_authors": [{"name": a, "commits": n, "share": round(n / len(rows), 3)} for a, n in authors.most_common(10)],
-        "top_author_share_last_12_months": round(recent.most_common(1)[0][1] / recent_total, 3) if recent else None,
-        "most_changed_files_last_12_months": [{"path": p, "commits": n} for p, n in churn.most_common(20)],
+        **author_stats(rows),
+        "most_changed_files_last_12_months": churn(root),
     }
 
 
@@ -392,8 +416,7 @@ def count_lines(root: Path, files: list[str]) -> tuple[dict[str, dict[str, int]]
     return dict(sorted(langs.items(), key=lambda kv: -kv[1]["lines"])), largest
 
 
-def inventory(root: Path) -> dict:
-    files, source = list_files(root)
+def find_manifests(files: list[str]) -> list[dict]:
     manifests = []
     for f in files:
         name = PurePosixPath(f).name
@@ -406,23 +429,44 @@ def inventory(root: Path) -> dict:
         else:
             continue
         manifests.append({"path": f, "dir": str(PurePosixPath(f).parent), "ecosystem": eco, "kind": kind})
+    return manifests
 
+
+def group_ecosystems(manifests: list[dict]) -> dict[str, dict[str, list[str]]]:
     ecosystems: dict[str, dict[str, list[str]]] = {}
     for m in manifests:
         e = ecosystems.setdefault(m["ecosystem"], {"dirs": [], "lockfiles": [], "manifests": []})
         if m["dir"] not in e["dirs"]:
             e["dirs"].append(m["dir"])
         e["lockfiles" if m["kind"] == "lockfile" else "manifests"].append(m["path"])
+    return ecosystems
 
+
+def platform_configs(root: Path, files: list[str], frameworks: dict[str, list[str]]) -> dict[str, list[str]]:
+    return {
+        "django_settings_modules": django_settings(files) if "django" in frameworks else [],
+        "apple_config_files": [f for f in files if is_apple_config(root, f)] if "apple-app" in frameworks else [],
+        "android_config_files": [f for f in files if ANDROID_CONFIG_RE.search(f)] if "android" in frameworks else [],
+    }
+
+
+def secret_files(files: list[str], in_git: bool) -> dict[str, list[str]]:
+    env_files = [f for f in files if is_env_file(f) and not ENV_TEMPLATE_RE.search(f)]
+    key_files = [f for f in files if KEY_MATERIAL_RE.search(f)]
+    # Outside git nothing is "tracked": the files are only present on disk.
+    return {
+        "tracked_env_files": env_files if in_git else [],
+        "tracked_key_material": key_files if in_git else [],
+        "untracked_env_files": [] if in_git else env_files,
+        "untracked_key_material": [] if in_git else key_files,
+    }
+
+
+def inventory(root: Path) -> dict:
+    files, source = list_files(root)
+    manifests = find_manifests(files)
     frameworks = detect_frameworks(root, files, manifests)
     docs = {k: [f for f in files if rx.search(f)][:20] for k, rx in DOC_SIGNALS.items()}
-    env_files = [
-        f for f in files
-        if is_env_file(f) and not ENV_TEMPLATE_RE.search(f)
-    ]
-    key_files = [f for f in files if KEY_MATERIAL_RE.search(f)]
-    in_git = source == "git ls-files"
-
     languages, largest = count_lines(root, files)
     infra = detect_infra(root, files)
     return {
@@ -431,21 +475,15 @@ def inventory(root: Path) -> dict:
         "file_count": len(files),
         "languages": languages,
         "largest_source_files": largest,
-        "ecosystems": ecosystems,
+        "ecosystems": group_ecosystems(manifests),
         "frameworks": frameworks,
-        "django_settings_modules": django_settings(files) if "django" in frameworks else [],
-        "apple_config_files": [f for f in files if is_apple_config(root, f)] if "apple-app" in frameworks else [],
-        "android_config_files": [f for f in files if ANDROID_CONFIG_RE.search(f)] if "android" in frameworks else [],
+        **platform_configs(root, files, frameworks),
         "infra": infra,
         "container_images": container_images(root, files, infra),
         "tests": {"test_files": sum(1 for f in files if TEST_RE.search(f)),
                   "coverage_reports": [f for f in files if PurePosixPath(f).name in COVERAGE_REPORTS]},
         "docs": {k: v for k, v in docs.items() if v},
-        # Outside git nothing is "tracked": the files are only present on disk.
-        "tracked_env_files": env_files if in_git else [],
-        "tracked_key_material": key_files if in_git else [],
-        "untracked_env_files": [] if in_git else env_files,
-        "untracked_key_material": [] if in_git else key_files,
+        **secret_files(files, source == "git ls-files"),
         "git": git_history(root),
         "tools": probe_tools(),
     }
