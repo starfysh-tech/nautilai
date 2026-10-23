@@ -26,7 +26,7 @@ finding, and its severity. Cover each category below that applies to the stack:
 - **Transport**: TLS settings, certificate verification turned off, cleartext allowed.
 - **Secrets in the artifact**: keys or tokens in config, resources, or literals that ship to clients or into the build.
 - **Credential storage**: tokens or passwords stored without the platform's secure store or hashing.
-- **Injection sinks**: the stack's raw SQL, shell, template, or deserialization calls that take request data. Parameterized or escaped calls are not findings.
+- **Injection sinks**: the stack's raw SQL, shell, template, or deserialization calls that take request data.
 - **Auth coverage**: handlers or routes with no auth check, and admin surfaces.
 - **Security headers and CORS**: for web stacks.
 - **Dependencies**: floating versions, missing lockfiles, and git or path dependencies. List git and path dependencies under licensing and IP.

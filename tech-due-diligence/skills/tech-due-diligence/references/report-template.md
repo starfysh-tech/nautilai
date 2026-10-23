@@ -1,8 +1,6 @@
 # Report template
 
-Fill the sections below in order. Owner and buyer mode share the findings work but lay the
-report out for different readers: owner mode for the engineers who fix it, buyer mode for the
-people who decide on a deal. Omit a section only when this template says so.
+Fill the sections below in order for the mode. Omit a section only when this template says so.
 
 ## Terms
 
@@ -153,7 +151,7 @@ the appendices.
 
 **Conditions to close**
 
-<Numbered list, each item once: each `blocker` finding; each "confirm or fix" item from an unconfirmed reach; each of the secrets, code security, dependency vulnerabilities, and infrastructure and operations areas whose status is `NOT RUN` or `PARTIAL`; and the re-run when the snapshot is stale. Licensing and IP observations never appear here.>
+<Numbered list, each item once: each `blocker` finding; each "confirm or fix" item from an unconfirmed reach; each of the secrets, code security, dependency vulnerabilities, and infrastructure and operations areas whose status is `NOT RUN` or `PARTIAL`; and the re-run when the snapshot is stale.>
 
 **Area status**
 

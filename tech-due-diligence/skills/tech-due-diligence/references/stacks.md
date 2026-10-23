@@ -38,9 +38,8 @@ semgrep's `errors` array lists per-file parse and matching problems at `warn` le
 not stop the scan. Report their count and the affected file count under Method; mark code
 security `PARTIAL` only when an error has `level` `error`.
 
-gitleaks matches known token shapes, so it misses a hand-picked password in a TOML, YAML,
-or env file. `config_secrets.py scan` matches on the setting's name instead and reports each
-setting's `kind` and value length, never the value. Triage its results:
+`config_secrets.py scan` reports each credential-named setting's `kind` and value length,
+never the value. Triage its results:
 
 - `literal` or `credential-url` in a non-template file is a credential finding: High, or Critical when `tracked_in_git` is true or the file is a deploy config that the hosting platform shows to its users (for example `[env]` in `fly.toml`).
 - `literal` in a template file (`template: true`) is Low unless the value is not a placeholder. Check that through the redacted view's length and context only.
@@ -123,8 +122,7 @@ each distinct resolved reference once:
 |---|---|
 | trivy | `trivy image --image-src remote --scanners vuln,license --format json --output <work>/trivy-image-<n>.json <ref>` |
 
-`--image-src remote` pulls the image layers from the registry and runs nothing, so this is
-allowed in buyer mode. A reference that stays unresolved, or a private registry that refuses
+This scan is allowed in buyer mode. A reference that stays unresolved, or a private registry that refuses
 the pull, is `PARTIAL: <ref> not scanned (<reason>)`. A floating tag (`latest`, `alpine`, a
 bare major version) means the scan describes today's image, not what installs run; say so.
 Report image vulnerabilities under Dependencies and image licenses as licensing observations.
@@ -190,7 +188,7 @@ Read every file in `android_config_files` and the module `build.gradle` or `buil
 
 - semgrep `p/golang` and `p/gosec` cover code patterns. govulncheck reports only vulnerabilities whose code is reachable; say so when you cite it.
 - Read the HTTP server setup: timeouts on `http.Server` (missing `ReadHeaderTimeout` is Medium), TLS configuration (a TLS config that sets `InsecureSkipVerify` is High), and the auth middleware coverage of each router group.
-- Check `database/sql` calls that build queries with `fmt.Sprintf` or string concatenation. Parameterized calls with `?` or `$1` placeholders are not findings.
+- Check `database/sql` calls that build queries with `fmt.Sprintf` or string concatenation.
 - Check `go.mod` for `replace` directives that point at local paths or forks; list them under licensing and IP.
 
 ### Rust

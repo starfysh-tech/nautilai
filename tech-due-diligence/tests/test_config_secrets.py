@@ -5,7 +5,6 @@ Builds throwaway config files under a temp dir. Run directly:
 
     python3 tech-due-diligence/tests/test_config_secrets.py
 """
-import importlib.util
 import json
 import subprocess
 import sys
@@ -14,10 +13,7 @@ from pathlib import Path
 
 _SCRIPTS = Path(__file__).resolve().parents[1] / "skills" / "tech-due-diligence" / "scripts"
 sys.path.insert(0, str(_SCRIPTS))
-_spec = importlib.util.spec_from_file_location("config_secrets", _SCRIPTS / "config_secrets.py")
-assert _spec and _spec.loader
-cs = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(cs)
+import config_secrets as cs  # noqa: E402
 
 FAILURES = []
 

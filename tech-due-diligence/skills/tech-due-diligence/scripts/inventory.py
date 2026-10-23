@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import glob
+import heapq
 import json
 import os
 import re
@@ -124,9 +125,9 @@ def is_env_file(path: str) -> bool:
     return bool(ENV_NAME_RE.search(PurePosixPath(path).name))
 
 
-def run(cmd: list[str], cwd: Path) -> str | None:
+def run(cmd: list[str], cwd: Path, errors: str | None = None) -> str | None:
     try:
-        out = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=120, check=False)
+        out = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, errors=errors, timeout=120, check=False)
     except (OSError, subprocess.TimeoutExpired):
         return None
     return out.stdout if out.returncode == 0 else None
@@ -218,19 +219,9 @@ def is_apple_config(root: Path, f: str) -> bool:
                 or (PurePosixPath(f).name == "project.yml" and XCODEGEN_RE.search(read_text(root, f))))
 
 
-def apple_config(root: Path, files: list[str]) -> list[str]:
-    return [f for f in files if is_apple_config(root, f)]
-
-
 def django_settings(files: list[str]) -> list[str]:
-    out = []
-    for f in files:
-        p = PurePosixPath(f)
-        if p.suffix != ".py":
-            continue
-        if p.name == "settings.py" or p.parent.name == "settings":
-            out.append(f)
-    return out
+    return [f for f in files if (p := PurePosixPath(f)).suffix == ".py"
+            and (p.name == "settings.py" or p.parent.name == "settings")]
 
 
 def detect_infra(root: Path, files: list[str]) -> dict[str, list[str]]:
@@ -338,21 +329,20 @@ def git_history(root: Path) -> dict | None:
     authors = Counter(a for a, _ in rows)
     year_ago = datetime.now(timezone.utc) - timedelta(days=365)
     recent = Counter(a for a, d in rows if datetime.fromisoformat(d.replace("Z", "+00:00")) >= year_ago)
-    total = len(rows)
-    top = authors.most_common(10)
+    recent_total = sum(recent.values())
+
     def git(*args: str) -> str | None:
         return (run(["git", *args], root) or "").strip() or None
 
-    shallow = run(["git", "rev-parse", "--is-shallow-repository"], root)
     checkout = {
         "branch": git("rev-parse", "--abbrev-ref", "HEAD"),
         "head": git("rev-parse", "--short", "HEAD"),
         "upstream": git("rev-parse", "--abbrev-ref", "@{u}"),
         "ahead": None, "behind": None, "last_fetch": None,
-        "uncommitted_changes": len((run(["git", "status", "--porcelain"], root) or "").splitlines()),
+        "uncommitted_changes": len((git("status", "--porcelain") or "").splitlines()),
     }
     if checkout["upstream"]:
-        counts = (run(["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"], root) or "").split()
+        counts = (git("rev-list", "--left-right", "--count", "HEAD...@{u}") or "").split()
         if len(counts) == 2:
             checkout["ahead"], checkout["behind"] = int(counts[0]), int(counts[1])
     fetch_head = git("rev-parse", "--git-path", "FETCH_HEAD")
@@ -365,23 +355,23 @@ def git_history(root: Path) -> dict | None:
     names = run(["git", "log", "--no-merges", "--since=12 months ago", "--format=", "--name-only"], root) or ""
     churn = Counter(n for n in names.splitlines() if n)
     return {
-        "commits": total,
+        "commits": len(rows),
         "checkout": checkout,
-        "shallow_clone": (shallow or "").strip() == "true",
+        "shallow_clone": git("rev-parse", "--is-shallow-repository") == "true",
         "first_commit": rows[-1][1],
         "last_commit": rows[0][1],
         "authors_all_time": len(authors),
         "authors_last_12_months": len(recent),
-        "commits_last_12_months": sum(recent.values()),
-        "top_authors": [{"name": a, "commits": n, "share": round(n / total, 3)} for a, n in top],
-        "top_author_share_last_12_months": round(recent.most_common(1)[0][1] / sum(recent.values()), 3) if recent else None,
+        "commits_last_12_months": recent_total,
+        "top_authors": [{"name": a, "commits": n, "share": round(n / len(rows), 3)} for a, n in authors.most_common(10)],
+        "top_author_share_last_12_months": round(recent.most_common(1)[0][1] / recent_total, 3) if recent else None,
         "most_changed_files_last_12_months": [{"path": p, "commits": n} for p, n in churn.most_common(20)],
     }
 
 
 def count_lines(root: Path, files: list[str]) -> tuple[dict[str, dict[str, int]], list[dict]]:
     langs: dict[str, dict[str, int]] = {}
-    sizes: list[dict[str, int | str]] = []
+    sizes: list[dict] = []
     for f in files:
         lang = LANGUAGES.get(PurePosixPath(f).suffix.lower())
         if not lang:
@@ -398,7 +388,7 @@ def count_lines(root: Path, files: list[str]) -> tuple[dict[str, dict[str, int]]
             continue
         entry["lines"] += n
         sizes.append({"path": f, "lines": n})
-    largest = sorted(sizes, key=lambda s: -int(s["lines"]))[:20]
+    largest = heapq.nlargest(20, sizes, key=lambda s: s["lines"])
     return dict(sorted(langs.items(), key=lambda kv: -kv[1]["lines"])), largest
 
 
@@ -444,7 +434,7 @@ def inventory(root: Path) -> dict:
         "ecosystems": ecosystems,
         "frameworks": frameworks,
         "django_settings_modules": django_settings(files) if "django" in frameworks else [],
-        "apple_config_files": apple_config(root, files) if "apple-app" in frameworks else [],
+        "apple_config_files": [f for f in files if is_apple_config(root, f)] if "apple-app" in frameworks else [],
         "android_config_files": [f for f in files if ANDROID_CONFIG_RE.search(f)] if "android" in frameworks else [],
         "infra": infra,
         "container_images": container_images(root, files, infra),

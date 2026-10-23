@@ -107,7 +107,6 @@ Record a status for each area before you triage:
 - `NOT RUN: <reason>` — no check ran (tool missing, `--quick`, buyer-mode restriction).
 - `N/A` — the area does not apply (for example, no infrastructure files).
 
-A scanner that exits nonzero because it found issues has `RAN`. Read its output file.
 
 ### 3. Triage and read the code, in parallel lanes
 
@@ -162,7 +161,7 @@ When every lane has returned:
 - Read the cited lines of every Critical and High finding yourself. Downgrade or drop any that the code does not support, and say so under Method.
 - Merge findings that two lanes reported for the same root cause.
 - Check that each area's status in the summary matches what its lane ran.
-- In buyer mode, assign business impact, deal impact, and remediation size to each Critical and High finding, then choose the verdict and the top risks for the investment summary. Licensing and IP observations never enter the top risks.
+- In buyer mode, assign business impact, deal impact, and remediation size to each Critical and High finding, then choose the verdict and the top risks for the investment summary.
 
 ### 5. Write the report
 

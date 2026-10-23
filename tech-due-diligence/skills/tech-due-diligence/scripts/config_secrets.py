@@ -12,12 +12,11 @@ no shape, so it passes. This script matches on the setting's name instead.
 """
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from inventory import is_env_file, list_files  # noqa: E402
+from inventory import is_env_file, list_files, run  # noqa: E402
 
 CONFIG_SUFFIXES = {
     ".toml", ".yaml", ".yml", ".json", ".ini", ".cfg", ".conf", ".properties",
@@ -133,9 +132,7 @@ def view(path: Path) -> str:
 
 def _source(root: Path, name: str, commit: str):
     if commit:
-        got = subprocess.run(["git", "-C", str(root), "show", f"{commit}:{name}"],
-                             capture_output=True, text=True, errors="replace", check=False)
-        return got.stdout if got.returncode == 0 else None
+        return run(["git", "show", f"{commit}:{name}"], root, errors="replace")
     path = root / name
     return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else None
 

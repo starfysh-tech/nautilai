@@ -35,9 +35,8 @@ questions in owner mode, worded for the team.
 ## Licensing and IP
 
 Report everything in this area as an **observation**: no severity, not counted in the summary
-table, never in the investment summary's top risks. IP ownership and license rights live in
-contracts and assignments, not in the repo, so each observation pairs with a question for the
-seller or counsel.
+table, never in the investment summary's top risks. Pair each observation with a question for
+the seller or counsel.
 
 - The repo's own license file, and any license the code or API metadata declares.
 - Dependency licenses from the license scan: copyleft (GPL, AGPL, SSPL) and packages with no license.
