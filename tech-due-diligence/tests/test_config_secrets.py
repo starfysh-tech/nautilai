@@ -83,7 +83,7 @@ def test_context():
         subprocess.run(git[:3] + ["init", "-q"], check=True)
         subprocess.run(git + ["add", "."], check=True)
         subprocess.run(git + ["commit", "-qm", "add"], check=True)
-        commit = subprocess.run(git[:3] + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        commit = subprocess.run(git[:3] + ["rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
         write(root, "app/client.py", "import os\n")
         col = body.splitlines()[4].index("key") + 1
         report = [

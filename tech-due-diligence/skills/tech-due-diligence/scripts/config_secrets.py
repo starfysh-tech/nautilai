@@ -134,7 +134,7 @@ def view(path: Path) -> str:
 def _source(root: Path, name: str, commit: str):
     if commit:
         got = subprocess.run(["git", "-C", str(root), "show", f"{commit}:{name}"],
-                             capture_output=True, text=True, errors="replace")
+                             capture_output=True, text=True, errors="replace", check=False)
         return got.stdout if got.returncode == 0 else None
     path = root / name
     return path.read_text(encoding="utf-8", errors="replace") if path.is_file() else None
@@ -162,7 +162,8 @@ def context(root: Path, report: Path, around: int = 3) -> str:
         if (name, commit) not in sources:
             text = _source(root, name, commit)
             sources[name, commit] = None if text is None else (text.splitlines(), mask_lines(text, is_env_file(name)))
-    spans, values = {}, set()
+    spans: dict[int, tuple | None] = {}
+    values: set[str] = set()
     for i, (f, name, commit, start, end) in enumerate(hits):
         src = sources[name, commit]
         if src is not None and start == end and start <= len(src[0]):

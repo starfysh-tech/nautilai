@@ -126,7 +126,7 @@ def is_env_file(path: str) -> bool:
 
 def run(cmd: list[str], cwd: Path) -> str | None:
     try:
-        out = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=120)
+        out = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, timeout=120, check=False)
     except (OSError, subprocess.TimeoutExpired):
         return None
     return out.stdout if out.returncode == 0 else None
@@ -136,7 +136,7 @@ def list_files(root: Path) -> tuple[list[str], str]:
     out = run(["git", "ls-files", "-z"], root)
     if out is not None:
         return [f for f in out.split("\0") if f], "git ls-files"
-    files = []
+    files: list[str] = []
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in PRUNE_DIRS]
         rel = Path(dirpath).relative_to(root)
@@ -314,11 +314,11 @@ def container_images(root: Path, files: list[str], infra: dict[str, list[str]]) 
     for f in infra.get("dockerfile", []):
         stages = {"scratch"}
         for n, line in enumerate(read_text(root, f).splitlines(), 1):
-            m = FROM_LINE_RE.match(line)
-            if not m:
+            frm = FROM_LINE_RE.match(line)
+            if not frm:
                 continue
-            if m.group(1).lower() not in stages:
-                found.append({"ref": m.group(1), "file": f, "line": n})
+            if frm.group(1).lower() not in stages:
+                found.append({"ref": frm.group(1), "file": f, "line": n})
             alias = re.search(r"\bAS\s+(\S+)", line, re.I)
             if alias:
                 stages.add(alias.group(1).lower())
@@ -381,7 +381,7 @@ def git_history(root: Path) -> dict | None:
 
 def count_lines(root: Path, files: list[str]) -> tuple[dict[str, dict[str, int]], list[dict]]:
     langs: dict[str, dict[str, int]] = {}
-    sizes = []
+    sizes: list[dict[str, int | str]] = []
     for f in files:
         lang = LANGUAGES.get(PurePosixPath(f).suffix.lower())
         if not lang:
@@ -398,7 +398,7 @@ def count_lines(root: Path, files: list[str]) -> tuple[dict[str, dict[str, int]]
             continue
         entry["lines"] += n
         sizes.append({"path": f, "lines": n})
-    largest = sorted(sizes, key=lambda s: -s["lines"])[:20]
+    largest = sorted(sizes, key=lambda s: -int(s["lines"]))[:20]
     return dict(sorted(langs.items(), key=lambda kv: -kv[1]["lines"])), largest
 
 
