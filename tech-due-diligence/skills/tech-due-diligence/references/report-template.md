@@ -4,12 +4,39 @@ Fill the sections below in order. Owner and buyer mode share the findings work b
 report out for different readers: owner mode for the engineers who fix it, buyer mode for the
 people who decide on a deal. Omit a section only when this template says so.
 
+## Terms
+
+- **Untrusted party** — anyone other than the product's operator and a user acting on their own data: the public internet, a web page the user visits, another account on the same machine, another tenant, or the author of third-party content the product imports.
+- **Reachable** — an untrusted party can trigger the issue through an interface the product exposes: a network port, a route, an IPC channel, a file the product reads, or content it imports.
+- **Confirmed reach** — the code you read shows the whole path from the untrusted party to the issue. **Unconfirmed reach** — part of the path is in code you did not read (for example a dependency whose source is not on disk) or depends on runtime behaviour you did not observe.
+- **By default** — in the configuration the product ships or installs with, with no setting changed.
+- **User action** — a step an attacker must get the user to take: opening a crafted link or file, importing or enabling the attacker's content, or changing a non-default setting. Using a core function as intended (a save, a sync, an import from a source the product ships with) is not user action.
+- **During use as intended** — while the user runs a core function as intended, in the default configuration.
+- **Credentials** — passwords, API keys, access tokens, private keys, and session or signing secrets.
+- **Live credential** — a credential the repo shows no evidence of being revoked or rotated. A documented placeholder or test value is not a credential.
+- **User data** — data the product stores or processes for its users or their customers, including personal and regulated data.
+- **Destroys user data** — deletes or overwrites user data or user files with no copy that the product keeps for restore.
+- **Core function** — a feature that the README, the product's own docs, or the seller's claims present as what the product does.
+
 ## Severity
 
-- **Critical** — exploitable now, or it blocks operation: a live credential in the repo or its history, an injection reachable from a public route, a cross-tenant data read.
-- **High** — a serious weakness that needs a fix before launch, acquisition close, or the next release.
-- **Medium** — a real risk with limited exposure, or a process gap that makes high-severity issues likely.
-- **Low** — hygiene.
+Assign the highest level whose test the finding meets.
+
+- **Critical** — either:
+  - reachable by an untrusted party by default with no user action, and it exposes credentials or user data, runs commands or code the attacker chooses, or reads or changes another tenant's data; or
+  - a live credential committed to the repo or its history.
+- **High** — any of:
+  - an impact listed under Critical that needs user action or a non-default setting;
+  - it destroys user data during use as intended, or after a user action;
+  - an injection, authorization, or tenant-isolation gap reachable only by a logged-in user;
+  - a core function cannot work as written;
+  - release or update signing keys are exposed to code or people outside the release process;
+  - user data leaves the product to a place without access control or retention limits;
+  - one author above 0.5 of commits in the last 12 months, in buyer mode.
+- **Medium** — any of: a weakness that causes harm only together with a second failure; a process gap (no tests in CI, no review before merge, no monitoring); an exposure limited to the operator or admins; a dependency advisory with no reachable path found.
+- **Low** — hygiene: no path to harm found.
+
+**Unconfirmed reach.** Rate the finding as if the reach were confirmed. Include `inferred` in its basis and name the unconfirmed part. When that makes it Critical, add "confirm or fix" for it to the conditions to close. Otherwise put the confirmation question in the follow-up list. Uncertainty about anything other than reach (for example how users behave) does not raise the rating and does not add a condition.
 
 Licensing and IP items are **observations** with no severity (see the areas reference).
 
@@ -23,7 +50,10 @@ Combine values when parts of a finding rest on different evidence, for example `
 Buyer mode adds three fields to each Critical and High finding:
 
 - **Business impact** — one category: `breach and regulatory`, `customer and revenue`, `key person`, `scalability and cost`, or `operational continuity`.
-- **Deal impact** — `blocker` (do not close until resolved), `price` (affects valuation or needs an escrow or indemnity), or `post-close` (fix in the integration plan).
+- **Deal impact** — assign the first that applies:
+  - `blocker` — the finding is Critical; or it is High and it destroys user data during use as intended. Do not close until it is resolved.
+  - `price` — one author above 0.5 of commits in the last 12 months; loss of control over release or signing keys (the key is exposed to code or people outside the release process, or the repo cannot show who holds it); remediation size `L`; or a seller claim the code contradicts. It affects valuation or needs an escrow or indemnity.
+  - `post-close` — every other Critical or High finding. Fix it in the integration plan.
 - **Remediation size** — an estimate, labelled as one: `S` (days, contained in one area), `M` (weeks, one team), or `L` (a quarter or more, or a redesign). Base it on the code the fix touches, and cite that code.
 
 ## Owner mode
@@ -105,6 +135,8 @@ the appendices.
 
 **Verdict:** <one of: Proceed · Proceed with conditions · Do not proceed without remediation · No opinion on the product> — <one sentence on why>.
 
+<Choose the verdict by the first rule that applies: "No opinion on the product" by the rule below; "Do not proceed without remediation" when any finding is a `blocker`; "Proceed with conditions" when the conditions to close are not empty; otherwise "Proceed".>
+
 <Use "No opinion on the product" only when the repo does not contain the product's own code: a deployment kit, docs, an SDK, or a fork. Then still report this repo's findings, and make "audit the product repositories" the first condition to close. A product that depends on a backend, service, or shared component kept in another repo, or one that is still planned, gets a normal verdict: report the dependency as a finding and its audit as a condition to close.>
 
 <When the snapshot is more than 30 days older than the report date, the verdict sentence says so, and "re-run this audit on the current code" is a condition to close.>
@@ -121,7 +153,7 @@ the appendices.
 
 **Conditions to close**
 
-<Numbered list: each `blocker` finding, and each security, dependency, or operations area that must be completed before sign-off because it did not run. Licensing and IP observations never appear here.>
+<Numbered list, each item once: each `blocker` finding; each "confirm or fix" item from an unconfirmed reach; each of the secrets, code security, dependency vulnerabilities, and infrastructure and operations areas whose status is `NOT RUN` or `PARTIAL`; and the re-run when the snapshot is stale. Licensing and IP observations never appear here.>
 
 **Area status**
 
