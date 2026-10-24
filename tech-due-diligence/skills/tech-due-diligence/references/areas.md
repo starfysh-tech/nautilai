@@ -47,7 +47,7 @@ the seller or counsel.
 
 - A data map: which customer and personal data the product stores, where (database, object storage, logs, traces, analytics), and for how long. Cite the model, schema, or config for each store.
 - Subprocessors: every external service that receives customer data, with what it receives. Include LLM providers, document parsers, error tracking, analytics, and tracing. Cite the call site.
-- Data that leaves the product's own infrastructure to a place without access control or retention limits is High.
+- Data that leaves the product's own infrastructure to a place without access control or retention limits.
 - Regulated data (health, payment, children's, biometric) and where it is handled. Name the regime it implies (HIPAA, PCI DSS, COPPA, GDPR special categories).
 
 ## AI and vendor economics
@@ -55,7 +55,7 @@ the seller or counsel.
 Only when the product calls an LLM or another paid per-use API.
 
 - The calls made per unit of work (per analysis, per request, per document): which models, how many calls, and whether inputs are cached or batched. Cite the orchestration code.
-- Cost signals in the repo: token limits, budget guards, cost logging, per-tenant quotas. Their absence on an unauthenticated or unmetered path is High.
+- Cost signals in the repo: token limits, budget guards, cost logging, per-tenant quotas. Report their absence on an unauthenticated or unmetered path.
 - Vendor concentration: which features stop working if one provider is unavailable or changes terms, and whether a fallback provider exists in code.
 - Model quality controls: evals, golden fixtures, regression tests on prompts, and whether CI runs them.
 
@@ -74,7 +74,7 @@ the repo`. A contradicted claim is a finding at the severity of the gap it hides
 
 ## Team and process
 
-- Bus factor: `git.top_author_share_last_12_months`. One author above 0.5 is a High finding in buyer mode and a Medium finding in owner mode.
+- Bus factor: `git.top_author_share_last_12_months`. Report one author above 0.5.
 - Activity: commits and authors in the last 12 months, and the date of the last commit.
 - Review discipline: `CODEOWNERS`, PR templates, and whether recent commits on the default branch carry PR numbers (`git log --oneline -50`).
 - Documentation: README setup steps, ADRs, runbooks, security policy, from the inventory's `docs`.

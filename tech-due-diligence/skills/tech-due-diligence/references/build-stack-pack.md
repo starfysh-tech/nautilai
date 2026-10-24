@@ -20,7 +20,7 @@ From the inventory and the code, list with `file:line`:
 ## Write the checks
 
 Write 5–10 checks, each one line, in the form of the written packs: what to read, what is a
-finding, and its severity. Cover each category below that applies to the stack:
+finding. Cover each category below that applies to the stack:
 
 - **Debug and environment**: debug or development flags that can reach production.
 - **Transport**: TLS settings, certificate verification turned off, cleartext allowed.
@@ -32,7 +32,7 @@ finding, and its severity. Cover each category below that applies to the stack:
 - **Dependencies**: floating versions, missing lockfiles, and git or path dependencies. List git and path dependencies under licensing and IP.
 - **Release**: signing secrets inline, unsigned or debug release builds.
 
-Use the severities of the written packs for the same kind of issue. Base each check on the
+Rate each finding with the Severity section of the `report-template` reference. Base each check on the
 stack's own API names found in the code. Do not write a check for a feature the repo does not use.
 
 ## Report it

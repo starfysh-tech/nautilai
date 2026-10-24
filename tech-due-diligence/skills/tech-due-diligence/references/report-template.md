@@ -14,6 +14,7 @@ Fill the sections below in order for the mode. Omit a section only when this tem
 - **Live credential** — a credential the repo shows no evidence of being revoked or rotated. A documented placeholder or test value is not a credential.
 - **User data** — data the product stores or processes for its users or their customers, including personal and regulated data.
 - **Destroys user data** — deletes or overwrites user data or user files with no copy that the product keeps for restore.
+- **Outside the release process** — any code or person that does not cut releases: builds of unmerged branches or pull requests, third-party CI actions not pinned to a commit, or accounts without release duties.
 - **Core function** — a feature that the README, the product's own docs, or the seller's claims present as what the product does.
 
 ## Severity
@@ -30,8 +31,9 @@ Assign the highest level whose test the finding meets.
   - a core function cannot work as written;
   - release or update signing keys are exposed to code or people outside the release process;
   - user data leaves the product to a place without access control or retention limits;
+  - anyone can obtain paid value or spend the product's paid resources without a check: purchases not verified by a server, or a paid per-use API on an unauthenticated or unmetered path;
   - one author above 0.5 of commits in the last 12 months, in buyer mode.
-- **Medium** — any of: a weakness that causes harm only together with a second failure; a process gap (no tests in CI, no review before merge, no monitoring); an exposure limited to the operator or admins; a dependency advisory with no reachable path found.
+- **Medium** — any of: a weakness that causes harm only together with a second failure; a process gap (no tests in CI, no review before merge, no monitoring, no lockfile); an exposure limited to the operator or admins; a dependency advisory with no reachable path found; a gap that can block a release or app store approval; one author above 0.5 of commits in the last 12 months, in owner mode.
 - **Low** — hygiene: no path to harm found.
 
 **Unconfirmed reach.** Rate the finding as if the reach were confirmed. Include `inferred` in its basis and name the unconfirmed part. When that makes it Critical, add "confirm or fix" for it to the conditions to close. Otherwise put the confirmation question in the follow-up list. Uncertainty about anything other than reach (for example how users behave) does not raise the rating and does not add a condition.

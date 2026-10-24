@@ -139,6 +139,9 @@ the areas reference.
 
 ## Stack packs
 
+A pack says what to check and what counts as a finding. Rate each finding with the Severity
+section of the `report-template` reference.
+
 Run a pack only when the inventory lists its framework. For a detected stack that no pack below
 names, build one with the `build-stack-pack` reference.
 
@@ -161,41 +164,41 @@ names, build one with the `build-stack-pack` reference.
 
 Read every file in `apple_config_files`, then search the Swift sources.
 
-- **Dependencies.** Find the declared packages in `project.yml` (`packages:`), `Package.swift`, `project.pbxproj` (`XCRemoteSwiftPackageReference`), or `Podfile`. Without a tracked `Package.resolved` or `Podfile.lock`, the versions float. Report that as Medium and mark Swift dependency vulnerabilities `NOT RUN: no Swift lockfile`. osv-scanner reads `Package.resolved` and `Podfile.lock` when they exist.
-- **Transport security.** In `Info.plist`, `NSAppTransportSecurity` with `NSAllowsArbitraryLoads` true is High. A per-domain exception is Low; name the domain.
-- **Secrets in the bundle.** API keys or tokens in `Info.plist`, `.xcconfig`, or Swift string literals ship inside the app, and anyone can extract them. Report each as High, unless it is a key designed to be public (a publishable or client-side key); say which.
-- **Credential storage.** Auth tokens, passwords, or keys written to `UserDefaults`, `@AppStorage`, or plain files are High. They belong in the Keychain. Check the Keychain accessibility class: `kSecAttrAccessibleAlways` is Medium.
-- **Purchases.** For StoreKit, find where entitlement or credit decisions are made. A server that grants or spends value based on a client-sent identifier without verifying a signed transaction is High. Name the endpoint.
-- **Entitlements and capabilities.** List the entitlements. Flag any that the code does not use (Medium), and associated domains or URL schemes whose handlers act on input without validation (Medium).
-- **Privacy manifest.** Check that `PrivacyInfo.xcprivacy` exists when the app uses required-reason APIs (`UserDefaults`, file timestamps, system boot time, disk space). Missing → Medium (App Store rejection risk).
-- **Logging.** `print`, `NSLog`, or `os_log` with `.public` on user data, tokens, or health data is Medium.
+- **Dependencies.** Find the declared packages in `project.yml` (`packages:`), `Package.swift`, `project.pbxproj` (`XCRemoteSwiftPackageReference`), or `Podfile`. Without a tracked `Package.resolved` or `Podfile.lock`, the versions float. Report that, and mark Swift dependency vulnerabilities `NOT RUN: no Swift lockfile`. osv-scanner reads `Package.resolved` and `Podfile.lock` when they exist.
+- **Transport security.** In `Info.plist`, `NSAppTransportSecurity` with `NSAllowsArbitraryLoads` true is a finding. So is a per-domain exception; name the domain.
+- **Secrets in the bundle.** API keys or tokens in `Info.plist`, `.xcconfig`, or Swift string literals ship inside the app, and anyone can extract them. Report each, unless it is a key designed to be public (a publishable or client-side key); say which.
+- **Credential storage.** Auth tokens, passwords, or keys written to `UserDefaults`, `@AppStorage`, or plain files are a finding; they belong in the Keychain. So is the Keychain accessibility class `kSecAttrAccessibleAlways`.
+- **Purchases.** For StoreKit, find where entitlement or credit decisions are made. A server that grants or spends value based on a client-sent identifier without verifying a signed transaction is a finding. Name the endpoint.
+- **Entitlements and capabilities.** List the entitlements. Flag any that the code does not use, and associated domains or URL schemes whose handlers act on input without validation.
+- **Privacy manifest.** Check that `PrivacyInfo.xcprivacy` exists when the app uses required-reason APIs (`UserDefaults`, file timestamps, system boot time, disk space). A missing manifest is a finding: the App Store can reject the build.
+- **Logging.** `print`, `NSLog`, or `os_log` with `.public` on user data, tokens, or health data is a finding.
 - **Build and release.** Signing files appear in `tracked_key_material`. Read CI or Xcode Cloud scripts (`ci_scripts/`) for secrets and unsigned-artifact paths.
 
 ### Android
 
 Read every file in `android_config_files` and the module `build.gradle` or `build.gradle.kts` files.
 
-- **Manifest.** `android:debuggable="true"` or `android:allowBackup="true"` in a release manifest is Medium. An `exported` activity, service, receiver, or provider with no permission is High when it acts on intent data; name the component.
-- **Transport security.** `android:usesCleartextTraffic="true"` or a `network_security_config.xml` that permits cleartext or trusts user certificates in release is High. A per-domain exception is Low; name the domain.
-- **Secrets in the app.** API keys in `gradle.properties`, `BuildConfig` fields, string resources, or Kotlin/Java literals ship inside the APK. Report each as High unless it is designed to be public; say which. `google-services.json` holds public client identifiers. Report it only when its project has no API key restrictions you can confirm from the repo, and then as unverifiable.
-- **Credential storage.** Tokens or passwords in plain `SharedPreferences` or files are High. They belong in the Android Keystore or `EncryptedSharedPreferences`.
-- **WebView.** A WebView that enables JavaScript (`setJavaScriptEnabled`) and exposes `addJavascriptInterface` to content that is not bundled is High. Enabling `setAllowFileAccess` for remote content is Medium.
-- **Release build.** `minifyEnabled false` for release is Low. A release `signingConfig` with inline passwords is High. Signing keystores appear in `tracked_key_material`.
-- **Purchases.** For Play Billing, find where entitlements are granted. A server that grants value on a client-sent purchase token without verifying it with Google Play is High.
-- **Dependencies.** Without `gradle.lockfile` or dependency verification metadata, versions can float through dynamic versions (`+`, `latest.release`). Report each dynamic version as Medium. osv-scanner reads `gradle.lockfile` when it exists.
+- **Manifest.** `android:debuggable="true"` or `android:allowBackup="true"` in a release manifest is a finding. So is an `exported` activity, service, receiver, or provider with no permission that acts on intent data; name the component.
+- **Transport security.** `android:usesCleartextTraffic="true"` or a `network_security_config.xml` that permits cleartext or trusts user certificates in release is a finding. So is a per-domain exception; name the domain.
+- **Secrets in the app.** API keys in `gradle.properties`, `BuildConfig` fields, string resources, or Kotlin/Java literals ship inside the APK. Report each unless it is designed to be public; say which. `google-services.json` holds public client identifiers. Report it only when its project has no API key restrictions you can confirm from the repo, and then as unverifiable.
+- **Credential storage.** Tokens or passwords in plain `SharedPreferences` or files are a finding. They belong in the Android Keystore or `EncryptedSharedPreferences`.
+- **WebView.** A WebView that enables JavaScript (`setJavaScriptEnabled`) and exposes `addJavascriptInterface` to content that is not bundled is a finding. So is `setAllowFileAccess` enabled for remote content.
+- **Release build.** `minifyEnabled false` for release is a finding. So is a release `signingConfig` with inline passwords. Signing keystores appear in `tracked_key_material`.
+- **Purchases.** For Play Billing, find where entitlements are granted. A server that grants value on a client-sent purchase token without verifying it with Google Play is a finding.
+- **Dependencies.** Without `gradle.lockfile` or dependency verification metadata, versions can float through dynamic versions (`+`, `latest.release`). Report each dynamic version. osv-scanner reads `gradle.lockfile` when it exists.
 
 ### Go
 
 - semgrep `p/golang` and `p/gosec` cover code patterns. govulncheck reports only vulnerabilities whose code is reachable; say so when you cite it.
-- Read the HTTP server setup: timeouts on `http.Server` (missing `ReadHeaderTimeout` is Medium), TLS configuration (a TLS config that sets `InsecureSkipVerify` is High), and the auth middleware coverage of each router group.
+- Read the HTTP server setup: timeouts on `http.Server` (a missing `ReadHeaderTimeout` is a finding), TLS configuration (so is a TLS config that sets `InsecureSkipVerify`), and the auth middleware coverage of each router group.
 - Check `database/sql` calls that build queries with `fmt.Sprintf` or string concatenation.
 - Check `go.mod` for `replace` directives that point at local paths or forks; list them under licensing and IP.
 
 ### Rust
 
 - semgrep `p/rust` covers code patterns. cargo-audit reports advisories and yanked crates from `Cargo.lock`.
-- Count `unsafe` blocks per crate. Read the ones in code that parses untrusted input; an unchecked bound or aliasing assumption there is High.
-- Check TLS clients that turn off certificate verification (for example via `danger_accept_invalid_certs`), which is High.
+- Count `unsafe` blocks per crate. Read the ones in code that parses untrusted input; an unchecked bound or aliasing assumption there is a finding.
+- Check TLS clients that turn off certificate verification (for example via `danger_accept_invalid_certs`).
 - Check `Cargo.toml` for git dependencies and path dependencies outside the repo; list them under licensing and IP.
 
 ### Rails
