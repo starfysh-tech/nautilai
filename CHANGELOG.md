@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.0](https://github.com/starfysh-tech/nautilai/compare/v2.35.0...v2.36.0) (2026-10-24)
+
+
+### Features
+
+* **tech-due-diligence:** add due diligence plugin for any repo ([#180](https://github.com/starfysh-tech/nautilai/issues/180)) ([1ec60a7](https://github.com/starfysh-tech/nautilai/commit/1ec60a774a6dbf07b6f110307f9d693da406ae72))
+
 ## [2.35.0](https://github.com/starfysh-tech/nautilai/compare/v2.34.0...v2.35.0) (2026-10-19)
 
 
