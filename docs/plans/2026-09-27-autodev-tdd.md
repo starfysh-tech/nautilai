@@ -1,6 +1,6 @@
 # AutoDev TDD port — plan
 
-Source: `mqol-aerie/.claude/skills/tdd/` (SKILL.md, README.md, HOW_TO_USE.md,
+Source: a client repo's project-local TDD skill (SKILL.md, README.md, HOW_TO_USE.md,
 sample_input.json, expected_output.json). Goal: maximum parity inside autodev.
 Glossary: `CONTEXT.md` (Lane, Slice, Test-fix lane, Red test, Launch checkpoint,
 Advisor, Guard, TDD profile). Delivery: one PR.
@@ -10,7 +10,7 @@ Advisor, Guard, TDD profile). Delivery: one PR.
 | # | Decision |
 |---|---|
 | 1 | The full generic rule set lives in `autodev/skills/autodev/references/tdd.md`. The advisory modes run as orchestrator steps. |
-| 2 | Keep general stack patterns (pytest/Factory Boy, Vitest/RTL), each in a section marked with its stack. aerie-only facts become generic rules. `pgtrigger` stays as a labeled example. |
+| 2 | Keep general stack patterns (pytest/Factory Boy, Vitest/RTL), each in a section marked with its stack. Repo-specific facts become generic rules. `pgtrigger` stays as a labeled example. |
 | 3 | Setup writes the TDD profile: `.claude/autodev.md` in the main checkout. It is meant to be committed; the user commits it. |
 | 4 | Lanes read the TDD profile only. A script decides what each role reads. Agents get no conditional instructions. |
 | 5 | Setup detects each value with its source file (the same stack markers `verify.sh` auto-detects, plus task runners and CI). The user confirms or fixes each value. Missing evidence gives `unknown`. |
@@ -100,7 +100,7 @@ Advisor, Guard, TDD profile). Delivery: one PR.
 
 ## Assumptions to validate before implementing
 
-- [x] **A repo whose pre-commit hook runs tests rejects every red commit.** Checked mqol-aerie: `.husky/pre-commit` and `lint-staged.config.mjs` run no tests (ruff check --fix, ruff format, prettier, eslint, semgrep, comment-blocks). Red commits can pass there. ruff/prettier are auto-fixers, handled by decision 16. semgrep `p/secrets` scans `server/**/*.py` including tests, so test data can hit the never-advisor list. Other repos stay unknown until setup reads their hooks; setup records "hook runs tests: yes/no" in the profile prose.
+- [x] **A repo whose pre-commit hook runs tests rejects every red commit.** Checked the source repo: `.husky/pre-commit` and `lint-staged.config.mjs` run no tests (ruff check --fix, ruff format, prettier, eslint, semgrep, comment-blocks). Red commits can pass there. ruff/prettier are auto-fixers, handled by decision 16. semgrep `p/secrets` scans `server/**/*.py` including tests, so test data can hit the never-advisor list. Other repos stay unknown until setup reads their hooks; setup records "hook runs tests: yes/no" in the profile prose.
 - [ ] **`installed_plugins.json` keeps its current shape.** Shape confirmed on disk (`scope`, `projectPath`; commitcraft appears as user and as project for 2 repos). No documentation found for it. Stays unverified; the fallback to `commit_lane.sh` is safe.
 - [x] **CommitCraft can take a file allowlist without breaking callers.** No other plugin calls `/commitcraft commit` (only `/commitcraft push` from pr-comment-review). The staging step is `workflows/commit.md` Phase 2 step 3. No script test covers the commit workflow (`commitcraft/tests/` has `detect-rp`, `pr-template`), so the allowlist mode needs a live check, not a suite update.
 - [x] **A plugin agent can set `model: opus`.** Official plugins do (`claude-security`, `code-simplifier` agents). Spawning it from a subagent context stays unverified; the existing `general-purpose` fallback (`SKILL.md:90-94`) covers it.
@@ -108,7 +108,7 @@ Advisor, Guard, TDD profile). Delivery: one PR.
 - [x] **Per-slice commits keep the 3-cap meaningful.** `counted_failures` never resets today (`controller.sh:57-58`; `record-success` at :81-87 sets `done` only). Resolved by decision 25: reset at each green commit.
 - [x] **The sample pair supports a structural eval.** `expected_output.json` has scenario ids AC-001 to AC-004, First-U "Password validation…" in Q1, per-quadrant lists (OAuth and 2FA in Q2, SendGrid and PostgreSQL CRUD in Q3, email format and bcrypt in Q4), and 2 evaluated tests scored 23 and 14.
 
-## Environment notes (mqol-aerie)
+## Environment notes (source repo)
 
 - `.husky/post-checkout` runs `mise run setup-worktree` on every `git worktree add` unless `SKIP_WORKTREE_SETUP` is set. Every lane worktree and every guard-check worktree pays that setup. The guard worktree needs a working env to run tests, so the setup is required, not waste.
 - `.husky/pre-commit` blocks commits on `main`/`master`. Lane branches are `autodev/<slug>`, so this does not fire.

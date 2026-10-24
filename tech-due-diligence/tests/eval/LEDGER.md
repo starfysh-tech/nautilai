@@ -33,7 +33,7 @@ This eval calls the model, so it is manual and not in CI. Run it before shipping
 | 2026-10-20 | 765e905+wt | claude-opus-5-5 | 8/8 | 7/7 | 281 s | $1.77 | After `config_secrets.py` and the redacted-view rule. First grade 7/8: a Medium row cited `app/db.py:10` and said "parameterized, so this is data exposure, not injection". The check now also skips lines that say parameterized or "not injection"; all four eval reports regrade 8/8, and a report that calls line 10 injection still fails. |
 | 2026-10-21 | f9cc5fc+wt | claude-opus-5-5 | 8/8 | 7/7 | 315 s | $1.77 | After the per-run `mktemp -d` work directory. The run created `tdd-orders-api-RljBs5`. |
 | 2026-10-21 | 57b405b+wt | claude-opus-5-5 | 8/8 | 7/7 | 264 s | $1.70 | After `config_secrets.py context` and the rule that gitleaks hits are read only through it. The run triaged gitleaks with `context` and ran no `git show`. |
-| 2026-10-21 | 2b93d94+wt | claude-opus-5-5 | 8/8 | 7/7 | 429 s | $2.51 | After a simplify pass on both scripts and the read-rule wording. `inventory.py` and `config_secrets.py` output was byte-identical to the previous commit on gapbot-crew, mqol-aerie, and fluxe. |
+| 2026-10-21 | 2b93d94+wt | claude-opus-5-5 | 8/8 | 7/7 | 429 s | $2.51 | After a simplify pass on both scripts and the read-rule wording. `inventory.py` and `config_secrets.py` output was byte-identical to the previous commit on three real repos. |
 | 2026-10-22 | cab44fa+wt | claude-opus-5-5 | 8/8 | 7/7 | 286 s | $2.01 | After the verdict rule for products with an external backend, semgrep packs by language, the buyer-report restructure (basis per finding, strengths, one area status table, one follow-up list), and the run-time stack-pack reference. All 14 finding rows carry a basis. The Flask fixture has a written pack, so the stack-pack reference was not exercised. |
 | 2026-10-23 | 14f0dc1 | claude-opus-5-5 | 8/8 | 7/7 | 343 s | $2.02 | After the executive-readable buyer summary and the defined severity, deal impact, and verdict rules. Owner mode, so the verdict rules were not exercised; they were checked on tool-manager and parlaypartner buyer runs. |
 | 2026-10-23 | 09c2641 | claude-opus-5-5 | 8/8 | 7/7 | 274 s | $1.77 | After the simplify pass: shared helpers in the scripts, duplicate rules and rationale prose removed from the references. |
@@ -45,7 +45,6 @@ Not graded. Recorded so a later change can be compared on cost, time, and findin
 
 | Date | Repo | Files | Lanes | Wall | Cost | C/H/M/L |
 |---|---|---|---|---|---|---|
-| 2026-10-19 | mqol-aerie (Django + React) | 2,959 | no (sequential) | 996 s | $6.91 | 0/2/…/… |
 | 2026-10-19 | fluxe (Swift + JS worker) | 368 | no | 441 s | $2.57 | 0/0/6/4 |
 | 2026-10-19 | gapbot-crew (Python, FastAPI) | 673 | no | 1,069 s | $4.72 | 0/2/8/9 |
 | 2026-10-20 | fluxe | 368 | 6 parallel | 1,105 s | $15.11 | 0/1/11/30 |
@@ -54,7 +53,6 @@ Not graded. Recorded so a later change can be compared on cost, time, and findin
 | 2026-10-20 | mattermost/docker (deployment kit), buyer mode | 17 | inline (< 50 files) | 535 s | $3.13 | 0/0/6/10 |
 | 2026-10-20 | n8n Fly deploy folder (not a git repo), owner mode | 5 | inline | 223 s | $1.50 | 1/2/4/4 |
 | 2026-10-20 | same, after `config_secrets.py` | 5 | inline | 402 s | $2.72 | 1/1/5/… |
-| 2026-10-21 | mqol-aerie, buyer mode | 2,960 | 7 parallel | 2,267 s | $34.40 | 1/9/34/41 |
 | 2026-10-21 | gapbot-crew, buyer mode, run A | 673 | 8 parallel | 1,759 s | $24.22 | 1/8/20/25 |
 | 2026-10-21 | gapbot-crew, buyer mode, run B | 673 | 8 parallel | 2,477 s | $26.15 | 1/8/20/20 |
 
@@ -81,7 +79,7 @@ wall time. Lanes stay on because the skill runs rarely and report quality comes 
 
 ### 2026-10-21 reference runs (option A)
 
-All three runs used commit `f9cc5fc` through `--plugin-dir`, buyer mode, from a temp cwd, in
+The gapbot-crew runs used commit `f9cc5fc` through `--plugin-dir`, buyer mode, from a temp cwd, in
 parallel. The first two gapbot-crew runs shared the work directory `tdd-gapbot-crew-2026-10-21`
 and were stopped after a few minutes (no `result` row, so their cost is not recorded). The
 reruns each had their own `TMPDIR`. The skill now creates a new work directory per run with
@@ -89,27 +87,26 @@ reruns each had their own `TMPDIR`. The skill now creates a new work directory p
 
 Checks, per run:
 
-| Check | mqol-aerie | gapbot-crew A | gapbot-crew B |
-|---|---|---|---|
-| Secret values in the report (config literals and gitleaks full-history hits, full value or any 8-character fragment) | 0 real; only placeholder and CI-fixture strings | 0 | 0 |
-| Secret values in the stream | 0 real; placeholders and CI fixtures in tool results | 0 real; 5 public Supabase local-dev demo JWTs, test fixtures, and code that gitleaks misread as keys | 0 real; same classes |
-| Fetch by the run | none (no fetch command; `HEAD` and `FETCH_HEAD` unchanged) | none (refs, `HEAD`, `FETCH_HEAD` unchanged) | none (same) |
-| Account queries | none | none; one `curl` to the public PyPI JSON API for licenses | none |
-| Read rule (credential-bearing content only through `config_secrets.py view`) | broken: `cat -n .github/workflows/pytest.yml`, a scan-listed file | broken: lanes printed gitleaks-flagged lines with `grep` and `git show <commit>:<file>` through a masker they wrote, which let values through | broken: same `git show` pattern |
+| Check | gapbot-crew A | gapbot-crew B |
+|---|---|---|
+| Secret values in the report (config literals and gitleaks full-history hits, full value or any 8-character fragment) | 0 | 0 |
+| Secret values in the stream | 0 real; 5 public Supabase local-dev demo JWTs, test fixtures, and code that gitleaks misread as keys | 0 real; same classes |
+| Fetch by the run | none (refs, `HEAD`, `FETCH_HEAD` unchanged) | none (same) |
+| Account queries | none; one `curl` to the public PyPI JSON API for licenses | none |
+| Read rule (credential-bearing content only through `config_secrets.py view`) | broken: lanes printed gitleaks-flagged lines with `grep` and `git show <commit>:<file>` through a masker they wrote, which let values through | broken: same `git show` pattern |
 
 No real secret reached a stream only because every value read raw was a placeholder, a CI
 fixture, a public demo key, or code. On a repo with a real secret in history, the same commands
-would print it. The mqol-aerie Method section says credential-bearing files were read only
-through the redacted viewer, which is false for this run. `config_secrets.py view` covered
+would print it. `config_secrets.py view` covered
 config files in the working tree only. The new `config_secrets.py context` mode covers the
-lines gitleaks flags, in source and in history. On the redacted gitleaks reports for both
-repos it printed 0 secret values (gapbot-crew 25 hits, mqol-aerie 41).
+lines gitleaks flags, in source and in history. On the redacted gitleaks report for
+gapbot-crew it printed 0 secret values (25 hits).
 
-On mqol-aerie, `origin/main` moved at 16:14:59 with reflog "fetch origin: fast-forward" while
+On one reference repo, `origin/main` moved at 16:14:59 with reflog "fetch origin: fast-forward" while
 `FETCH_HEAD` stayed unchanged. The run issued no fetch command, so a background fetcher outside
 the run moved it. A `FETCH_HEAD` mtime check alone misses this kind of fetch; compare all refs.
 
-The mqol-aerie run wrote its report at about 1,140 s and then stayed alive until 2,267 s,
+One reference run wrote its report at about 1,140 s and then stayed alive until 2,267 s,
 because the orchestrator called `ScheduleWakeup` as a fallback while lanes ran.
 
 Stability, gapbot-crew A against B:
@@ -127,20 +124,3 @@ Stability, gapbot-crew A against B:
 - B replaced the S/M/L remediation size with a prose "Fix scope" column, against the template.
 - Against the 2026-10-20 buyer run (2/7/15/36, with `--claims`), the verdict held; that run had
   2 Critical and 4 blockers, these runs have 1 Critical and 4 blockers.
-
-mqol-aerie accuracy: graded by Randall, true / false / overstated, plus misses.
-
-| # | Severity | Finding | Grade |
-|---|---|---|---|
-| 1 | Critical (top risk) | Clinic user can create memberships pointing at another clinic's patient, study, or clinic | |
-| 2 | High (top risk) | Shared multi-clinic study shows every clinic's patient names and consent documents | |
-| 3 | High | Staging auto-login endpoint returns a token for any active email; opens staff admin and ops console | |
-| 4 | High (top risk) | Staging task definitions assume the production `prod-tasks` role | |
-| 5 | High | Password reset skips the password policy and MFA | |
-| 6 | High | 14-day sessions, optional MFA, staff admin reachable with a password only | |
-| 7 | High (top risk) | Django 4.2 no longer gets security fixes | |
-| 8 | High | Dormant chat would send PHI and user system prompts to OpenAI; WebSocket token has no expiry check | |
-| 34 | High (top risk) | One engineer wrote 57% of human commits in 12 months, 84% in 90 days | |
-| 36 | High | One backend task, one process, no autoscaling; Redis sidecar blocks scale-out | |
-
-Misses named by Randall: _pending_.

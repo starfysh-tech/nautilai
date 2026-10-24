@@ -92,7 +92,7 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 - **worktree-lanes — new plugin: parallel dev lanes for any repo.** Running several
   branches at once collides on ports, databases, and env files, so each repo grows its
-  own worktree script (mqol-aerie's `mise run lane` was the template). Those scripts
+  own worktree script (one client repo's `mise run lane` was the template). Those scripts
   can't be reused, and a script built for one stack fails quietly on another. One
   stack-agnostic engine (`scripts/lane`) now owns the parts every repo needs: the
   worktree, the base ref, port allocation, the env file, and the

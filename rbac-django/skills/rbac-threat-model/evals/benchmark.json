@@ -65,7 +65,7 @@
   ],
   "analyst_observations": [
     "The skill produces fundamentally different output type than baseline. Baseline agents default to code-validation mode (checking findings against actual repo), while the skill forces adversarial threat modeling mode with structured abuse cases.",
-    "Eval 3 baseline is the starkest contrast: without the skill, the agent declared all 5 findings false positives by validating against Aerie's actual code. The skill version correctly treated them as hypothetical and generated 9 abuse cases.",
+    "Eval 3 baseline is the starkest contrast: without the skill, the agent declared all 5 findings false positives by validating against the test repo's actual code. The skill version correctly treated them as hypothetical and generated 9 abuse cases.",
     "Eval 1 baseline also validated findings against code, downgrading 3 of 5 findings. The skill version accepted findings at face value AND validated code, producing richer compound analysis.",
     "BIL score ordering is the main structural weakness: 2 of 3 with-skill runs had imperfect descending order. The compound risk case (AC-07) tends to be placed last as a 'summary' case rather than by BIL score.",
     "Mode A (eval 2) included a Findings-to-Abuse Mapping table with 'No finding' entries. The skill template includes this section always but it adds noise in Mode A. Consider making it conditional.",
