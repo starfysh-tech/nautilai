@@ -37,6 +37,7 @@ This eval calls the model, so it is manual and not in CI. Run it before shipping
 | 2026-10-22 | cab44fa+wt | claude-opus-5-5 | 8/8 | 7/7 | 286 s | $2.01 | After the verdict rule for products with an external backend, semgrep packs by language, the buyer-report restructure (basis per finding, strengths, one area status table, one follow-up list), and the run-time stack-pack reference. All 14 finding rows carry a basis. The Flask fixture has a written pack, so the stack-pack reference was not exercised. |
 | 2026-10-23 | 14f0dc1 | claude-opus-5-5 | 8/8 | 7/7 | 343 s | $2.02 | After the executive-readable buyer summary and the defined severity, deal impact, and verdict rules. Owner mode, so the verdict rules were not exercised; they were checked on tool-manager and parlaypartner buyer runs. |
 | 2026-10-23 | 09c2641 | claude-opus-5-5 | 8/8 | 7/7 | 274 s | $1.77 | After the simplify pass: shared helpers in the scripts, duplicate rules and rationale prose removed from the references. |
+| 2026-10-23 | 5bf5aad | claude-opus-5-5 | 8/8 | 7/7 | 407 s | $2.49 | After stack packs stopped setting severities; the Severity section rates every finding. A tool-manager buyer run on the same change kept the verdict and blockers. |
 
 ## Reference runs on real repos
 
