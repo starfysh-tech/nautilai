@@ -8,7 +8,7 @@
     {"text": "Includes get_queryset() filtering fix", "type": "grep", "pattern": "get_queryset"},
     {"text": "Includes perform_create() validation", "type": "grep", "pattern": "perform_create"},
     {"text": "Produces single clustered playbook (one GitHub issue)", "type": "count", "pattern": "Current State", "expected_count": 1},
-    {"text": "References user.get_clinics()", "type": "grep", "pattern": "get_clinics"},
+    {"text": "References user.get_tenants()", "type": "grep", "pattern": "get_tenants"},
     {"text": "Assigns Now priority", "type": "grep", "pattern": "Now"}
   ]
 }

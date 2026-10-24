@@ -204,6 +204,17 @@
       },
       "homepage": "https://starfysh-tech.github.io/nautilai/plugins/worktree-lanes.html",
       "license": "MIT"
+    },
+    {
+      "name": "tech-due-diligence",
+      "source": "./tech-due-diligence",
+      "description": "Technical due diligence for any git repo and any stack — a stack inventory, secret, code-security, dependency, license, and infrastructure scanners, AI triage of every candidate against the cited code, and a code read of architecture, operations, and team risk. One evidence-cited report in buyer mode (red flags, deal impact, seller questions) or owner mode (ordered fix list).",
+      "version": "2.34.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/tech-due-diligence.html",
+      "license": "MIT"
     }
   ]
 }

@@ -110,14 +110,14 @@ Results:
 | A failed baseline set `needs_guidance` permanently — a later green baseline never cleared it, so the check gate blocked the lane forever (hit live via a `python` vs `python3` verifier typo) | `baseline_verify.sh` success branch resets `status` to `pending` | `scripts.test.sh` "green baseline clears needs_guidance" |
 | `haiku-worker` agent type doesn't resolve from a teammate orchestrator (roster lists only built-in types) | SKILL.md 4b documents the fallback: `general-purpose` + `model: haiku` + inline contract | doc-level; fallback used successfully in runs #2–3 |
 
-## Run #4 — 2026-07-03 — mqol-uptimer (seeded regression)
+## Run #4 — 2026-07-03 — client monorepo (seeded regression)
 
 Three runs of honest hard-task selection have not produced a live failure;
 red-first with a full failing spec makes tasks *too* tractable for haiku.
 Run #4 manufactures difficulty structurally: debugging someone else's subtle
 regression, with the target location withheld.
 
-Venue: `~/Code/mqol-uptimer` (mqol-inc, `master`, pnpm monorepo, vitest,
+Venue: a client repo (`master`, pnpm monorepo, vitest,
 113 tests ~15–30s, in-memory fake DB, no env/network blockers). Target:
 `apps/worker/src/monitor/state-machine.ts` — threshold/hysteresis logic.
 

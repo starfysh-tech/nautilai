@@ -30,6 +30,7 @@ body:
         - sentry-hygiene
         - action-first
         - worktree-lanes
+        - tech-due-diligence
     validations:
       required: true
   - type: input

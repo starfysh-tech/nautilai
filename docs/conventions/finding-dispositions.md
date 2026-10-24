@@ -61,6 +61,7 @@ is recoverable; a wrong silent edit is not.
 | **pr-review-deep** | *none* (propose-only; never edits code) | every review finding, with cited `file:line` | acting on a proposed restructuring ("apply this?") |
 | **autodev `--review-tests`** | *none* (a changed test changes what it proves) | FIRST-U scores, advisory test findings, missing scenarios, coverage gaps | blocking-class test findings (proposed as test-fix lanes) |
 | **github-issue-auditor** | *none by default* (Phase 4 applies only user-approved batches) | the full audit report | every mutation — behind the Phase 4 gate |
+| **tech-due-diligence** | *none* (changes nothing in the audited repo) | every triaged finding, the open questions, and each `NOT RUN` area with its reason | *none* — remediation is the user's call |
 
 **Noted exception:** autodev's `review-gate` agent is a pipeline-internal gate, not
 a user-facing review — it returns `pass`/`block` with blocking/advisory findings.
