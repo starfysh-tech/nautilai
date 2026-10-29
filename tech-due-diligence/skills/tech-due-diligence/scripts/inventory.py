@@ -103,7 +103,7 @@ KEY_MATERIAL_RE = re.compile(
     r"|(^|/)id_(rsa|dsa|ecdsa|ed25519)$", re.I
 )
 ENV_NAME_RE = re.compile(r"^\.env(\..+)?$|\.env$|^env\.(example|sample|template)$")
-ENV_TEMPLATE_RE = re.compile(r"\.(example|sample|template|dist|defaults?)$", re.I)
+TEMPLATE_RE = re.compile(r"(^|[._-])(example|sample|template|dist|defaults?)([._-]|$)", re.I)
 
 TOOLS = [
     "git", "gitleaks", "trufflehog", "semgrep", "osv-scanner", "trivy",
@@ -123,6 +123,10 @@ LINE_COUNT_MAX_BYTES = 2_000_000
 
 def is_env_file(path: str) -> bool:
     return bool(ENV_NAME_RE.search(PurePosixPath(path).name))
+
+
+def is_template(path: str) -> bool:
+    return bool(TEMPLATE_RE.search(PurePosixPath(path).name))
 
 
 def run(cmd: list[str], cwd: Path, errors: str | None = None) -> str | None:
@@ -451,7 +455,7 @@ def platform_configs(root: Path, files: list[str], frameworks: dict[str, list[st
 
 
 def secret_files(files: list[str], in_git: bool) -> dict[str, list[str]]:
-    env_files = [f for f in files if is_env_file(f) and not ENV_TEMPLATE_RE.search(f)]
+    env_files = [f for f in files if is_env_file(f) and not is_template(f)]
     key_files = [f for f in files if KEY_MATERIAL_RE.search(f)]
     # Outside git nothing is "tracked": the files are only present on disk.
     return {

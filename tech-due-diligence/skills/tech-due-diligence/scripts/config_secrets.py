@@ -16,7 +16,7 @@ import sys
 from pathlib import Path, PurePosixPath
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from inventory import is_env_file, list_files, run  # noqa: E402
+from inventory import is_env_file, is_template, list_files, run  # noqa: E402
 
 CONFIG_SUFFIXES = {
     ".toml", ".yaml", ".yml", ".json", ".ini", ".cfg", ".conf", ".properties",
@@ -31,7 +31,6 @@ NON_CRED_WORDS = {"length", "min", "max", "ttl", "expiry", "expires", "url", "ur
                   "file", "path", "type", "name", "fail", "policy", "rotation", "enabled", "header", "arn"}
 # A trailing "id" names an identifier (APPLICATION_DB_SECRET_ID); a leading one is GitHub's id-token permission.
 ID_WORDS = {"id", "ids"}
-TEMPLATE_RE = re.compile(r"example|sample|template|\.dist$", re.I)
 
 
 def is_cred_key(key: str) -> bool:
@@ -109,7 +108,7 @@ def scan(root: Path) -> list[dict]:
             out.append({
                 "file": f, "line": n, "key": key, "kind": kind,
                 "value_length": len(unquote(val)), "env_file": is_env_file(f),
-                "template": bool(TEMPLATE_RE.search(f)),
+                "template": is_template(f),
                 "tracked_in_git": source == "git ls-files",
             })
     return out

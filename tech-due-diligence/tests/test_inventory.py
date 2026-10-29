@@ -69,6 +69,7 @@ def mixed_repo(root):
     write(root, ".env.example", "placeholder\n")
     write(root, "config/production.env", "placeholder\n")
     write(root, "env.example", "placeholder\n")
+    write(root, ".env.defaults", "placeholder\n")
     write(root, ".gitignore", "node_modules/\n.venv/\n")
     # Ignored or untracked trees that must never reach the inventory.
     write(root, "web/node_modules/lodash/package.json", '{"dependencies": {"vue": "3"}}')
