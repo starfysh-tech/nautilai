@@ -30,6 +30,9 @@ Never substitute a token yourself and never fall back to a relative path. If nei
 resolved, stop and tell the user — except on omp and pi, where the note under the title gives
 the one substitution you may make.
 
+In the rest of this file and in the references, `<scripts>` is the scripts directory from the
+line that resolved.
+
 ## Inputs
 
 - **repo-path** (optional): the repo to audit. Defaults to the current working directory.
@@ -77,7 +80,7 @@ outside `.claude/shoals/`. In buyer mode, neither read nor write shoals.
 ### 1. Inventory
 
 ```bash
-python3 ${CLAUDE_PLUGIN_ROOT}/skills/tech-due-diligence/scripts/inventory.py <repo-path>
+python3 <scripts>/inventory.py <repo-path>
 ```
 
 Create a new work directory for this run with `mktemp -d "${TMPDIR:-/tmp}/tdd-<repo-name>-XXXXXX"`.

@@ -44,6 +44,8 @@ def test_scan_and_view():
         write(root, "config/app.yaml", f"db:\n  password: changeme\n  url: {DB_URL}\n  min_password_length: 12\n")
         write(root, "deploy.yml", "permissions:\n  id-token: write\nenv:\n  DB_SECRET_ID: prod/app/db\n")
         write(root, "env.example", f"SECRET_KEY={LIVE}\n")
+        write(root, "config/settings.example.yaml", f"api_key: {LIVE}\n")
+        write(root, "deploy/templates/prod.yaml", f"api_key: {LIVE}\n")
         write(root, ".env", f"BUCKET=assets\nAWS_SECRET_ACCESS_KEY={LIVE}\n")
         found = by_key(cs.scan(Path(root)))
 
@@ -58,6 +60,10 @@ def test_scan_and_view():
         check("id-token permission skipped", ("deploy.yml", "id-token") not in found, found)
         check("secret identifier skipped", ("deploy.yml", "DB_SECRET_ID") not in found, found)
         check("template flagged", found.get(("env.example", "SECRET_KEY"), {}).get("template") is True, found)
+        check("template named in the file name flagged",
+              found.get(("config/settings.example.yaml", "api_key"), {}).get("template") is True, found)
+        check("real config in a templates directory not flagged",
+              found.get(("deploy/templates/prod.yaml", "api_key"), {}).get("template") is False, found)
         check("env file secret found", found.get((".env", "AWS_SECRET_ACCESS_KEY"), {}).get("env_file") is True, found)
         check("non-credential env key skipped", (".env", "BUCKET") not in found, found)
         check("outside git, nothing is tracked", not any(f["tracked_in_git"] for f in found.values()))
