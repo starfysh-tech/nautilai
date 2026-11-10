@@ -24,6 +24,14 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   follows from severity alone, because the separate approval bar could disagree
   with it (it treated ad-hoc branching as blocking while severity rated it
   `should-fix`).
+- **review-plan** — the simplification pass now checks interface shape, not only
+  code volume. A plan could pass YAGNI and still add a pass-through wrapper, a
+  leaky interface, or options with one sensible value; the new deep-module check
+  ([validation-questions](../review-plan/skills/review-plan/references/validation-questions.md))
+  catches those, scoped to interfaces the plan touches. Phase 2 also fans out by
+  review aspect instead of by named agent, so Claude Code and Hermes follow one
+  rule, and the Codex prompt reuses those aspects (the separate template had
+  drifted on `--effort`).
 
 ## 2026-10-19
 

@@ -51,7 +51,7 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>Extracts the plan's goal, proposed changes, touched files, dependencies, and assumptions. Investigates in parallel: a reuse and reduction scan for redundant steps, then dependency tracing, breaking-change risk, error-handling gaps, and architecture — each grounded in code. Revises the plan in place to the leanest correct version, adds assumptions-to-validate gates, and reports the verdict with code you can avoid writing.</p>
+    <p>Extracts the plan's goal, proposed changes, touched files, dependencies, and assumptions. Investigates in parallel, one subagent per aspect: reuse, reduction and interface shape; dependencies and breaking changes; error handling and edge cases; tests; soundness and assumptions — each grounded in code. Revises the plan in place to the leanest correct version, adds assumptions-to-validate gates, and reports the verdict with code you can avoid writing.</p>
   </section>
 
   <section id="commands">
@@ -64,17 +64,17 @@
 
   <section id="how">
     <h2>How it works</h2>
-    <p>The skill extracts the plan's goal, proposed changes, touched files, dependencies, and assumptions. It investigates in parallel: a reuse and reduction scan identifies existing code or patterns that make planned steps redundant, then dependency tracing, breaking-change risk, error-handling gaps, and architecture analysis — each finding grounded in <code>file:line</code>.</p>
-    <p>A simplification pass runs first (reuse, delete, configure, YAGNI, smallest-diff), then risk and edge-case questions, reconciling the two so risks get the cheapest correct fix rather than piling on defensive code. The skill revises the plan in place to the leanest correct version and adds one "Assumptions to validate before implementing" gate.</p>
+    <p>The skill extracts the plan's goal, proposed changes, touched files, dependencies, and assumptions. It investigates in parallel, one subagent per aspect: reuse, reduction and interface shape (existing code or patterns that make planned steps redundant, and shallow or leaky interfaces), dependencies and breaking changes, error handling and edge cases, tests, and soundness and assumptions — each finding grounded in <code>file:line</code>.</p>
+    <p>A simplification pass runs first (reuse, delete, configure, YAGNI, deep modules with small interfaces, smallest-diff), then risk and edge-case questions, reconciling the two so risks get the cheapest correct fix rather than piling on defensive code. The skill revises the plan in place to the leanest correct version and adds one "Assumptions to validate before implementing" gate.</p>
     <p>Works out of the box with built-in agents (Plan, code-reviewer, Explore). Optionally uses specialists from feature-dev, pr-review-toolkit, or Codex plugins if installed — graceful degradation, no hard fails.</p>
     <p>Shoals: records corrections in <code>.claude/shoals/review-plan.review-plan.md</code> for the next run, preventing repeated mistakes on the same project.</p>
 
     <div class="flow">
       <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">extract plan</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">reuse scan</span></span></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">aspect fan-out</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">dependency + risk analysis</span></span></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">optional Codex review</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
       <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">simplification pass</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>

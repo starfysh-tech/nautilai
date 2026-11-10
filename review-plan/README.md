@@ -22,8 +22,8 @@ Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
 It does two jobs, in this order: **make the plan smaller**, then **make it safe** — aiming for the smallest diff that's still correct at staff-engineer quality (never fewer lines at the cost of correctness).
 
 1. **Extracts** the plan's goal, proposed changes, touched files, dependencies, and the **assumptions** it rests on.
-2. **Investigates in parallel** — starting with a **reuse & reduction scan** (existing code/patterns that make planned steps redundant), then dependency tracing, breaking-change risk, error-handling gaps, architecture, and (when relevant) type-design and test-coverage impact — each grounded in `file:line`.
-3. **Validates** — runs a **simplification pass first** (reuse / delete / configure / YAGNI / smallest-diff), then risk/edge-case questions, reconciling the two so risks get the *cheapest correct* fix rather than piling on defensive code (`references/validation-questions.md`).
+2. **Investigates in parallel** — one read-only subagent per review aspect: **reuse, reduction & interface shape** (highest priority), dependencies & breaking changes, error handling & edge cases, tests, and soundness & assumptions — each grounded in `file:line`.
+3. **Validates** — runs a **simplification pass first** (reuse / delete / configure / YAGNI / deep modules with small interfaces / smallest-diff), then risk/edge-case questions, reconciling the two so risks get the *cheapest correct* fix rather than piling on defensive code (`references/validation-questions.md`).
 4. **Revises the plan in place** to the leanest correct version and adds one **"Assumptions to validate before implementing"** gate. It reports the verdict, a **LEAN / ACCEPTABLE / OVER-ENGINEERED** footprint, what changed, and the code you can avoid writing — **to you in chat**, not as a confusing changes-log in the plan file.
 
 ## Optional enhancements (graceful degradation)
@@ -72,8 +72,8 @@ v0.18.2); install by the identifier above.
 
 | Capability | Claude Code | Hermes |
 | --- | --- | --- |
-| Parallel specialist subagents | yes (`Task`) | via `delegate_task` — no named-specialist types, so each analysis runs as a generic delegated subagent |
-| Analysis | fans out to `code-explorer`, `code-reviewer`, etc. | fans out via delegation; falls back to inline Read/Grep if no delegation primitive is present |
+| Parallel specialist subagents | yes (`Task`) | via `delegate_task` — no named-specialist types, so each aspect runs as a generic delegated subagent |
+| Analysis | one subagent per aspect; prefers an installed matching specialist (`code-explorer`, `code-reviewer`, etc.) | fans out via delegation; falls back to inline Read/Grep if no delegation primitive is present |
 
 Hermes has a subagent primitive (`delegate_task`), driven from the skill by stating fan-out
 intent. It has no named specialist agent types, so each aspect runs as a generic delegated

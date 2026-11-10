@@ -54,39 +54,40 @@ If `AskUserQuestion` is deferred in this environment, load it via `ToolSearch` (
 
 ---
 
-## Phase 2: Investigate (parallel, with graceful degradation)
+## Phase 2: Investigate (parallel)
 
-Run the analyses below in parallel. **Each has a preferred specialist subagent and a built-in fallback.** Spawn the specialist via `Task` only if it's installed; if a `Task` call returns "Agent type … not found" (the providing plugin isn't installed), **fall back to the built-in agent or inline Read/Grep — never abort.** `Plan` and `Explore` are built in and always available; `code-reviewer` is a commonly-installed local agent, not guaranteed present.
+Delegate each aspect below to its own read-only subagent, in parallel. Each aspect
+answers the named parts of `references/validation-questions.md`:
 
-Every subagent prompt must demand **condensed output**: findings only, each with a `file:line` citation, no verbose narration ("Return only findings with file:line refs; if you can't verify from code, say 'unverifiable' — don't guess. Keep it under ~500 tokens."). This keeps synthesis grounded and small.
+1. **Reuse, reduction & interface shape** — Simplification Pass (including deep
+   modules). Highest priority.
+2. **Dependencies & breaking changes** — "What will BREAK?", "What DEPENDENCIES are
+   affected?", API/schema/version checklist items.
+3. **Error handling & edge cases** — "What was MISSED?", "What EDGE CASES?", reachable
+   failure modes; type invariants if the plan adds types.
+4. **Tests** — "What TESTS will fail?", coverage for new code paths.
+5. **Soundness & assumptions** — "Why will this NOT work?", "What ASSUMPTIONS are
+   unverified?", architectural trade-offs.
 
-| Analysis | Preferred specialist (if installed) | Built-in fallback (always works) |
-| --- | --- | --- |
-| **Reuse & reduction scan** (run this first) | `feature-dev:code-explorer` — *tasked specifically*: find existing utilities, helpers, endpoints, or patterns in THIS repo that already do what the plan proposes, and what the plan could delete/replace instead of add | `Explore` agent, or inline Grep/Glob for the relevant verbs/types |
-| Dependency & architecture tracing | `feature-dev:code-explorer` | `Explore` agent, or inline Grep/Read |
-| Breaking-change risk | `code-reviewer` (if installed) | `general-purpose` agent, or `Explore` + inline analysis |
-| Error-handling / silent-failure gaps | `pr-review-toolkit:silent-failure-hunter` | inline analysis (see `references/validation-questions.md`) |
-| Architectural soundness & trade-offs | `Plan` (built-in) | — |
-| Type design (only if the plan adds types) | `pr-review-toolkit:type-design-analyzer` | inline analysis |
-| Test-coverage impact | `pr-review-toolkit:pr-test-analyzer` | inline analysis |
-
-Rules: give each agent ONE focused aspect; require specific `file:line` references; wait for results before synthesis. When falling back to `Explore` (or `general-purpose`) for search/extraction work, pass `model: haiku` — it's cheap, read-only fan-out. Named plugin specialist agents (`code-reviewer`, `code-explorer`, `silent-failure-hunter`, etc.) keep their own model definitions; don't override them.
-
-> **Runtime note (non-Claude).** `Task` and the named specialist types above are Claude-native. On a runtime that has its own subagent/delegation primitive but not `Task` (e.g. Hermes' `delegate_task`), delegate each aspect the same way: state the aspect as the subagent's goal and pass its full focused prompt — including "condensed output, `file:line` only" — as context, since the subagent starts with fresh context and returns a summary only. Do **not** name a specific tool or invent a specialist type; state the intent and let the runtime's agent delegate. If the runtime has no delegation primitive at all, run the inline Read/Grep fallback serially — never abort.
+Rules:
+- Give each subagent its full aspect prompt plus the Phase 1 extraction as context; it starts fresh and returns a summary only.
+- Every prompt demands condensed output: "Return only findings with file:line refs; if you can't verify from code, say 'unverifiable' — don't guess. Keep it under ~500 tokens."
+- Use the runtime's own subagent primitive. Do not invent a specialist type. On Claude Code, prefer an installed specialist that matches the aspect (`feature-dev:code-explorer`, `code-reviewer`, `pr-review-toolkit:silent-failure-hunter`, `pr-review-toolkit:type-design-analyzer`, `pr-review-toolkit:pr-test-analyzer`); if a spawn returns "Agent type … not found", use `Explore` or `general-purpose` with `model: haiku`. Named specialists keep their own model.
+- If no delegation primitive exists, run the aspects inline with Read/Grep, serially. Never abort.
+- Wait for all results before Phase 3.
 
 ### Optional: Codex cross-model review
 
-If the Codex companion is installed, get an independent GPT review for a second perspective. Run its script **directly via Bash** — do **not** use the `codex:codex-rescue` subagent (it's a thin wrapper that may lack tool permissions when spawned as a subagent).
-
-Locate the script version-independently and run it (skip cleanly if not found):
+If the Codex companion is installed, get an independent GPT review. Run its script **directly via Bash** — do **not** use the `codex:codex-rescue` subagent (it may lack tool permissions when spawned as a subagent).
 
 ```bash
 CODEX_SCRIPT="$(find "$HOME/.claude/plugins" -name codex-companion.mjs -path '*/codex/*' 2>/dev/null | head -1)"
 [ -n "$CODEX_SCRIPT" ] && node "$CODEX_SCRIPT" task "<prompt>" --effort high || echo "Codex unavailable — continuing with Claude-only analysis"
 ```
 
-- Use the `task` command (not `review`/`adversarial-review` — those diff branches, not designs). Do **not** pass `--write`; this is read-only.
-- Fill the prompt from `references/codex-prompt.md` with the Phase 1 details.
+Build `<prompt>` from the Phase 1 plan summary and the affected file paths (Codex reads the files itself), then ask for the five Phase 2 aspects as `##` sections in that order, with: "Cite file:line for every claim. Distinguish observed facts from inferences. If you cannot verify a claim from the code, say so. Skip speculative edge cases."
+
+- Use the `task` command (not `review`/`adversarial-review` — those diff branches, not designs). Do **not** pass `--write`.
 - Avoid the literal string for environment files in the prompt (security hooks may block it) — say "environment file" / "dotenv config".
 - **Codex is additive** — if it's missing, times out, or returns nothing, note it to the user and continue.
 
@@ -94,11 +95,7 @@ CODEX_SCRIPT="$(find "$HOME/.claude/plugins" -name codex-companion.mjs -path '*/
 
 ## Phase 3: Validate — simplify first, then harden
 
-Work `references/validation-questions.md` **in order**: run the **Simplification Pass first** (reuse / delete / configure / YAGNI / smallest-diff), then the risk and edge-case questions and deep checklist. Capture `file:line` evidence throughout.
-
-Two non-negotiable rules from that file:
-- **Reconcile risk against simplicity** — classify each risk **must-handle** (real, reachable correctness/security/data failure) vs. **speculative** (hypothetical input, scale you won't hit, states already prevented upstream). Drop/defer speculative ones; for must-handle, prescribe the *cheapest correct* mitigation, not the most defensive one.
-- **Guardrails** — simpler means less code for the **same** correctness. Never remove real error handling, validation, authz, or security to cut lines.
+Apply `references/validation-questions.md` **in order** to the Phase 2 findings: Simplification Pass, then reconcile each risk (must-handle vs. speculative, cheapest correct mitigation), then guardrails. Keep `file:line` evidence throughout.
 
 ---
 
@@ -107,8 +104,7 @@ Two non-negotiable rules from that file:
 1. Combine the findings into a severity-ranked picture; keep any Codex findings labeled as a separate cross-model perspective (don't merge into the Claude buckets).
 2. Resolve conflicts or ambiguous decisions with the user via `AskUserQuestion` **before** finalizing.
 3. **Before editing, ensure the change is recoverable**: if the plan file is inside a git repo and already tracked, the working-tree history covers it. Otherwise (untracked file, or no git repo), write a `<plan>.bak` copy first, or show the full diff in chat — then state what was preserved.
-4. **Revise the original plan in place with `Edit`** so the plan *becomes* the leanest correct version — apply the reuse/delete/simplify wins and the cheapest-correct mitigations directly. **Do not append a "validation results" or "changes" section to the plan file** — a retrospective log confuses whoever implements it later. The plan file should read as a clean, improved plan.
-5. Into the plan, add exactly one forward-looking section — **`## Assumptions to validate before implementing`** — listing each assumption as an empirically checkable item (what to inspect/run to confirm it before writing code). This is the one addition that belongs in the plan; everything else is reported to the user (below).
+4. Revise the plan in place with `Edit` and add the assumptions section, per `references/output-template.md` (A and B).
 
 ## Finding dispositions
 
@@ -122,32 +118,12 @@ This skill follows the nautilai convention. Disposition of every finding:
 
 ## Report to the user (in chat, not the plan file)
 
-After revising the plan, tell the user:
-
-- **Verdict:** CRITICAL | CAUTION | REASONABLE, plus **Footprint: LEAN | ACCEPTABLE | OVER-ENGINEERED** (so a safe-but-bloated plan can't pass silently).
-- **What changed in the plan** — the revisions you applied (reuse/delete/simplify + must-handle fixes), each with `file:line`.
-- **Code you can avoid writing** — the existing utility/pattern/flag that replaces a planned step, with `file:line`.
-- **Assumptions to validate** — point at the section you added to the plan.
-- **Risks dropped as speculative** — what you considered and deliberately did *not* add code for, and why.
-
-Use the structure in `references/output-template.md`. Then ask: "Plan revised in place. How would you like to proceed?" — Review decisions | Validate assumptions | Create tickets | Abandon.
-
-## Success criteria
-
-- [ ] Plan located; assumptions extracted
-- [ ] Reuse/reduction scan run **first**, with `file:line` evidence
-- [ ] Simplification pass applied before hardening
-- [ ] Each risk classified must-handle vs. speculative; mitigations are cheapest-correct
-- [ ] Guardrails respected (no correctness/security traded for brevity)
-- [ ] Plan **revised in place** to the leanest correct version (no changes-log appended)
-- [ ] `## Assumptions to validate before implementing` added to the plan
-- [ ] User shown verdict + footprint + what changed + code avoided
+Report using `references/output-template.md` (C). Then ask: "Plan revised in place. How would you like to proceed?" — Review decisions | Validate assumptions | Create tickets | Abandon.
 
 ## What to read when
 
 - `references/validation-questions.md` — the simplification pass, reconciliation rule, guardrails, and risk/edge-case questions. Read every run.
-- `references/codex-prompt.md` — prompt template for the optional Codex step.
-- `references/output-template.md` — the user-facing report + the in-plan assumptions block.
+- `references/output-template.md` — the in-plan revision rules, the assumptions block, and the user-facing report.
 
 ## Shoals (project corrections)
 

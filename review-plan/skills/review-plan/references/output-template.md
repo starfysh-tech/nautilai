@@ -2,11 +2,8 @@
 
 Two outputs, kept separate on purpose:
 
-- **A.** The plan file is **revised in place** (Phase 4) and gets exactly ONE added
-  section — the assumptions block (B). Do **not** append a validation-results /
-  changes log to the plan; it confuses whoever implements it later.
-- **C.** Everything else (verdict, what changed, code avoided) is reported to the
-  **user in chat**, not written to the plan file.
+- **A + B** go in the plan file.
+- **C** goes to the user in chat, never into the plan file.
 
 ---
 
@@ -14,8 +11,8 @@ Two outputs, kept separate on purpose:
 
 Edit the plan so it *becomes* the leanest correct version: apply reuse/delete/
 simplify wins and cheapest-correct mitigations directly into the relevant steps.
-No "before/after" or "changes made" section in the file — the plan should read
-clean.
+Do **not** append a validation-results, before/after, or changes log; it confuses
+whoever implements the plan later. The only added section is B.
 
 ## B. The one section to ADD to the plan
 

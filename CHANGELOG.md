@@ -1,5 +1,19 @@
 # Changelog
 
+## [2.37.0](https://github.com/starfysh-tech/nautilai/compare/v2.36.2...v2.37.0) (2026-11-10)
+
+
+### Features
+
+* **review-plan:** add deep-module check and fan out by aspect ([#184](https://github.com/starfysh-tech/nautilai/issues/184)) ([482aeab](https://github.com/starfysh-tech/nautilai/commit/482aeabe117ec774d292acd6f8fc5bb98015a630))
+
+## [2.36.2](https://github.com/starfysh-tech/nautilai/compare/v2.36.1...v2.36.2) (2026-11-10)
+
+
+### Bug Fixes
+
+* **worktree-lanes:** use an exclusive-create file for the repo lock ([#186](https://github.com/starfysh-tech/nautilai/issues/186)) ([fdefb7d](https://github.com/starfysh-tech/nautilai/commit/fdefb7dc3856d110131c9bfa2262d6c0967dfbfa))
+
 ## [2.36.1](https://github.com/starfysh-tech/nautilai/compare/v2.36.0...v2.36.1) (2026-10-29)
 
 
