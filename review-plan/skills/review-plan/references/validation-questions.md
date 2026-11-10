@@ -25,6 +25,21 @@ proposed change, find the smallest correct version. Answer with evidence.
   more code than it adds, and be justified vs. the stdlib / existing deps.
 - **Follow this codebase's existing pattern.** If similar features exist, mirror
   that shape — don't invent a parallel one. Cite the pattern to copy.
+- **Deep modules, small interfaces.** For each module, function, or endpoint the
+  plan adds or whose signature it changes:
+  - Shallow? If the interface is about as complex as what it hides (a wrapper,
+    a pass-through method, a layer that only forwards calls), merge it into its
+    caller or callee.
+  - Leaky? If callers must know an internal detail (call order, a format, a
+    flag that only matters inside), move that knowledge behind the interface.
+  - Config pushed out? Replace each parameter or option the plan exposes that
+    has one sensible value with that value as a default inside.
+  - Split by step, not by knowledge? If two new pieces must change together,
+    merge them.
+
+  Scope: only interfaces the plan touches. Don't propose refactoring untouched
+  code. Output either "deepen: merge X into Y at path:line" or "interface is
+  minimal — checked."
 - **Smallest diff that's still correct.** Prefer the change touching the fewest
   files/lines without hiding complexity or duplicating logic.
 
