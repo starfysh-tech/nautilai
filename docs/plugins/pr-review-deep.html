@@ -66,7 +66,7 @@
   <section id="how">
     <h2>How it works</h2>
     <p>The skill reads the diff from the current branch or a PR, citing every finding with <code>file:line</code> and verifying claims against the code before raising them. It focuses on layering, module boundaries, dependency direction, type contracts, and behavior-preserving simplifications — identifying high-leverage restructurings, not just local cleanups.</p>
-    <p>The review reads the diff via a graceful degradation chain: GitHub MCP (preferred), then <code>gh</code> CLI, then plain <code>git diff</code>. Each finding is one line with a severity (<code>block</code>, <code>should-fix</code>, <code>follow-up</code>) and a tag (<code>delete</code>, <code>layer</code>, <code>coupling</code>, <code>branching</code>, <code>contract</code>, <code>indirection</code>, <code>reuse</code>, <code>orchestration</code>, <code>size</code>), and the review ends with one verdict line. All findings are proposed for your decision — the skill never edits code or expands the PR's scope.</p>
+    <p>The review reads the diff via a graceful degradation chain: GitHub MCP (preferred), then <code>gh</code> CLI, then plain <code>git diff</code>. Each finding is one line with a severity (<code>block</code>, <code>should-fix</code>, <code>follow-up</code>) and a tag (<code>delete</code>, <code>layer</code>, <code>coupling</code>, <code>branching</code>, <code>contract</code>, <code>depth</code> (shallow or leaky interfaces), <code>reuse</code>, <code>orchestration</code>, <code>size</code>), and the review ends with one verdict line. All findings are proposed for your decision — the skill never edits code or expands the PR's scope.</p>
     <p>Shoals: reads and appends user corrections to <code>.claude/shoals/pr-review-deep.pr-review-deep.md</code> in your project.</p>
 
     <div class="flow">
@@ -88,7 +88,7 @@
           <li>Diff read chain: GitHub MCP (preferred) → <code>gh</code> CLI → <code>git diff</code>, degrading loudly on failure.</li>
           <li>Finding format: <code>&lt;file&gt;:L&lt;line&gt;: &lt;severity&gt; &lt;tag&gt;: &lt;problem&gt;. &lt;proposed structure&gt;. Preserves behavior: &lt;test | file:line | unverified&gt;.</code></li>
           <li>Severity: <code>block</code> (architectural regression or data-loss risk this PR introduces), <code>should-fix</code>, <code>follow-up</code> (pre-existing debt).</li>
-          <li>Verdict line: <code>approve</code>, <code>approve with should-fix</code>, or <code>block</code>, with the finding count and net line estimate. No findings: <code>No architectural findings. Verdict: approve.</code></li>
+          <li>Verdict line: <code>block</code> if any finding is <code>block</code>, <code>approve with should-fix</code> if any is <code>should-fix</code>, otherwise <code>approve</code>; with the finding count and net line estimate. No findings: <code>No architectural findings. Verdict: approve.</code></li>
           <li>Dispositions (per nautilai conventions): all findings are <code>report</code> (proposes, never auto-fixes); user-actionable proposals are <code>ask-user</code> (never self-resolved).</li>
           <li>Evidence-first: every finding cites <code>file:line</code>, verified against the code before raised; behavior-preservation is treated as a hypothesis until proven.</li>
           <li>Findings are proposed, not performed — describes restructurings concretely and leaves the decision to the author; never edits code or expands the PR's scope.</li>

@@ -16,6 +16,14 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-11-10
 
+- **pr-review-deep** — interface depth now has one tag. Shallow wrappers, leaky
+  details, and options with one sensible value were split across `indirection`,
+  `layer`, and `contract`, so no tag asked whether an interface is as complex as
+  what it hides; the new `depth` tag replaces `indirection` and owns that question
+  ([SKILL.md](../pr-review-deep/skills/pr-review-deep/SKILL.md)). The verdict now
+  follows from severity alone, because the separate approval bar could disagree
+  with it (it treated ad-hoc branching as blocking while severity rated it
+  `should-fix`).
 - **review-plan** — the simplification pass now checks interface shape, not only
   code volume. A plan could pass YAGNI and still add a pass-through wrapper, a
   leaky interface, or options with one sensible value; the new deep-module check
