@@ -74,22 +74,23 @@ correctly. Each finding carries one tag. Report tags in this order:
 - `delete` — a reframing removes a whole branch, helper, mode, or layer. Prefer
   deleting complexity over redistributing it. Name what removes it.
 - `layer` — logic sits in a layer, module, or service that does not own the
-  concept: feature logic in shared code, or implementation details leaking through
-  an API. Name the owner.
+  concept, such as feature logic in shared code. Name the owner.
 - `coupling` — a new import between modules that should not know each other, a
   lower layer that reaches up, shared mutable state across a module boundary, or a
   cohesive module that became more coupled or more stateful. Name the seam.
 - `branching` — a one-off conditional, scattered special case, or flag threaded
   into an existing flow. Name the missing helper, policy, typed model, or module.
-- `contract` — needless optionality, `any`/`unknown`, casts, loosely shaped
-  objects, or a silent fallback that hides an invariant, where a clearer type
-  boundary would simplify the control flow. Also a type that allows invalid
+- `contract` — `any`/`unknown`, casts, loosely shaped objects, or a silent
+  fallback that hides an invariant, where a clearer type boundary would simplify
+  the control flow. Also a type that allows invalid
   states, an invariant enforced only by documentation or by callers, or missing
   validation at construction. Name the explicit typed model, shared contract, or
   invariant.
-- `indirection` — clever or implicit code, a generic mechanism that conceals a
-  simple data-shape assumption, or a thin wrapper or pass-through helper that adds
-  indirection without clarity. Name the direct form.
+- `depth` — a module, function, or type whose interface is about as complex as
+  what it hides: a thin wrapper or pass-through, an internal detail callers must
+  know (call order, a format, an inner flag), an option with one sensible value
+  pushed to callers, or clever or implicit code that hides a simple data-shape
+  assumption. Name the deeper form: merge it, hide the detail, or default it inside.
 - `reuse` — code that duplicates a canonical repo helper, the standard library, or
   a native platform feature, or a new dependency that does what one of those does.
   Name the replacement.
@@ -112,7 +113,7 @@ Severity:
   wrong layer, a dependency that points the wrong way, a broken module boundary,
   a duplicate of a concept's canonical owner, or a data-loss risk.
 - `should-fix` — a missed simplification, ad-hoc branching, a weak contract,
-  needless indirection, or a decomposition concern this PR introduces.
+  a shallow interface, or a decomposition concern this PR introduces.
 - `follow-up` — pre-existing debt or a larger restructuring outside the PR. Pair
   it with a ticket.
 
@@ -126,46 +127,34 @@ worth considering whether some of this logic could live elsewhere."
 
 ✅ `api/orders.py:L40-72: block layer: discount rules computed in the HTTP handler. Move to pricing/discounts.py, which already owns apply_discount() at L12. Preserves behavior: tests/test_orders.py::test_discount_applied.`
 
-✅ `billing/invoice.ts:L8: block coupling: billing imports ui/format.ts, so a lower layer reaches up. Move formatCurrency to shared/money.ts. Preserves behavior: unverified.`
-
-✅ `sync/run.go:L101-140: should-fix branching: isLegacy flag threaded through 4 steps. A LegacySource implementing Source removes all 4 checks. Preserves behavior: sync/run_test.go TestLegacySync.`
-
-✅ `lib/fetcher.ts:L1-35: should-fix indirection: Fetcher wraps fetch with one caller (app/load.ts:L9). Call fetch directly. Preserves behavior: lib/fetcher.ts:L12 passes arguments through unchanged.`
-
 A full report:
 
 <example>
 Diff source: gh pr diff 214
 
 api/orders.py:L40-72: block layer: discount rules computed in the HTTP handler. Move to pricing/discounts.py, which already owns apply_discount() at L12. Preserves behavior: tests/test_orders.py::test_discount_applied.
-lib/fetcher.ts:L1-35: should-fix indirection: Fetcher wraps fetch with one caller (app/load.ts:L9). Call fetch directly. Preserves behavior: lib/fetcher.ts:L12 passes arguments through unchanged.
+billing/invoice.ts:L8: block coupling: billing imports ui/format.ts, so a lower layer reaches up. Move formatCurrency to shared/money.ts. Preserves behavior: unverified.
+sync/run.go:L101-140: should-fix branching: isLegacy flag threaded through 4 steps. A LegacySource implementing Source removes all 4 checks. Preserves behavior: sync/run_test.go TestLegacySync.
+lib/fetcher.ts:L1-35: should-fix depth: Fetcher wraps fetch with one caller (app/load.ts:L9). Call fetch directly. Preserves behavior: lib/fetcher.ts:L12 passes arguments through unchanged.
 
 Outside this pass: api/orders.py:L55 builds SQL by string concatenation. Run a security review.
 
-Verdict: block. 2 findings, net ~-40 lines if all applied.
+Verdict: block. 4 findings, net ~-40 lines if all applied.
 </example>
 
 ## Output
 
-1. Diff source line.
-2. Findings, in the format above.
-3. `Outside this pass:` lines, only if any.
-4. One verdict line:
-   `Verdict: <approve | approve with should-fix | block>. <N> findings, net ~<±N> lines if all applied.`
+Follow the full report above. Include `Outside this pass:` lines only if any. The
+verdict line is:
+`Verdict: <approve | approve with should-fix | block>. <N> findings, net ~<±N> lines if all applied.`
 
 If there are no findings, write `No architectural findings. Verdict: approve.` and
 stop.
 
 ## Approval bar
 
-Approve when:
-
-- No structural regression introduced by this PR.
-- No data-loss risk introduced by this PR.
-- No unjustified file-size explosion presented without a decomposition question.
-- No ad-hoc branching that tangles an existing flow without a proposed alternative.
-- No feature logic scattered across shared code, and no duplication of a canonical
-  helper.
+The verdict is `block` if any finding is `block`, `approve with should-fix` if any
+is `should-fix`, and otherwise `approve`.
 
 A visible but unpursued simplification is `should-fix` or `follow-up`. It does not
 by itself block approval. Do not approve solely because behavior appears correct,

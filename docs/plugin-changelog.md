@@ -14,6 +14,17 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-11-10
+
+- **pr-review-deep** — interface depth now has one tag. Shallow wrappers, leaky
+  details, and options with one sensible value were split across `indirection`,
+  `layer`, and `contract`, so no tag asked whether an interface is as complex as
+  what it hides; the new `depth` tag replaces `indirection` and owns that question
+  ([SKILL.md](../pr-review-deep/skills/pr-review-deep/SKILL.md)). The verdict now
+  follows from severity alone, because the separate approval bar could disagree
+  with it (it treated ad-hoc branching as blocking while severity rated it
+  `should-fix`).
+
 ## 2026-10-19
 
 - **tech-due-diligence — new plugin: technical due diligence for any repo, where every

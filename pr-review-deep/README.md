@@ -40,10 +40,12 @@ PR when given a number/URL.
 - **One line per finding** — `<file>:L<line>: <severity> <tag>: <problem>. <proposed structure>. Preserves behavior: <test | file:line | unverified>.`
 - **Severity** — `block` (architectural regression or data-loss risk this PR introduces) /
   `should-fix` / `follow-up` (pre-existing debt).
-- **Tags** — `delete`, `layer`, `coupling`, `branching`, `contract`, `indirection`,
-  `reuse`, `orchestration`, `size`.
-- **Verdict line** — `approve`, `approve with should-fix`, or `block`, with the
-  finding count and net line estimate. With no findings it says
+- **Tags** — `delete`, `layer`, `coupling`, `branching`, `contract`, `depth`,
+  `reuse`, `orchestration`, `size`. `depth` flags shallow or leaky interfaces:
+  pass-through wrappers, internal details callers must know, and options with one
+  sensible value.
+- **Verdict line** — `block` if any finding is `block`, `approve with should-fix` if
+  any is `should-fix`, otherwise `approve`; with the finding count and net line estimate. With no findings it says
   `No architectural findings. Verdict: approve.` and stops.
 
 ## nautilai conventions
