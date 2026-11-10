@@ -23,7 +23,7 @@ It does two jobs, in this order: **make the plan smaller**, then **make it safe*
 
 1. **Extracts** the plan's goal, proposed changes, touched files, dependencies, and the **assumptions** it rests on.
 2. **Investigates in parallel** — starting with a **reuse & reduction scan** (existing code/patterns that make planned steps redundant), then dependency tracing, breaking-change risk, error-handling gaps, architecture, and (when relevant) type-design and test-coverage impact — each grounded in `file:line`.
-3. **Validates** — runs a **simplification pass first** (reuse / delete / configure / YAGNI / smallest-diff), then risk/edge-case questions, reconciling the two so risks get the *cheapest correct* fix rather than piling on defensive code (`references/validation-questions.md`).
+3. **Validates** — runs a **simplification pass first** (reuse / delete / configure / YAGNI / deep modules with small interfaces / smallest-diff), then risk/edge-case questions, reconciling the two so risks get the *cheapest correct* fix rather than piling on defensive code (`references/validation-questions.md`).
 4. **Revises the plan in place** to the leanest correct version and adds one **"Assumptions to validate before implementing"** gate. It reports the verdict, a **LEAN / ACCEPTABLE / OVER-ENGINEERED** footprint, what changed, and the code you can avoid writing — **to you in chat**, not as a confusing changes-log in the plan file.
 
 ## Optional enhancements (graceful degradation)
