@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.36.1](https://github.com/starfysh-tech/nautilai/compare/v2.36.0...v2.36.1) (2026-10-29)
+
+
+### Bug Fixes
+
+* **tech-due-diligence:** run inventory from the resolved scripts path ([#182](https://github.com/starfysh-tech/nautilai/issues/182)) ([6785a60](https://github.com/starfysh-tech/nautilai/commit/6785a607bf76a8eb0fc7f344a40495baaee2739c))
+
 ## [2.36.0](https://github.com/starfysh-tech/nautilai/compare/v2.35.0...v2.36.0) (2026-10-24)
 
 
