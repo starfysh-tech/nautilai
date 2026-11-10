@@ -253,14 +253,16 @@ port_listening() {
 
 pid_alive() { [[ "$1" =~ ^[0-9]+$ ]] && kill -0 "$1" 2>/dev/null; }
 
-# Repo-wide lock (mkdir is atomic). The owner PID is recorded; a lock whose
-# owner is dead is reclaimed. A lock without a PID is only waited on (its owner
-# may be between mkdir and writing the PID).
+# Repo-wide lock: a noclobber redirect creates the file with O_EXCL, so the
+# kernel makes it atomic. mkdir is not safe here: uutils mkdir (Ubuntu 26.04)
+# lets two racing callers both succeed. The file holds the owner PID; a lock
+# whose owner is dead is reclaimed. An empty lock is only waited on (its owner
+# may be between creating and writing it).
 acquire_lock() {
   mkdir -p "$STATE_DIR"
   local tries=0 owner
-  until mkdir "$LOCK" 2>/dev/null; do
-    owner="$(cat "$LOCK/pid" 2>/dev/null || true)"
+  until ( set -C; echo "$$" > "$LOCK" ) 2>/dev/null; do
+    owner="$(cat "$LOCK" 2>/dev/null || true)"
     if [[ -n "$owner" ]] && ! pid_alive "$owner"; then
       rm -rf "$LOCK"; echo "  ! reclaimed a stale lock (pid $owner exited)" >&2
       continue
@@ -270,7 +272,6 @@ acquire_lock() {
     sleep 0.1
   done
   HAVE_LOCK="true"
-  echo "$$" > "$LOCK/pid"
 }
 release_lock() { rm -rf "$LOCK"; HAVE_LOCK="false"; }
 
