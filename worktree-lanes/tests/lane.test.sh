@@ -274,7 +274,7 @@ check "gc: abandoned reservation (dead owner) dropped" no "$(yn test -e "$(STATE
 printf 'PHASE=allocated\nOWNER=%s\nOFFSET=9\n' "$DEAD_PID" > "$(STATE retry)"
 lane open retry >/dev/null 2>&1; check "open: slug with abandoned reservation reopens" 0 $?
 lane open live >/dev/null 2>&1; check "open: slug with live reservation refused" 1 $?
-mkdir "$REPO_DIR/.claude/worktrees/.state/.lock" && echo "$DEAD_PID" > "$REPO_DIR/.claude/worktrees/.state/.lock/pid"
+echo "$DEAD_PID" > "$REPO_DIR/.claude/worktrees/.state/.lock"
 lane open afterlock >/dev/null 2>&1; check "lock: stale lock from a dead process reclaimed" 0 $?
 lane open dup >/dev/null 2>&1 & a=$!
 lane open dup >/dev/null 2>&1 & b=$!
