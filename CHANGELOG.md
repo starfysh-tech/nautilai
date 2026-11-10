@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.37.0](https://github.com/starfysh-tech/nautilai/compare/v2.36.2...v2.37.0) (2026-11-10)
+
+
+### Features
+
+* **review-plan:** add deep-module check and fan out by aspect ([#184](https://github.com/starfysh-tech/nautilai/issues/184)) ([482aeab](https://github.com/starfysh-tech/nautilai/commit/482aeabe117ec774d292acd6f8fc5bb98015a630))
+
 ## [2.36.2](https://github.com/starfysh-tech/nautilai/compare/v2.36.1...v2.36.2) (2026-11-10)
 
 
