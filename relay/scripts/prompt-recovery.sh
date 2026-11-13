@@ -13,6 +13,6 @@ file="$HOME/.claude/handoffs/.recovery/${session_id}.md"
 
 narrative=$(cat "$file")
 rm -f "$file"
-jq -n --arg ctx "Relay rebuilt these decisions, dead ends, and constraints from the transcript as it was before the last auto-compaction. Haiku wrote them and no agent has verified them: check a claim against the repo before relying on it.
+jq -n --arg ctx "Relay rebuilt these constraints, decisions, and dead ends from the part of the session that the last auto-compaction summarized. Haiku wrote them and no agent has verified them: check a claim against the repo before relying on it.
 
 ${narrative}" '{hookSpecificOutput: {hookEventName: "UserPromptSubmit", additionalContext: $ctx}}'

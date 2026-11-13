@@ -164,11 +164,29 @@ Confidence key:
 - **Where used:** `session-start-pickup.sh` (matcher `startup|clear`; e.g.
   `resume` is deliberately excluded), `cwd` used to compute the slug.
   `compact-recover.sh` (matcher `compact`): `transcript_path` is the same
-  session's file; it reads the last `compact_boundary` line's
-  `compactMetadata.trigger` and acts on `auto` only.
+  session's file. It reads and deletes the cut that `precompact-notify.sh`
+  wrote for its `.session_id` and acts on trigger `auto` only. The segment
+  it recovers is transcript lines (prev, cut], where prev is the last
+  `compact_boundary` line within the first cut lines (0 if none), moved back
+  to just before that boundary's `compactMetadata.preservedSegment.headUuid`
+  line when it has one: the previous compaction kept those messages verbatim,
+  so this compaction is the first to summarize them. It injects
+  the user messages of that segment, capped at 6,000 characters: over the
+  cap, messages that state a requirement, limit, or prohibition are kept
+  first, then the newest; the injection states how many were omitted. A copy
+  of the segment at `.recovery/<session_id>.seg.jsonl` feeds the detached
+  narrative, which deletes it on every exit; with `RELAY_NARRATIVE=off` no
+  copy is written.
+- **Observed (2.1.322):** "Preserved by relay" appeared inside the
+  `isCompactSummary` line of 6 of 6 auto compactions in a live session, so
+  PreCompact `systemMessage` steering still reaches the summarizer.
 - **Observed (2.1.283):** SessionStart fires with `source=compact` after both
   manual and auto compaction, in the same session, and its
   `additionalContext` reaches the model.
+- **Observed (2.1.283–2.1.322):** when SessionStart(`compact`) fires, the new
+  `compact_boundary` line and its `isCompactSummary` line are not yet in the
+  transcript, so the last boundary in the file belongs to the previous
+  compaction, or there is none.
 - **Confidence:** Documented — `source` and `cwd` are part of Claude Code's
   published SessionStart hook payload.
 - **What breaks if wrong:** if `cwd` is ever absent or empty, the hook exits
@@ -189,25 +207,35 @@ Confidence key:
   reaches the model as a preview; the path sits in its first 600 characters,
   so the model can still read the full doc.
 
-### PreCompact hook: `.trigger`
-- **Where used:** `precompact-notify.sh` — gated to `trigger=="auto"` (manual
+### PreCompact hook: `.trigger`, `.session_id`, `.transcript_path`
+- **Where used:** `precompact-notify.sh` (matcher `auto|manual`). For both
+  triggers it writes `~/.claude/handoffs/.recovery/<session_id>.cut`
+  containing `<trigger> <line count of transcript_path>`, which
+  `compact-recover.sh` uses as the end of the compacted segment. Only for
+  `trigger=="auto"` does it print a `systemMessage` asking the summarizer to
+  keep requirements, decisions with reasons, and abandoned approaches (manual
   `/compact` is intentionally excluded; the user typed their own
-  instructions). Its `systemMessage` asks the summarizer to keep requirements,
-  decisions with reasons, and abandoned approaches.
+  instructions). It never exits 2.
 - **Observed (2.1.283):** PreCompact plain stdout and `{"systemMessage": …}`
   reach the summarization prompt; a planted nonce appeared in the summary.
   `hookSpecificOutput` for PreCompact fails validation and the whole output is
   dropped. In forced tests, PreCompact(auto) sometimes fired with no
   compaction after it, which is why the `compacted-<epoch>` marker is written
-  from SessionStart(compact) instead.
-- **What breaks if wrong:** the summary loses the steering; the
-  SessionStart(compact) injection still runs.
+  from SessionStart(compact) instead, and why the next PreCompact of either
+  trigger overwrites the cut.
+- **Observed (2.1.283–2.1.322):** the `systemMessage` reached the summary in
+  32 of 32 real compactions (a "Preserved by relay" heading).
+- **What breaks if wrong:** if the steering is dropped, the summary loses
+  it and the SessionStart(compact) injection still runs. If the cut is not
+  written, SessionStart(compact) injects nothing.
 
 ### UserPromptSubmit hook: `.session_id`
 - **Where used:** `prompt-recovery.sh`, on every prompt. It injects
   `~/.claude/handoffs/.recovery/<session_id>.md` once, then deletes it.
   `compact-recover.sh` names that file from its own `.session_id` and starts
-  `recovery-narrative.sh` to write it; files older than a day are pruned there.
+  `recovery-narrative.sh` to write it from the compacted segment, with the
+  sections reordered to Constraints, Decisions, Dead ends before the 6,000
+  character cap; files older than a day are pruned there.
 - **Confidence:** Documented — `session_id` is a common hook input field and
   `additionalContext` is a UserPromptSubmit output field.
 - **What breaks if wrong:** the narrative is never injected; the user messages
@@ -264,9 +292,19 @@ Confidence key:
 - **What it covers:** AWS `AKIA`, GitHub tokens, `sk-`, Slack `xox` + webhook
   URLs, Google `AIza`, JWTs, `Bearer`/`Authorization: Basic`, credentialed DB
   connection strings (redacts `user:pass@`, keeps the scheme), multi-line and
-  single-line (JSON-escaped `\n`) PEM private keys, and `KEY=value` env-style
-  secrets. Best-effort by design — over-redaction only loses fact-pack content,
-  it never leaks; it is **not** a completeness guarantee.
+  single-line (JSON-escaped `\n`) PEM private keys, `KEY=value` env-style
+  secrets, and prose credentials: after a case-insensitive `password`,
+  `passwd`, `passphrase`, `passcode`, `pin`, `pwd` or `secret` followed by
+  `is`, `is:`, `:` or `=`, the next whitespace-delimited token becomes
+  `[REDACTED]` (the word and trailing `.,;:` stay, so "password is
+  [REDACTED]."). Markdown bold around the word or separator is skipped, so
+  `**Password:** X` becomes `**Password:** [REDACTED]`. With no
+  `is`/`:`/`=` after the word ("password field", "PIN code") nothing is
+  redacted. Known limits: only one token is redacted (a multi-word
+  passphrase leaks its tail); any word after `password is` counts as the
+  value ("the password is [REDACTED]" for "wrong"); and `PWD=/path` in env
+  dumps loses the path. Best-effort by design — over-redaction only loses
+  fact-pack content, it never leaks; it is **not** a completeness guarantee.
 - **Confidence:** the pattern set is exercised by the 150-assertion suite and
   ran over a 21 MB real transcript in live validation (`LIVE-LEDGER.md`, #60)
   with 13 redactions and no hang.

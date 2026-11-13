@@ -80,6 +80,30 @@ scrub() {
       }
       return result line
     }
+    # Prose credentials ("the wifi password is X", "PIN: X", "pwd=X") keep
+    # the credential word and separator and redact the next whitespace-
+    # delimited token, leaving trailing sentence punctuation outside the
+    # redaction. A leading space is padded on so the left word boundary
+    # (no ERE \b in BSD awk) is one bracket class; the consume-forward loop
+    # mirrors redact_envsecret so a redacted span is never rescanned.
+    function redact_prose(line,    kw, sep, result, start, matched, keep, value, trail) {
+      kw = "([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Pp][Aa][Ss][Ss][Ww][Dd]|[Pp][Aa][Ss][Ss][Pp][Hh][Rr][Aa][Ss][Ee]|[Pp][Aa][Ss][Ss][Cc][Oo][Dd][Ee]|[Pp][Ii][Nn]|[Pp][Ww][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt])"
+      sep = "[*]*([ \t]+[Ii][Ss][ \t]*:?[ \t]+|[ \t]*[:=][*]*[ \t]*)"
+      line = " " line
+      result = ""
+      while (match(line, "[^A-Za-z0-9_]" kw sep "[^ \t]+")) {
+        start = RSTART
+        matched = substr(line, RSTART, RLENGTH)
+        match(matched, "^[^A-Za-z0-9_]" kw sep)
+        keep = substr(matched, 1, RLENGTH)
+        value = substr(matched, RLENGTH + 1)
+        trail = ""
+        if (match(value, /[.,;:]+$/) && RSTART > 1) trail = substr(value, RSTART)
+        result = result substr(line, 1, start - 1) keep "[REDACTED]" trail
+        line = substr(line, start + length(matched))
+      }
+      return substr(result line, 2)
+    }
     /-----BEGIN [A-Z ]*PRIVATE KEY-----/ { print "[REDACTED]"; inkey=1; next }
     inkey {
       if ($0 ~ /-----END [A-Z ]*PRIVATE KEY-----/) inkey=0
@@ -106,6 +130,7 @@ scrub() {
       gsub(/-----BEGIN [A-Z ]*PRIVATE KEY-----[A-Za-z0-9+\/=\\n]*-----END [A-Z ]*PRIVATE KEY-----(\\n)?/, "[REDACTED]", line)
       line = redact_conn(line)
       line = redact_envsecret(line)
+      line = redact_prose(line)
       print line
     }
   '

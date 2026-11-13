@@ -107,7 +107,12 @@ intermediate reasoning that didn't change a decision.
 Point by path only to durable locations: committed files, PRs, issues, and
 repo docs. Treat scratch directories, `/tmp`, and other sessions' directories
 as gone by the next session: put what the next session needs from them into
-the doc itself.
+the doc itself. Never point at:
+
+- versioned plugin cache paths (`~/.claude/plugins/cache/<plugin>/<version>/...`) — point at the plugin's source repo path, or name the file relative to the plugin root;
+- `~/Downloads`;
+- `~/.claude/jobs/*/tmp`;
+- `/tmp` and scratchpad directories.
 
 ## 6. Write the consume-once marker
 
@@ -121,7 +126,13 @@ never injected twice. A 30-minute TTL applies only on `source=startup`; a
 
 Print the absolute doc path, and tell them that running `/clear` will start a
 fresh session that picks the handoff up automatically (consumed once, no TTL on
-`/clear`) — no need to paste or re-open it manually.
+`/clear`) — no need to paste or re-open the doc manually.
+
+Then print a ready-to-paste kickoff prompt for after `/clear`, in a fenced block:
+
+- 1–3 sentences naming the first concrete action from Next steps, plus any focus the user passed as arguments.
+- Fill every value from the doc. No placeholders, brackets, or TODOs.
+- Do not restate the doc's contents.
 
 ## Recover mode (`/handoff recover`)
 

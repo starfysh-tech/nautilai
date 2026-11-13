@@ -43,6 +43,9 @@ Also triggers from natural language — "hand this off", "pass to next session",
 "relay this", "compact for the next agent", "I'm switching context" — without
 the explicit slash form.
 
+After writing the doc, `/handoff` prints a ready-to-paste kickoff prompt for
+the first message after `/clear`.
+
 ## Requirements
 
 The fact pack extractor needs `jq`. The narrative step additionally needs the
@@ -83,7 +86,7 @@ flowchart TD
     A["/handoff writes doc to ~/.claude/handoffs/slug/"] --> B["pending marker holds the doc path"]
     B --> C["SessionStart hook fires"]
     C -.->|"no pending marker"| M["nothing injected"]
-    C -->|"source=compact, auto trigger (compact-recover.sh)"| P["inject pre-boundary user messages; start narrative for the next prompt; pending untouched"]
+    C -->|"source=compact, auto trigger (compact-recover.sh)"| P["inject the just-summarized segment's user messages; start narrative for the next prompt; pending untouched"]
     C --> D["mv pending to claimed-EPOCH-PID"]
     D -->|"mv lost to a concurrent start"| E["exit quietly, nothing injected"]
     D -->|"mv won"| F{"source"}
@@ -132,16 +135,21 @@ constraints, dead ends, and the reasoning behind decisions made many turns
 back — without you asking for a handoff. Relay acts at both ends of an
 auto-compaction:
 
-- **Before:** the `PreCompact` hook's systemMessage asks the summarizer to keep
-  the user's stated requirements, decisions with their reasons, and abandoned
-  approaches verbatim.
-- **After:** `scripts/compact-recover.sh` (`SessionStart`, `source=compact`) confirms from the
-  transcript's last `compact_boundary` that the compaction was automatic,
-  drops a `compacted-<epoch>` marker, and injects the user's own messages from
-  before the boundary (capped at 6,000 characters). Manual `/compact` is left
+- **Before:** the `PreCompact` hook records where the transcript ends (the
+  cut) for every compaction, and for an auto compaction its systemMessage asks
+  the summarizer to keep the user's stated requirements, decisions with their
+  reasons, and abandoned approaches verbatim.
+- **After:** `scripts/compact-recover.sh` (`SessionStart`, `source=compact`)
+  reads that cut, because the new `compact_boundary` line is not in the
+  transcript yet when it runs. For an auto compaction it drops a
+  `compacted-<epoch>` marker and injects the user's messages from the segment
+  just summarized: everything after the previous boundary, plus the messages
+  the previous compaction kept verbatim, up to the cut.
+  Over 6,000 characters, it keeps messages that state a requirement or limit,
+  then the newest, and says how many it left out. Manual `/compact` is left
   alone.
-- **Next prompt:** the same hook starts the Haiku narrative (decisions, dead
-  ends, constraints) detached, because it takes 20 s to 1.5 min.
+- **Next prompt:** the same hook starts the Haiku narrative of that segment
+  (constraints first, then decisions and dead ends) detached, because it takes 20 s to 1.5 min.
   `scripts/prompt-recovery.sh` (`UserPromptSubmit`) injects it once, at the
   first prompt after it is ready, labelled unverified. `RELAY_NARRATIVE=off`
   turns this step off.
@@ -179,6 +187,8 @@ writes the better doc when you have the chance to run it.
 └── <YYYYMMDD-HHMMSS>-auto.md # a doc written by auto-handoff at /clear
 
 ~/.claude/handoffs/.recovery/
+├── <session-id>.cut     # where the transcript ended at PreCompact (trigger and line count)
+├── <session-id>.seg.jsonl # copy of the summarized segment, read by the narrative builder
 └── <session-id>.md      # post-compaction narrative, injected once at the next prompt
 ```
 

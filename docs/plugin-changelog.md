@@ -29,6 +29,24 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
   with "suggest /plan first", and the Codex script is found without `$HOME`,
   which hooks blocked in worktree sessions.
 
+## 2026-11-12
+
+- **relay — post-compaction recovery now injects the part that was just summarized.**
+  On real transcripts it ran one compaction late: the new boundary is not in the
+  transcript yet when SessionStart(`compact`) fires, so the first compaction of a
+  session injected nothing and later ones re-injected older messages. PreCompact now
+  records the cut, recovery reads the segment up to it, the 6,000-char cap keeps
+  requirements and the newest messages, and the narrative leads with Constraints. See
+  [`relay/README.md`](../relay/README.md#recovery).
+- **relay — `/handoff` prints a kickoff prompt.** In 11 of 13 sessions the user asked
+  for a prompt to paste after `/clear`, and pasted prompts with unfilled placeholders
+  stalled the next session. See [`relay/skills/handoff/SKILL.md`](../relay/skills/handoff/SKILL.md).
+- **relay — the durable-paths rule names plugin-cache, Downloads, and job tmp paths.**
+  Pickups still failed on versioned `~/.claude/plugins/cache/` paths the rule did not
+  name.
+- **relay — scrub redacts passwords typed in prose.** A Wi-Fi password the user typed
+  was re-injected after compaction; `scrub()` only matched token shapes.
+
 ## 2026-11-10
 
 - **pr-review-deep** — interface depth now has one tag. Shallow wrappers, leaky
