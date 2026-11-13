@@ -15,16 +15,19 @@ fi
 
 before_last_compact=0
 user_messages_only=0
+cap=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --before-last-compact) before_last_compact=1; shift ;;
     --user-messages) user_messages_only=1; shift ;;
+    --cap) cap="${2:-0}"; shift 2 ;;
     *) break ;;
   esac
 done
+case "$cap" in ''|*[!0-9]*) cap=0 ;; esac
 
 if [ $# -lt 1 ]; then
-  echo "usage: extract-transcript.sh [--before-last-compact] [--user-messages] <transcript.jsonl>" >&2
+  echo "usage: extract-transcript.sh [--before-last-compact] [--user-messages [--cap <chars>]] <transcript.jsonl>" >&2
   exit 1
 fi
 
@@ -109,6 +112,30 @@ scrub() {
       }
       return result line
     }
+    # Prose credentials ("the wifi password is X", "PIN: X", "pwd=X") keep
+    # the credential word and separator and redact the next whitespace-
+    # delimited token, leaving trailing sentence punctuation outside the
+    # redaction. A leading space is padded on so the left word boundary
+    # (no ERE \b in BSD awk) is one bracket class; the consume-forward loop
+    # mirrors redact_envsecret so a redacted span is never rescanned.
+    function redact_prose(line,    kw, sep, result, start, matched, keep, value, trail) {
+      kw = "([Pp][Aa][Ss][Ss][Ww][Oo][Rr][Dd]|[Pp][Aa][Ss][Ss][Ww][Dd]|[Pp][Aa][Ss][Ss][Pp][Hh][Rr][Aa][Ss][Ee]|[Pp][Aa][Ss][Ss][Cc][Oo][Dd][Ee]|[Pp][Ii][Nn]|[Pp][Ww][Dd]|[Ss][Ee][Cc][Rr][Ee][Tt])"
+      sep = "[*]*([ \t]+[Ii][Ss][ \t]*:?[ \t]+|[ \t]*[:=][*]*[ \t]*)"
+      line = " " line
+      result = ""
+      while (match(line, "[^A-Za-z0-9_]" kw sep "[^ \t]+")) {
+        start = RSTART
+        matched = substr(line, RSTART, RLENGTH)
+        match(matched, "^[^A-Za-z0-9_]" kw sep)
+        keep = substr(matched, 1, RLENGTH)
+        value = substr(matched, RLENGTH + 1)
+        trail = ""
+        if (match(value, /[.,;:]+$/) && RSTART > 1) trail = substr(value, RSTART)
+        result = result substr(line, 1, start - 1) keep "[REDACTED]" trail
+        line = substr(line, start + length(matched))
+      }
+      return substr(result line, 2)
+    }
     /-----BEGIN [A-Z ]*PRIVATE KEY-----/ { print "[REDACTED]"; inkey=1; next }
     inkey {
       if ($0 ~ /-----END [A-Z ]*PRIVATE KEY-----/) inkey=0
@@ -135,6 +162,7 @@ scrub() {
       gsub(/-----BEGIN [A-Z ]*PRIVATE KEY-----[A-Za-z0-9+\/=\\n]*-----END [A-Z ]*PRIVATE KEY-----(\\n)?/, "[REDACTED]", line)
       line = redact_conn(line)
       line = redact_envsecret(line)
+      line = redact_prose(line)
       print line
     }
   '
@@ -145,12 +173,34 @@ user_messages() {
   # per-message decode loop would spawn one jq process per message, which
   # dominated runtime on large transcripts. Slurp keeps multi-line messages
   # as one numbered entry with newlines preserved.
-  jq -rs -L "$(dirname "$0")" 'include "user-text";
+  # Over --cap, messages that state a requirement, limit, or prohibition are
+  # kept first, then the rest; newest first within each group, so the oldest
+  # plain messages are the first dropped. Kept messages keep their numbers.
+  jq -rs -L "$(dirname "$0")" --argjson cap "$cap" \
+    --arg re "\\b(never|always|must|only|avoid|limit\\w*|without|no more than|do not|don['’]?t)\\b" \
+    'include "user-text";
     [ .[] | user_text ]
     | to_entries
-    | map(((.key + 1)|tostring) + ". "
-        + (if (.value|length) > 1500 then .value[0:1500] + "… [truncated]" else .value end))
-    | join("\n\n")
+    | map({
+        c: (.value | test($re; "i")),
+        text: (((.key + 1)|tostring) + ". "
+          + (if (.value|length) > 1500 then .value[0:1500] + "… [truncated]" else .value end))
+      })
+    | if $cap == 0 or ((map(.text) | join("\n\n") | length) <= $cap) then
+        map(.text) | join("\n\n")
+      else
+        . as $all
+        | ($all | to_entries) as $idx
+        | (($idx | map(select(.value.c)) | reverse) + ($idx | map(select(.value.c | not)) | reverse))
+        | reduce .[] as $m ({used: 0, keep: [], full: false};
+            if .full then .
+            elif .used + ($m.value.text | length) + 2 <= $cap - 200 then
+              .used += ($m.value.text | length) + 2 | .keep += [$m]
+            else .full = true end)
+        | (.keep | sort_by(.key) | map(.value.text)) as $kept
+        | "[\(($all | length) - ($kept | length)) of \($all | length) messages omitted to fit the budget: the oldest ones without a requirement, limit, or prohibition went first. /handoff recover rebuilds the full record.]\n\n"
+          + ($kept | join("\n\n"))
+      end
   ' "$clean"
 }
 

@@ -23,7 +23,7 @@
     ],
     "PreCompact": [
       {
-        "matcher": "auto",
+        "matcher": "auto|manual",
         "hooks": [
           {
             "type": "command",

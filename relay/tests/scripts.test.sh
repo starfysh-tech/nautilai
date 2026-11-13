@@ -255,6 +255,51 @@ SCRUB_A=$(sed -n '/^scrub() {/,/^}/p' "$SCRIPTS_DIR/extract-transcript.sh")
 SCRUB_B=$(sed -n '/^scrub() {/,/^}/p' "$SCRIPTS_DIR/haiku-narrative.sh")
 assert "scrub(): extract-transcript.sh and haiku-narrative.sh copies are byte-identical" "$SCRUB_A" "$SCRUB_B"
 
+# --- Prose credentials: the value after a credential word + is/:/= is
+# redacted, the word survives; with no is/:/= after the word, nothing is.
+PROSE_TMP="$(mktemp -d)"
+PW_WIFI="hunter2""pass"
+PW_COLON="Tr0ub""4dor"
+PW_EQ="zq7""vx"
+PW_PIN="48""21"
+PW_PHRASE="s3k""r1t"
+PW_ISCOLON="hun""ter2"
+PW_BOLD="ee""e5"
+jq -cn --arg a "the wifi password is $PW_WIFI" \
+       --arg b "PASSWORD: $PW_COLON" \
+       --arg c "set pwd=$PW_EQ then retry" \
+       --arg d "Wi-Fi Password IS $PW_PHRASE, ok?" \
+       --arg e "my pin is $PW_PIN." \
+       --arg f "reset the password flow" \
+       --arg g "password field validation" \
+       --arg h "PIN code length is checked" \
+       --arg i "the password is wrong" \
+       --arg j "My password is: $PW_ISCOLON" \
+       --arg k "**Password:** $PW_BOLD" \
+    '$a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k | {type: "user", message: {content: .}}' \
+    > "$PROSE_TMP/prose.jsonl"
+PROSE_OUT="$(bash "$SCRIPTS_DIR/extract-transcript.sh" "$PROSE_TMP/prose.jsonl")"
+rm -rf "$PROSE_TMP"
+assert_not_contains "scrub prose: 'password is' value redacted" "$PROSE_OUT" "$PW_WIFI"
+assert_contains     "scrub prose: 'password is' word kept"      "$PROSE_OUT" "the wifi password is [REDACTED]"
+assert_not_contains "scrub prose: uppercase 'PASSWORD:' value redacted" "$PROSE_OUT" "$PW_COLON"
+assert_contains     "scrub prose: 'PASSWORD:' word kept"        "$PROSE_OUT" "PASSWORD: [REDACTED]"
+assert_not_contains "scrub prose: short 'pwd=' value redacted"  "$PROSE_OUT" "$PW_EQ"
+assert_contains     "scrub prose: 'pwd=' rest of line kept"     "$PROSE_OUT" "set pwd=[REDACTED] then retry"
+assert_not_contains "scrub prose: mixed-case Wi-Fi value redacted" "$PROSE_OUT" "$PW_PHRASE"
+assert_contains     "scrub prose: trailing punctuation kept"    "$PROSE_OUT" "Wi-Fi Password IS [REDACTED], ok?"
+assert_not_contains "scrub prose: 'pin is' value redacted"      "$PROSE_OUT" "$PW_PIN"
+assert_contains     "scrub prose: 'pin is' sentence period kept" "$PROSE_OUT" "my pin is [REDACTED]."
+assert_contains     "scrub prose: no is/:/= -> 'password flow' intact"  "$PROSE_OUT" "reset the password flow"
+assert_contains     "scrub prose: no is/:/= -> 'password field' intact" "$PROSE_OUT" "password field validation"
+assert_contains     "scrub prose: no is/:/= -> 'PIN code' intact"       "$PROSE_OUT" "PIN code length is checked"
+# Accepted over-redaction: any word after "password is" counts as the value.
+assert_contains     "scrub prose: 'password is wrong' over-redacts" "$PROSE_OUT" "the password is [REDACTED]"
+assert_not_contains "scrub prose: 'password is:' value redacted" "$PROSE_OUT" "$PW_ISCOLON"
+assert_contains     "scrub prose: 'password is:' word kept"      "$PROSE_OUT" "My password is: [REDACTED]"
+assert_not_contains "scrub prose: markdown-bold '**Password:**' value redacted" "$PROSE_OUT" "$PW_BOLD"
+assert_contains     "scrub prose: markdown-bold label kept"      "$PROSE_OUT" "**Password:** [REDACTED]"
+
 # =============================================================================
 # extract-transcript.sh --before-last-compact tests
 # =============================================================================
@@ -340,6 +385,18 @@ pc_exit3=$?
 assert "precompact: malformed stdin yields {}" "{}" "$pc_out3"
 assert "precompact: malformed stdin exits 0" "0" "$pc_exit3"
 rm -rf "$PC_HOME3"
+
+# 4. both triggers record "<trigger> <transcript line count>" for the session;
+# auto still steers, manual still prints {}
+PC_HOME4="$(mktemp -d)"
+printf '%s\n' '{"type":"user","message":{"content":"a"}}' '{"type":"user","message":{"content":"b"}}' > "$PC_HOME4/t.jsonl"
+pc_out4=$(HOME="$PC_HOME4" bash "$PRECOMPACT" <<< "{\"trigger\":\"auto\",\"session_id\":\"s4\",\"transcript_path\":\"$PC_HOME4/t.jsonl\"}")
+assert "precompact: auto records the cut" "auto 2" "$(cat "$PC_HOME4/.claude/handoffs/.recovery/s4.cut" 2>/dev/null)"
+assert_contains "precompact: auto with a cut still steers" "$pc_out4" "Preserved by relay"
+pc_out4m=$(HOME="$PC_HOME4" bash "$PRECOMPACT" <<< "{\"trigger\":\"manual\",\"session_id\":\"s4\",\"transcript_path\":\"$PC_HOME4/t.jsonl\"}")
+assert "precompact: manual overwrites the cut" "manual 2" "$(cat "$PC_HOME4/.claude/handoffs/.recovery/s4.cut" 2>/dev/null)"
+assert "precompact: manual with a cut yields {}" "{}" "$pc_out4m"
+rm -rf "$PC_HOME4"
 
 # =============================================================================
 # resolve-session.sh tests
@@ -503,41 +560,111 @@ outn="$(RELAY_NESTED=1 run_pickup "$SP_HOME1" "{\"source\":\"startup\",\"cwd\":\
 assert "pickup: RELAY_NESTED is a no-op" "{}" "$outn"
 assert_true "pickup: RELAY_NESTED leaves pending in place" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
 
-# 1b. compact-recover.sh (SessionStart source=compact) after an AUTO
-# compaction injects the pre-boundary user
-# messages, writes a compacted-* marker, and never touches `pending`.
-SPC_T="$SP_TMP/compact-auto.jsonl"
-{
-    printf '%s\n' '{"type":"user","message":{"content":"Never raise MAX_CONN above 40. EARLY-RULE-9"}}'
-    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto","preTokens":1}}'
-    printf '%s\n' '{"type":"user","isCompactSummary":true,"message":{"content":"summary"}}'
-    printf '%s\n' '{"type":"user","message":{"content":"POST-BOUNDARY-3"}}'
-} > "$SPC_T"
-outc="$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SPC_T\"}")"
-outc_ctx="$(printf '%s' "$outc" | jq -r '.hookSpecificOutput.additionalContext // empty')"
-assert_contains "compact-recover: auto injects pre-boundary user message" "$outc_ctx" "EARLY-RULE-9"
-assert_not_contains "compact-recover: auto omits post-boundary message" "$outc_ctx" "POST-BOUNDARY-3"
+# 1b. compact-recover.sh (SessionStart source=compact) in the real order:
+# precompact-notify.sh runs on the transcript, then compact-recover.sh runs
+# on the SAME transcript before the new compact_boundary line is written.
+SPC_T="$SP_TMP/compact.jsonl"
+SPC_REC="$SP_HOME1/.claude/handoffs/.recovery"
+spc_user() { printf '{"type":"user","message":{"content":"%s"}}\n' "$1" >> "$SPC_T"; }
+# What the CLI appends once compaction completes, after both hooks ran.
+spc_boundary() {
+    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto","preTokens":1}}' >> "$SPC_T"
+    printf '%s\n' '{"type":"user","isCompactSummary":true,"message":{"content":"summary SUMMARY-TEXT"}}' >> "$SPC_T"
+}
+spc_precompact() { # spc_precompact <trigger> <session>
+    HOME="$SP_HOME1" bash "$PRECOMPACT" >/dev/null \
+        <<< "{\"trigger\":\"$1\",\"session_id\":\"$2\",\"transcript_path\":\"$SPC_T\",\"cwd\":\"$CWD1\"}"
+}
+spc_recover() { # spc_recover <session> -> additionalContext, or the raw output when there is none
+    o=$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" \
+        <<< "{\"source\":\"compact\",\"session_id\":\"$1\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SPC_T\"}")
+    printf '%s' "$o" | jq -r '.hookSpecificOutput.additionalContext // empty' | grep . || printf '%s' "$o"
+}
+
+: > "$SPC_T"
+spc_user "Never raise MAX_CONN above 40. EARLY-RULE-9"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"ok"}]}}' >> "$SPC_T"
+spc_user "SEG1-LATE"
+spc_precompact auto s1
+outc=$(spc_recover s1)
+assert_contains "compact-recover: first compaction injects the segment" "$outc" "EARLY-RULE-9"
+assert_contains "compact-recover: first compaction injects its last message" "$outc" "SEG1-LATE"
+assert_contains "compact-recover: prefix names the summarized part" "$outc" "part of the session that was just summarized"
+assert_not_contains "compact-recover: under the cap nothing is omitted" "$outc" "omitted"
+assert_true "compact-recover: consumes the cut" "$(rc_of test ! -e "$SPC_REC/s1.cut")"
 assert_true "compact-recover: auto writes a compacted-* marker" \
     "$(rc_of test -n "$(find "$SP_HOME1/.claude/handoffs/$slug1" -name 'compacted-*')")"
 assert_true "compact-recover: never touches pending" "$(rc_of test -f "$SP_HOME1/.claude/handoffs/$slug1/pending")"
 
-# 1c. source=compact after a MANUAL compaction is a no-op
-sed 's/"trigger":"auto"/"trigger":"manual"/' "$SPC_T" > "$SP_TMP/compact-manual.jsonl"
-outm="$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-manual.jsonl\"}")"
-assert "compact-recover: manual compaction is a no-op" "{}" "$outm"
+# 1c. second compaction: only the messages after the previous boundary
+spc_boundary
+spc_user "SEG2-MSG"
+spc_precompact auto s1
+outc2=$(spc_recover s1)
+assert_contains "compact-recover: second compaction injects its segment" "$outc2" "SEG2-MSG"
+assert_not_contains "compact-recover: second compaction omits the earlier segment" "$outc2" "EARLY-RULE-9"
+assert_not_contains "compact-recover: second compaction omits SEG1-LATE" "$outc2" "SEG1-LATE"
+assert_not_contains "compact-recover: compact summary is not a user message" "$outc2" "SUMMARY-TEXT"
 
-# 1d. the injection is capped
+# 1d. PreCompact(auto) with no compaction, then a manual compaction: nothing
+spc_boundary
+spc_user "SEG3-MSG"
+spc_precompact auto s1
+spc_precompact manual s1
+assert "compact-recover: phantom auto then manual is a no-op" "{}" "$(spc_recover s1)"
+assert_true "compact-recover: manual consumes the cut" "$(rc_of test ! -e "$SPC_REC/s1.cut")"
+
+# 1e. a cut recorded for another session is ignored and left in place
+spc_precompact auto s-other
+assert "compact-recover: no cut for this session is a no-op" "{}" "$(spc_recover s1)"
+assert "compact-recover: other session's cut is untouched" "auto $(wc -l < "$SPC_T" | tr -d ' ')" "$(cat "$SPC_REC/s-other.cut" 2>/dev/null)"
+
+# 1f. over the cap: constraint messages and the newest messages stay, the
+# oldest plain messages go, and the omitted count is stated
+: > "$SPC_T"
+pad=$(printf 'x%.0s' $(seq 300))
+spc_user "PLAIN-01 $pad"
+spc_user "Never use port 8080. CONSTRAINT-OLD $pad"
+for i in $(seq 3 39); do spc_user "PLAIN-$(printf '%02d' "$i") $pad"; done
+spc_user "NEWEST-MSG $pad"
+spc_precompact auto s1
+outb=$(spc_recover s1)
+assert_true "compact-recover: capped injection stays under 7000 chars" "$(rc_of test "${#outb}" -lt 7000)"
+assert_contains "compact-recover: cap keeps the old constraint message" "$outb" "CONSTRAINT-OLD"
+assert_contains "compact-recover: cap keeps the newest message" "$outb" "NEWEST-MSG"
+assert_not_contains "compact-recover: cap drops the oldest plain message" "$outb" "PLAIN-01"
+assert_not_contains "compact-recover: cap drops old plain messages" "$outb" "PLAIN-03"
+assert_true "compact-recover: cap states the omitted count" \
+    "$(printf '%s' "$outb" | grep -Eq '^\[[1-9][0-9]* of 40 messages omitted'; echo $?)"
+assert_contains "compact-recover: kept messages keep their numbers" "$outb" "40. NEWEST-MSG"
+
+# 1g. RELAY_NARRATIVE=off (spc_recover's setting) writes no segment copy
+assert_true "compact-recover: narrative off writes no segment copy" "$(rc_of test -z "$(find "$SPC_REC" -name '*.seg.jsonl')")"
+
+# 1h. with the narrative on but no claude CLI, the builder still removes the copy
+spc_user "SEG-NOCLAUDE"
+spc_precompact auto s1
+HOME="$SP_HOME1" PATH="/usr/bin:/bin" bash "$COMPACT" \
+    <<< "{\"source\":\"compact\",\"session_id\":\"s1\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SPC_T\"}" >/dev/null
+spc_i=0
+while [ -n "$(find "$SPC_REC" -name '*.seg.jsonl')" ] && [ "$spc_i" -lt 40 ]; do sleep 0.5; spc_i=$((spc_i + 1)); done
+assert_true "compact-recover: degraded narrative removes the segment copy" "$(rc_of test -z "$(find "$SPC_REC" -name '*.seg.jsonl')")"
+
+# 1i. messages the previous compaction kept verbatim (preservedSegment) are
+# summarized by this one, so they belong to its segment
+: > "$SPC_T"
+spc_user "OLDEST-SUMMARIZED"
 {
-    pad=$(printf 'x%.0s' $(seq 300))
-    for _ in $(seq 40); do
-        printf '{"type":"user","message":{"content":"%s"}}\n' "$pad"
-    done
-    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto"}}'
-} > "$SP_TMP/compact-big.jsonl"
-outb="$(HOME="$SP_HOME1" RELAY_NARRATIVE=off bash "$COMPACT" <<< "{\"source\":\"compact\",\"cwd\":\"$CWD1\",\"transcript_path\":\"$SP_TMP/compact-big.jsonl\"}")"
-outb_len=$(printf '%s' "$outb" | jq -r '.hookSpecificOutput.additionalContext' | wc -c | tr -d ' ')
-assert_true "compact-recover: injection stays under 7000 chars" "$(rc_of test "$outb_len" -lt 7000)"
-assert_contains "compact-recover: capped injection says it was truncated" "$outb" "truncated"
+    printf '%s\n' '{"type":"user","uuid":"keep-1","message":{"content":"PRESERVED-MSG"}}'
+    printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto","preservedSegment":{"headUuid":"keep-1"}}}'
+    printf '%s\n' '{"type":"user","isCompactSummary":true,"message":{"content":"summary SUMMARY-TEXT"}}'
+} >> "$SPC_T"
+spc_user "AFTER-BOUNDARY"
+spc_precompact auto s1
+outp=$(spc_recover s1)
+assert_contains "compact-recover: previous preserved segment is included" "$outp" "PRESERVED-MSG"
+assert_contains "compact-recover: messages after the boundary are included" "$outp" "AFTER-BOUNDARY"
+assert_not_contains "compact-recover: already-summarized messages are not" "$outp" "OLDEST-SUMMARIZED"
 
 # 2. source=startup + fresh marker -> additionalContext contains doc content,
 #    marker renamed consumed-*
@@ -1061,17 +1188,37 @@ echo "=== post-compaction narrative tests ==="
 PR_SCRIPT="$SCRIPTS_DIR/prompt-recovery.sh"
 PR_TMP="$(mktemp -d)"
 PR_T="$PR_TMP/t.jsonl"
+PR_CAPTURE="$PR_TMP/capture.txt"
+# A second compaction: the narrative must see only the segment after the
+# previous boundary. The boundary for this compaction is not written yet.
 {
-    printf '%s\n' '{"type":"user","message":{"content":"Never raise MAX_CONN above 40."}}'
-    printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"Decided on approach A."}]}}'
+    printf '%s\n' '{"type":"user","message":{"content":"OLD-SEG-TEXT"}}'
     printf '%s\n' '{"type":"system","subtype":"compact_boundary","compactMetadata":{"trigger":"auto"}}'
+    printf '%s\n' '{"type":"user","isCompactSummary":true,"message":{"content":"summary"}}'
+    printf '%s\n' '{"type":"user","message":{"content":"Never raise MAX_CONN above 40. NEW-SEG-TEXT"}}'
+    printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"Decided on approach A."}]}}'
 } > "$PR_T"
 PR_FILE="$PR_TMP/.claude/handoffs/.recovery/sess-1.md"
-PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok HOME="$PR_TMP" bash "$COMPACT" \
+HOME="$PR_TMP" bash "$PRECOMPACT" >/dev/null \
+    <<< "{\"trigger\":\"auto\",\"session_id\":\"sess-1\",\"transcript_path\":\"$PR_T\"}"
+PATH="$HN_PATH" FAKE_CLAUDE_MODE=ok FAKE_CLAUDE_CAPTURE="$PR_CAPTURE" HOME="$PR_TMP" bash "$COMPACT" \
     <<< "{\"session_id\":\"sess-1\",\"cwd\":\"$PR_TMP/proj\",\"transcript_path\":\"$PR_T\"}" >/dev/null
 pr_i=0
-while [ ! -f "$PR_FILE" ] && [ "$pr_i" -lt 40 ]; do sleep 0.5; pr_i=$((pr_i + 1)); done
+while { [ ! -f "$PR_FILE" ] || [ -e "$PR_TMP/.claude/handoffs/.recovery/sess-1.seg.jsonl" ]; } && [ "$pr_i" -lt 40 ]; do
+    sleep 0.5; pr_i=$((pr_i + 1))
+done
 assert_true "compact-recover: detached narrative lands for the session" "$(rc_of test -f "$PR_FILE")"
+assert_true "compact-recover: narrative removes its segment copy" "$(rc_of test ! -e "$PR_TMP/.claude/handoffs/.recovery/sess-1.seg.jsonl")"
+pr_capture="$(cat "$PR_CAPTURE" 2>/dev/null)"
+assert_contains "compact-recover: narrative reads the just-compacted segment" "$pr_capture" "NEW-SEG-TEXT"
+assert_not_contains "compact-recover: narrative skips text before the previous boundary" "$pr_capture" "OLD-SEG-TEXT"
+pr_c=$(grep -n '^## Constraints' "$PR_FILE" | cut -d: -f1)
+pr_d=$(grep -n '^## Decisions' "$PR_FILE" | cut -d: -f1)
+pr_e=$(grep -n '^## Dead ends' "$PR_FILE" | cut -d: -f1)
+pr_order=1
+[ "${pr_c:-99}" -lt "${pr_d:-0}" ] && [ "${pr_d:-99}" -lt "${pr_e:-0}" ] && pr_order=0
+assert_true "compact-recover: narrative puts Constraints, Decisions, Dead ends in order" "$pr_order"
+assert_contains "compact-recover: reordered narrative keeps its items" "$(cat "$PR_FILE")" "Tried approach B"
 pr_out1="$(HOME="$PR_TMP" bash "$PR_SCRIPT" <<< '{"session_id":"sess-1"}')"
 assert_contains "prompt-recovery: injects the narrative" \
     "$(printf '%s' "$pr_out1" | jq -r '.hookSpecificOutput.additionalContext')" "## Decisions"
