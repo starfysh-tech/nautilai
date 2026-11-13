@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.39.0](https://github.com/starfysh-tech/nautilai/compare/v2.38.0...v2.39.0) (2026-11-13)
+
+
+### Features
+
+* **review-plan:** add clean-context adversarial check of plan claims ([#191](https://github.com/starfysh-tech/nautilai/issues/191)) ([aabb71b](https://github.com/starfysh-tech/nautilai/commit/aabb71b10f103320b6bd4be5611360324e979f85))
+
 ## [2.38.0](https://github.com/starfysh-tech/nautilai/compare/v2.37.0...v2.38.0) (2026-11-10)
 
 
