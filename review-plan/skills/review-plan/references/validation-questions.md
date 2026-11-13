@@ -82,7 +82,15 @@ For each part of the plan, answer:
 | **What TESTS will fail?**              | Unit, integration, e2e implications                 |
 | **What EDGE CASES weren't addressed?** *(YAGNI-gated)* | Null, empty, concurrent, large scale — only ones the code can actually hit |
 | **What ASSUMPTIONS are unverified?**   | Anything the plan takes on faith — flag for the "validate before implementing" list |
-| **What DECISIONS need input?**         | Ambiguous requirements, multiple valid approaches   |
+| **What DECISIONS need input?**         | Ambiguous requirements, multiple valid approaches — ask per "Asking the user" below |
+
+### Asking the user
+
+Every decision question asked with `AskUserQuestion` carries its own context:
+
+- State when the failure or need happens, with the evidence (`file:line`). If you did not measure it, say "not measured".
+- For each option, state what the plan gains and what it costs.
+- Before you recommend cutting or deferring a requirement, name where it came from: the user, a ticket, a spec, or the plan author. If you cannot cite the source, say so.
 
 ### Deep checklist (apply what's relevant — each added item must earn its complexity)
 

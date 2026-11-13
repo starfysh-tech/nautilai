@@ -14,6 +14,21 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-11-13
+
+- **review-plan** — the review now checks its own claims. In 104 real runs the
+  user typed "validate assumptions" after most reviews, and 8% of flagged risks
+  were wrong while nothing checked the cited lines. A new Phase 5 hands every
+  assumption and plan-changing finding to a fresh read-only subagent
+  ([plan-skeptic](../review-plan/agents/plan-skeptic.md)) that never sees the
+  review's reasoning and tries to disprove each one; the closing menu drops
+  "Validate assumptions" ([SKILL.md](../review-plan/skills/review-plan/SKILL.md)).
+  Decision questions now say when the problem happens, what each option costs,
+  and where a requirement came from, because the user often answered with "explain
+  the tradeoffs". A plan agreed in chat is saved to a file instead of stopping
+  with "suggest /plan first", and the Codex script is found without `$HOME`,
+  which hooks blocked in worktree sessions.
+
 ## 2026-11-10
 
 - **pr-review-deep** — interface depth now has one tag. Shallow wrappers, leaky

@@ -51,13 +51,13 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>Extracts the plan's goal, proposed changes, touched files, dependencies, and assumptions. Investigates in parallel, one subagent per aspect: reuse, reduction and interface shape; dependencies and breaking changes; error handling and edge cases; tests; soundness and assumptions — each grounded in code. Revises the plan in place to the leanest correct version, adds assumptions-to-validate gates, and reports the verdict with code you can avoid writing.</p>
+    <p>Extracts the plan's goal, proposed changes, touched files, dependencies, and assumptions. Investigates in parallel, one subagent per aspect: reuse, reduction and interface shape; dependencies and breaking changes; error handling and edge cases; tests; soundness and assumptions — each grounded in code. Revises the plan in place to the leanest correct version, adds assumptions-to-validate gates, then has a fresh read-only subagent try to disprove those assumptions and the plan changes. Reports the verdict with code you can avoid writing.</p>
   </section>
 
   <section id="commands">
     <h2>Commands / skills</h2>
     <ul class="skill-list">
-      <li><div class="sk-name">/review-plan</div><p>Validate the current plan or the plan in the most recent message.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/review-plan</div><p>Validate the current plan or the plan in the most recent message. A plan that exists only in chat is written to a file first.</p><div class="sk-triggers">explicit slash form only</div></li>
       <li><div class="sk-name">/review-plan &lt;path&gt;</div><p>Validate a specific plan file on disk, e.g. <code>/review-plan docs/plan.md</code>.</p><div class="sk-triggers">explicit slash form only</div></li>
     </ul>
   </section>
@@ -66,6 +66,7 @@
     <h2>How it works</h2>
     <p>The skill extracts the plan's goal, proposed changes, touched files, dependencies, and assumptions. It investigates in parallel, one subagent per aspect: reuse, reduction and interface shape (existing code or patterns that make planned steps redundant, and shallow or leaky interfaces), dependencies and breaking changes, error handling and edge cases, tests, and soundness and assumptions — each finding grounded in <code>file:line</code>.</p>
     <p>A simplification pass runs first (reuse, delete, configure, YAGNI, deep modules with small interfaces, smallest-diff), then risk and edge-case questions, reconciling the two so risks get the cheapest correct fix rather than piling on defensive code. The skill revises the plan in place to the leanest correct version and adds one "Assumptions to validate before implementing" gate.</p>
+    <p>An adversarial check runs last. A fresh read-only subagent gets only the plan path and the list of assumptions and plan-changing findings, not the review's reasoning, and tries to prove each one false. Each claim comes back <code>holds</code>, <code>fails</code>, <code>unverified</code>, or <code>needs you</code> with evidence; failures are folded into the plan, and checks that need a write, a running system, or a person come back as an exact command or question.</p>
     <p>Works out of the box with built-in agents (Plan, code-reviewer, Explore). Optionally uses specialists from feature-dev, pr-review-toolkit, or Codex plugins if installed — graceful degradation, no hard fails.</p>
     <p>Shoals: records corrections in <code>.claude/shoals/review-plan.review-plan.md</code> for the next run, preventing repeated mistakes on the same project.</p>
 
@@ -81,6 +82,8 @@
       <div class="flow-step"><span class="fs-num">5</span><span class="fs-body"><span class="fs-label">reconcile risks</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
       <div class="flow-step"><span class="fs-num">6</span><span class="fs-body"><span class="fs-label">revise + gate</span></span></div>
+      <div class="flow-arrow" aria-hidden="true"></div>
+      <div class="flow-step"><span class="fs-num">7</span><span class="fs-body"><span class="fs-label">adversarial check</span></span></div>
     </div>
 
     <details class="tech">
@@ -89,6 +92,7 @@
         <ul>
           <li>Built-in agents: <code>Plan</code> (architecture), <code>code-reviewer</code> (quality), <code>Explore</code> (code search).</li>
           <li>Optional specialists: <code>feature-dev:code-explorer</code>, <code>pr-review-toolkit</code> agents (silent-failure-hunter, type-design-analyzer, pr-test-analyzer), Codex (GPT cross-model review).</li>
+          <li>Plugin agent: <code>review-plan:plan-skeptic</code> (Read, Grep, Glob, Bash; read-only by instruction) runs the adversarial check with a clean context.</li>
           <li>Shoals file: <code>.claude/shoals/review-plan.review-plan.md</code> — learns from user corrections on the same project.</li>
           <li>Output: verdict (CRITICAL / CAUTION / REASONABLE), footprint (LEAN / ACCEPTABLE / OVER-ENGINEERED), what changed, code you can avoid writing.</li>
           <li>Before editing, ensures the change is recoverable: an untracked plan file (or one outside a git repo) gets a <code>.bak</code> copy first; a tracked file relies on git history.</li>

@@ -28,6 +28,18 @@ Each item must be empirically checkable *before* any code is written. This is th
 gate, not a wish list — phrase every assumption as something you can prove or
 disprove by inspecting the codebase/data/contracts.
 
+After Phase 5, each item carries its status and evidence:
+
+```markdown
+- [x] **[Assumption]** — holds: [file:line or command output]
+- [ ] **[Assumption]** — unverified: [what was tried] · run: [exact command]
+- [ ] **[Assumption]** — needs you: [exact command or question]
+```
+
+After folding a `fails` fix into the plan, rewrite the item to the corrected assumption and leave it unchecked.
+
+For a finding claim that is `unverified` or `needs you`, add it to this section as an open item with its status.
+
 ---
 
 ## C. User-facing report (chat only — do NOT write to the plan)
@@ -48,8 +60,10 @@ disprove by inspecting the codebase/data/contracts.
 ### Risks dropped as speculative
 - [risk considered] — not coded because [reason]
 
-### Assumptions to validate
-- See the `## Assumptions to validate before implementing` section now in the plan.
+### Adversarial check (Phase 5)
+- Verified: [claim] — [evidence]
+- Failed: [claim] — [evidence] → [what changed in the plan]
+- Still open: [claim] — unverified | needs you — [exact command or question]
 ```
 
 Keep the footprint qualitative — call out over-engineering, but don't promise line
