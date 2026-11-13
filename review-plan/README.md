@@ -13,9 +13,9 @@ Distributed as a plugin via the [**nautilai**](../README.md) marketplace.
 
 ## Use
 
-1. Write a plan (plan mode) or point at a plan file.
+1. Write a plan (plan mode), point at a plan file, or agree on a plan in chat. A plan that exists only in chat is written to a file first: a location named in your shoals or CLAUDE.md, else `docs/plans/`, else it asks once and remembers.
 2. Run `/review-plan` (optionally `/review-plan path/to/plan.md`).
-3. Review the plan, now revised in place to the leanest correct version, and the verdict reported in chat — then proceed / revise / abandon.
+3. Review the plan, now revised in place to the leanest correct version, and the verdict reported in chat — then Build / Hand off / Create tickets / Abandon.
 
 ## What it does
 
@@ -25,6 +25,7 @@ It does two jobs, in this order: **make the plan smaller**, then **make it safe*
 2. **Investigates in parallel** — one read-only subagent per review aspect: **reuse, reduction & interface shape** (highest priority), dependencies & breaking changes, error handling & edge cases, tests, and soundness & assumptions — each grounded in `file:line`.
 3. **Validates** — runs a **simplification pass first** (reuse / delete / configure / YAGNI / deep modules with small interfaces / smallest-diff), then risk/edge-case questions, reconciling the two so risks get the *cheapest correct* fix rather than piling on defensive code (`references/validation-questions.md`).
 4. **Revises the plan in place** to the leanest correct version and adds one **"Assumptions to validate before implementing"** gate. It reports the verdict, a **LEAN / ACCEPTABLE / OVER-ENGINEERED** footprint, what changed, and the code you can avoid writing — **to you in chat**, not as a confusing changes-log in the plan file.
+5. **Checks its own claims adversarially.** A fresh read-only subagent (`plan-skeptic`) gets only the plan path and the list of assumptions and plan-changing findings — not the review's reasoning — and tries to prove each one false. Each comes back `holds`, `fails`, `unverified`, or `needs you` with evidence. Failures are folded into the plan; anything that needs a write, a running system, or a person is handed to you as an exact command or question.
 
 ## Optional enhancements (graceful degradation)
 
@@ -73,6 +74,7 @@ v0.18.2); install by the identifier above.
 | Capability | Claude Code | Hermes |
 | --- | --- | --- |
 | Parallel specialist subagents | yes (`Task`) | via `delegate_task` — no named-specialist types, so each aspect runs as a generic delegated subagent |
+| Adversarial check | `review-plan:plan-skeptic` agent (Read, Grep, Glob, Bash) | generic delegated subagent given the same instructions file |
 | Analysis | one subagent per aspect; prefers an installed matching specialist (`code-explorer`, `code-reviewer`, etc.) | fans out via delegation; falls back to inline Read/Grep if no delegation primitive is present |
 
 Hermes has a subagent primitive (`delegate_task`), driven from the skill by stating fan-out
