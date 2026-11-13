@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.40.0](https://github.com/starfysh-tech/nautilai/compare/v2.39.0...v2.40.0) (2026-11-13)
+
+
+### Features
+
+* **relay:** fix post-compaction recovery timing and add a kickoff prompt ([#190](https://github.com/starfysh-tech/nautilai/issues/190)) ([21e2b0d](https://github.com/starfysh-tech/nautilai/commit/21e2b0d4f795145a752cc5dfbd803879b35ea175))
+
 ## [2.39.0](https://github.com/starfysh-tech/nautilai/compare/v2.38.0...v2.39.0) (2026-11-13)
 
 
