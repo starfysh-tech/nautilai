@@ -9,86 +9,191 @@
 // (nested by indent), tables (GitHub pipe syntax), fenced code blocks, blockquotes, horizontal
 // rules, **bold**, *italic*, ~~strike~~, `code`, [text](https://...) and bare https:// URLs.
 //
-// Usage: paste into a dashboard script (dashboards can load only their own files), then call
-// renderMd(element, markdownText) inside the drawing that shows a card or thread entry. Give the
-// element a class with modest spacing for p, ul, ol, table, pre and blockquote.
+// Usage: paste into a dashboard script (dashboards can load only their own files). It defines one
+// global, window.renderMd(element, markdownText); call it inside the drawing that shows a card or
+// thread entry. Give the element a class with modest spacing for p, ul, ol, table, pre and
+// blockquote.
 
-function mdInline(text) {
-  const out = [];
-  const re = /(`+)([^`]+?)\1|\*\*([^*]+?)\*\*|__([^_]+?)__|\*([^*\s][^*]*?)\*|_([^_\s][^_]*?)_|~~([^~]+?)~~|\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/g;
-  let last = 0, m;
-  while ((m = re.exec(text))) {
-    if (m.index > last) out.push(document.createTextNode(text.slice(last, m.index)));
-    let n;
-    if (m[2] != null) { n = document.createElement('code'); n.textContent = m[2]; }
-    else if (m[3] != null || m[4] != null) { n = document.createElement('strong'); n.append(...mdInline(m[3] ?? m[4])); }
-    else if (m[5] != null || m[6] != null) { n = document.createElement('em'); n.append(...mdInline(m[5] ?? m[6])); }
-    else if (m[7] != null) { n = document.createElement('s'); n.append(...mdInline(m[7])); }
-    else if (m[8] != null) {
-      if (/^https?:\/\//i.test(m[9])) { n = document.createElement('a'); n.href = m[9]; n.target = '_blank'; n.rel = 'noopener noreferrer'; n.append(...mdInline(m[8])); }
-      else { n = document.createTextNode(m[8]); }
-    } else { n = document.createElement('a'); n.href = m[10]; n.target = '_blank'; n.rel = 'noopener noreferrer'; n.textContent = m[10]; }
-    out.push(n); last = re.lastIndex;
+(function defineRenderMd(global) {
+  const INLINE_RE = /(`+)([^`]+?)\1|\*\*([^*]+?)\*\*|__([^_]+?)__|\*([^*\s][^*]*?)\*|_([^_\s][^_]*?)_|~~([^~]+?)~~|\[([^\]]+)\]\(([^)\s]+)\)|(https?:\/\/[^\s<>()]+[^\s<>().,;:!?'"])/g;
+  const LIST_RE = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
+  const HEADING_RE = /^\s*(#{1,6})\s+(.*?)\s*#*\s*$/;
+  const FENCE_RE = /^\s*(```|~~~)/;
+  const RULE_RE = /^\s*([-*_])(\s*\1){2,}\s*$/;
+  const TABLE_SEP_RE = /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/;
+  const PARAGRAPH_STOP_RE = /^\s*(#{1,6}\s|```|~~~|>)/;
+
+  function element(tag, children) {
+    const node = document.createElement(tag);
+    if (children) node.append(...children);
+    return node;
   }
-  if (last < text.length) out.push(document.createTextNode(text.slice(last)));
-  return out;
-}
-function mdBlocks(src) {
-  const lines = String(src || '').replace(/\r\n?/g, '\n').split('\n');
-  const out = []; let i = 0;
-  const isTableSep = (l) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
-  const cells = (l) => l.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
-  const listRe = /^(\s*)([-*+]|\d+[.)])\s+(.*)$/;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (!line.trim()) { i++; continue; }
-    if (/^\s*<!--/.test(line)) { while (i < lines.length && !/-->/.test(lines[i])) i++; i++; continue; }
-    const fence = line.match(/^\s*(```|~~~)/);
-    if (fence) {
-      const buf = []; i++;
-      while (i < lines.length && !lines[i].trim().startsWith(fence[1])) buf.push(lines[i++]);
-      i++;
-      const pre = document.createElement('pre'); const code = document.createElement('code'); code.textContent = buf.join('\n'); pre.appendChild(code); out.push(pre); continue;
+
+  function link(href, children) {
+    const anchor = element('a', children);
+    anchor.href = href;
+    anchor.target = '_blank';
+    anchor.rel = 'noopener noreferrer';
+    return anchor;
+  }
+
+  function inlineNode(match) {
+    const [, , code, bold, bold2, em, em2, strike, linkText, linkHref, bareUrl] = match;
+    if (code != null) {
+      const node = element('code');
+      node.textContent = code;
+      return node;
     }
-    const hm = line.match(/^\s*(#{1,6})\s+(.*?)\s*#*\s*$/);
-    if (hm) { const el = document.createElement('h' + Math.min(4, hm[1].length)); el.append(...mdInline(hm[2])); out.push(el); i++; continue; }
-    if (/^\s*([-*_])(\s*\1){2,}\s*$/.test(line)) { out.push(document.createElement('hr')); i++; continue; }
-    if (line.includes('|') && i + 1 < lines.length && isTableSep(lines[i + 1])) {
-      const wrap = document.createElement('div'); wrap.className = 'ab-md-table';
-      const table = document.createElement('table'); const thead = document.createElement('thead'); const tr = document.createElement('tr');
-      cells(line).forEach((c) => { const th = document.createElement('th'); th.append(...mdInline(c)); tr.appendChild(th); });
-      thead.appendChild(tr); table.appendChild(thead); i += 2;
-      const tbody = document.createElement('tbody');
-      while (i < lines.length && lines[i].includes('|') && lines[i].trim()) {
-        const r = document.createElement('tr'); cells(lines[i]).forEach((c) => { const td = document.createElement('td'); td.append(...mdInline(c)); r.appendChild(td); }); tbody.appendChild(r); i++;
-      }
-      table.appendChild(tbody); wrap.appendChild(table); out.push(wrap); continue;
+    if (bold != null || bold2 != null) return element('strong', parseInline(bold ?? bold2));
+    if (em != null || em2 != null) return element('em', parseInline(em ?? em2));
+    if (strike != null) return element('s', parseInline(strike));
+    if (linkText != null) {
+      return /^https?:\/\//i.test(linkHref) ? link(linkHref, parseInline(linkText)) : document.createTextNode(linkText);
     }
-    if (/^\s*>/.test(line)) {
-      const buf = []; while (i < lines.length && /^\s*>/.test(lines[i])) buf.push(lines[i++].replace(/^\s*>\s?/, ''));
-      const bq = document.createElement('blockquote'); bq.append(...mdBlocks(buf.join('\n'))); out.push(bq); continue;
+    const anchor = link(bareUrl);
+    anchor.textContent = bareUrl;
+    return anchor;
+  }
+
+  function parseInline(text) {
+    const out = [];
+    const re = new RegExp(INLINE_RE.source, 'g');
+    let last = 0;
+    for (let match = re.exec(text); match; match = re.exec(text)) {
+      if (match.index > last) out.push(document.createTextNode(text.slice(last, match.index)));
+      out.push(inlineNode(match));
+      last = re.lastIndex;
     }
-    if (listRe.test(line)) {
-      const base = line.match(listRe)[1].length;
-      const ordered = /\d/.test(line.match(listRe)[2]);
-      const list = document.createElement(ordered ? 'ol' : 'ul');
-      let li = null, sub = [];
-      const flush = () => { if (li && sub.length) { li.append(...mdBlocks(sub.join('\n'))); } sub = []; };
-      while (i < lines.length) {
-        const l = lines[i]; const lm = l.match(listRe);
-        if (lm && lm[1].length <= base) { flush(); li = document.createElement('li'); li.append(...mdInline(lm[3])); list.appendChild(li); i++; continue; }
-        if (!l.trim()) { if (i + 1 < lines.length && (/^\s+/.test(lines[i + 1]) || (listRe.test(lines[i + 1]) && lines[i + 1].match(listRe)[1].length <= base))) { i++; continue; } break; }
-        if (/^\s+/.test(l)) { sub.push(l.replace(new RegExp('^\\s{0,' + (base + 4) + '}'), '')); i++; continue; }
+    if (last < text.length) out.push(document.createTextNode(text.slice(last)));
+    return out;
+  }
+
+  const isTableStart = (lines, i) => lines[i].includes('|') && i + 1 < lines.length && TABLE_SEP_RE.test(lines[i + 1]);
+  const tableCells = (line) => line.trim().replace(/^\||\|$/g, '').split('|').map((cell) => cell.trim());
+
+  // Each block reader takes (lines, i) and returns {nodes, next} when it handles line i, else null.
+  function readComment(lines, i) {
+    if (!/^\s*<!--/.test(lines[i])) return null;
+    let next = i;
+    while (next < lines.length && !/-->/.test(lines[next])) next += 1;
+    return { nodes: [], next: next + 1 };
+  }
+
+  function readFence(lines, i) {
+    const fence = lines[i].match(FENCE_RE);
+    if (!fence) return null;
+    const body = [];
+    let next = i + 1;
+    while (next < lines.length && !lines[next].trim().startsWith(fence[1])) body.push(lines[next++]);
+    const code = element('code');
+    code.textContent = body.join('\n');
+    return { nodes: [element('pre', [code])], next: next + 1 };
+  }
+
+  function readHeading(lines, i) {
+    const heading = lines[i].match(HEADING_RE);
+    if (!heading) return null;
+    return { nodes: [element(`h${Math.min(4, heading[1].length)}`, parseInline(heading[2]))], next: i + 1 };
+  }
+
+  function readRule(lines, i) {
+    return RULE_RE.test(lines[i]) ? { nodes: [element('hr')], next: i + 1 } : null;
+  }
+
+  function readTable(lines, i) {
+    if (!isTableStart(lines, i)) return null;
+    const row = (line, tag) => element('tr', tableCells(line).map((cell) => element(tag, parseInline(cell))));
+    const rows = [];
+    let next = i + 2;
+    while (next < lines.length && lines[next].includes('|') && lines[next].trim()) rows.push(row(lines[next++], 'td'));
+    const table = element('table', [element('thead', [row(lines[i], 'th')]), element('tbody', rows)]);
+    const wrap = element('div', [table]);
+    wrap.className = 'ab-md-table';
+    return { nodes: [wrap], next };
+  }
+
+  function readQuote(lines, i) {
+    if (!/^\s*>/.test(lines[i])) return null;
+    const body = [];
+    let next = i;
+    while (next < lines.length && /^\s*>/.test(lines[next])) body.push(lines[next++].replace(/^\s*>\s?/, ''));
+    return { nodes: [element('blockquote', parseBlocks(body.join('\n')))], next };
+  }
+
+  function continuesList(lines, next, base) {
+    if (next + 1 >= lines.length) return false;
+    const after = lines[next + 1];
+    const item = after.match(LIST_RE);
+    return /^\s+/.test(after) || Boolean(item && item[1].length <= base);
+  }
+
+  function readList(lines, i) {
+    const first = lines[i].match(LIST_RE);
+    if (!first) return null;
+    const base = first[1].length;
+    const list = element(/\d/.test(first[2]) ? 'ol' : 'ul');
+    const indent = new RegExp(`^\\s{0,${base + 4}}`);
+    let item = null;
+    let nested = [];
+    const flush = () => {
+      if (item && nested.length) item.append(...parseBlocks(nested.join('\n')));
+      nested = [];
+    };
+    let next = i;
+    while (next < lines.length) {
+      const line = lines[next];
+      const marker = line.match(LIST_RE);
+      if (marker && marker[1].length <= base) {
+        flush();
+        item = element('li', parseInline(marker[3]));
+        list.appendChild(item);
+      } else if (!line.trim()) {
+        if (!continuesList(lines, next, base)) break;
+      } else if (/^\s+/.test(line)) {
+        nested.push(line.replace(indent, ''));
+      } else {
         break;
       }
-      flush(); out.push(list); continue;
+      next += 1;
     }
-    const buf = [];
-    while (i < lines.length && lines[i].trim() && !/^\s*(#{1,6}\s|```|~~~|>)/.test(lines[i]) && !listRe.test(lines[i]) && !(lines[i].includes('|') && i + 1 < lines.length && isTableSep(lines[i + 1]))) buf.push(lines[i++]);
-    const p = document.createElement('p');
-    buf.forEach((b, k) => { if (k) p.appendChild(document.createElement('br')); p.append(...mdInline(b.trim())); });
-    out.push(p);
+    flush();
+    return { nodes: [list], next };
   }
-  return out;
-}
-function renderMd(el, text) { el.replaceChildren(...mdBlocks(text)); }
+
+  function readParagraph(lines, i) {
+    const body = [];
+    let next = i;
+    while (next < lines.length && lines[next].trim() && !PARAGRAPH_STOP_RE.test(lines[next]) && !LIST_RE.test(lines[next]) && !isTableStart(lines, next)) {
+      body.push(lines[next++]);
+    }
+    if (!body.length) body.push(lines[next++]); // never stall on a line no reader claims
+    const paragraph = element('p');
+    body.forEach((line, k) => {
+      if (k) paragraph.appendChild(element('br'));
+      paragraph.append(...parseInline(line.trim()));
+    });
+    return { nodes: [paragraph], next };
+  }
+
+  const READERS = [readComment, readFence, readHeading, readRule, readTable, readQuote, readList, readParagraph];
+
+  function parseBlocks(src) {
+    const lines = String(src || '').replace(/\r\n?/g, '\n').split('\n');
+    const out = [];
+    let i = 0;
+    while (i < lines.length) {
+      if (!lines[i].trim()) {
+        i += 1;
+      } else {
+        const result = READERS.reduce((found, read) => found || read(lines, i), null);
+        out.push(...result.nodes);
+        i = result.next;
+      }
+    }
+    return out;
+  }
+
+  global.renderMd = function renderMd(target, text) {
+    target.replaceChildren(...parseBlocks(text));
+  };
+})(window);
