@@ -16,6 +16,12 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-11-27
 
+- **agent-board**: the skill now has a dashboard recipe. The first live dashboard built on the board
+  needed two fixes before any data loaded: the connector name it used did not match the one the
+  person had added, and it had to work out each `view` reply's shape. The recipe gives the exact
+  reply shapes, paging, and a card-detail query, so each person can describe their own dashboard
+  and get a working one on the first pass. It also keeps dashboards read-only and leaves changes
+  to chat with an owner token. See [the skill](../agent-board/skills/agent-board/SKILL.md).
 - **agent-board** — new plugin. Agents working an Agent Board had to be handed a
   per-session MCP config and re-taught the board's rules each time: lease one card, renew it
   with `progress`, never call `next` while holding a card, never write the claim token down,

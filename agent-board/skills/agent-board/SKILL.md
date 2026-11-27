@@ -1,6 +1,6 @@
 ---
 name: agent-board
-description: Work, file, and answer cards on an Agent Board, a shared work board reached through the agent-board MCP server. Use when the user says "work the board", "what's on the board", "file a card", "put this on the board", "what's waiting on me", "answer the blocked card", or names a card by number, or when agent-board tools (next, progress, done, create, view) are available and the task is to pull or route work.
+description: Work, file, and answer cards on an Agent Board, a shared work board reached through the agent-board MCP server. Use when the user says "work the board", "what's on the board", "file a card", "put this on the board", "what's waiting on me", "answer the blocked card", "make a board dashboard", or names a card by number, or when agent-board tools (next, progress, done, create, view) are available and the task is to pull or route work.
 ---
 
 # Agent Board
@@ -89,6 +89,33 @@ so a coordinator can file it.
 
 Paged lists return `cursor`; pass it back for the next page. `cursor: null` is the last page.
 `view` writes nothing.
+
+## Dashboards
+
+When someone asks for a dashboard or a page that shows the board, build it from live `view` calls
+rather than a copy, and let them describe the layout they want: each person's dashboard can differ.
+Use these facts so it works on the first pass:
+
+- **Connector name.** Use the connector's name exactly as the person added it (the Claude app lists
+  it, for example `agent-board`). A display name that differs makes every query fail as absent.
+- **Read-only first.** A dashboard needs only `view`. Build it on a read-only or coordinator token.
+  Leave answering, editing and cancelling to chat with an owner token, rather than adding buttons
+  that change the board.
+- **Reply shapes** (every reply has `ok`; throw on `ok: false` with its `reason`):
+
+  | Call | Rows are in | Row fields |
+  |---|---|---|
+  | `view {}` | `boards` | `board`, `counts.{ready, claimed, blocked, done, cancelled}` |
+  | `view {blocked: true}` | `cards` | `board`, `id`, `text` (first line), `priority`, `state`, `depends_on` |
+  | `view {board}` | `cards`, paged by `cursor` | `id`, `text` (first line), `priority`, `state`, `depends_on` |
+  | `view {board, card}` | `card` and `thread` | card: `id`, `text` (full), `priority`, `state`, `depends_on`, `source_ref`; thread: `time` (epoch ms), `type`, `profile`, `outcome`, `text` |
+
+- **Paging.** `view {board}` returns at most one page; follow `cursor` until it is `null`.
+- **Card detail on click.** Use one query with blanks, `{board: "{{board}}", card: "{{card}}"}`,
+  with rules that pin the board to an `enum` of board names and the card to a positive number. Set
+  both when a card row is clicked.
+- **New boards** appear in `view {}` automatically, but a per-board card table needs its board
+  name in a query, so adding a board means adding its table.
 
 ## Rejections
 
