@@ -46,7 +46,7 @@
   <section id="commands">
     <h2>Commands / skills</h2>
     <ul class="skill-list">
-      <li><div class="sk-name">/agent-board</div><p>Work, file, and answer cards on the board, according to the role the token grants.</p><div class="sk-triggers">"work the board" · "what's on the board" · "file a card" · "what's waiting on me"</div></li>
+      <li><div class="sk-name">/agent-board</div><p>Work, file, and answer cards on the board, according to the role the token grants.</p><div class="sk-triggers">"work the board" · "what's on the board" · "file a card" · "what's waiting on me" · "make me a board dashboard"</div></li>
     </ul>
   </section>
 
@@ -74,6 +74,7 @@
           <li>An empty <code>next</code> reports <code>no ready cards</code>, <code>waiting on owner</code> or <code>waiting on dependency</code>; the skill stops and reports instead of calling again.</li>
           <li><code>create</code> deduplicates against open cards by <code>source_ref</code> or identical text and returns the existing card with <code>repeat: true</code>, so retries are safe.</li>
           <li>Each refusal reason (<code>not holder</code>, <code>wrong state</code>, <code>not permitted</code>, <code>invalid</code>, <code>not found</code>) maps to one reaction in the skill.</li>
+          <li>Dashboards are built from live <code>view</code> calls: the skill gives each reply's shape, paging and a card-detail query, and keeps them read-only.</li>
           <li>The Claude app connects as a custom connector with an <code>x-auth-token</code> request header, since it reserves <code>Authorization</code>.</li>
         </ul>
       </div>

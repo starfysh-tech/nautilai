@@ -188,6 +188,10 @@ the skill alone would describe tools a Hermes agent does not have.
   `release`, `view` for one board and must never pass `board`; coordinator and owner name
   `board` on every call except a cross-board `view`. A tool you were not shown is refused
   `not permitted`: stop, do not route around it.
+- **Dashboards read live, with `view` only.** Use the connector's name exactly as the person
+  added it, follow `cursor` on `view {board}`, and take card detail from `view {board, card}`
+  (`card` plus `thread`, `time` in epoch ms). Leave answer, edit and cancel to chat with an
+  owner token. The skill's Dashboards section has the reply shapes.
 - **`next` is not idempotent.** Every call leases another card. Never call it while holding one.
 - **The claim token comes only from the `next` reply.** Pass it back unchanged; never write it
   into card text, commits, files or logs.
