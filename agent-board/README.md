@@ -14,7 +14,10 @@ Distributed as a plugin via the [**nautilai**](../README.md) marketplace. Claude
   `Authorization: Bearer ${AGENT_BOARD_TOKEN}`. Nothing runs locally.
 - **`skills/agent-board`** teaches the worker loop (`next`, `progress` at least every 15 minutes,
   then `done`, `block` or `release`), the claim-token rule, what an empty `next` means, how
-  coordinators and the owner file, answer and cancel cards, and how to react to each refusal.
+  coordinators and the owner file, answer and cancel cards, and how to react to each refusal. It also
+  has a recipe for live, read-only dashboards of the board.
+- **`templates/dashboard-markdown.js`** renders card text and thread entries as Markdown in a
+  dashboard. It builds DOM nodes and never inserts card text as HTML.
 
 The board decides what you can do from your token. A worker token sees `next`, `progress`,
 `block`, `done`, `release` and `view` for one board. A coordinator token sees `create`, `edit`,
@@ -75,6 +78,15 @@ what's on the board
 file a card on <board>: <title>, then the details a worker needs
 what's waiting on me
 ```
+
+For a dashboard, with any token that can `view`:
+
+```
+make me a board dashboard: counts per board, what's waiting on me, and click a card for its full text
+```
+
+Each person can describe their own layout. Dashboards stay read-only; answer, edit and cancel
+cards in chat with an owner token.
 
 ## Safety
 

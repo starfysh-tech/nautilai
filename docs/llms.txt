@@ -192,6 +192,10 @@ the skill alone would describe tools a Hermes agent does not have.
   added it, follow `cursor` on `view {board}`, and take card detail from `view {board, card}`
   (`card` plus `thread`, `time` in epoch ms). Leave answer, edit and cancel to chat with an
   owner token. The skill's Dashboards section has the reply shapes.
+- **Dashboard card detail: rows, then safe Markdown.** Return card detail as one row per thread
+  entry carrying the card's fields; a single-record loader left the panel blank. Card text is
+  Markdown: render it with `templates/dashboard-markdown.js` (DOM nodes, no `innerHTML`, http(s)
+  links only), pasted into the dashboard because dashboards load no outside libraries.
 - **`next` is not idempotent.** Every call leases another card. Never call it while holding one.
 - **The claim token comes only from the `next` reply.** Pass it back unchanged; never write it
   into card text, commits, files or logs.

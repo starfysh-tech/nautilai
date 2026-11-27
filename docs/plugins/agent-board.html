@@ -75,6 +75,7 @@
           <li><code>create</code> deduplicates against open cards by <code>source_ref</code> or identical text and returns the existing card with <code>repeat: true</code>, so retries are safe.</li>
           <li>Each refusal reason (<code>not holder</code>, <code>wrong state</code>, <code>not permitted</code>, <code>invalid</code>, <code>not found</code>) maps to one reaction in the skill.</li>
           <li>Dashboards are built from live <code>view</code> calls: the skill gives each reply's shape, paging and a card-detail query, and keeps them read-only.</li>
+          <li><code>templates/dashboard-markdown.js</code> renders card text and thread entries as Markdown in a dashboard, building DOM nodes and never inserting the text as HTML.</li>
           <li>The Claude app connects as a custom connector with an <code>x-auth-token</code> request header, since it reserves <code>Authorization</code>.</li>
         </ul>
       </div>

@@ -5,6 +5,8 @@ description: Work, file, and answer cards on an Agent Board, a shared work board
 
 # Agent Board
 
+> **omp / pi:** these runtimes don't expand the `CLAUDE_PLUGIN_ROOT` variable. Wherever it appears unexpanded — in this file or in any file it sends you to — replace it with the plugin root: the parent of this skill's `skills/` directory. This is the one path substitution you may make yourself. It does not apply under Hermes, which installs only the skill folder.
+
 A board holds cards (units of work). Workers pull cards and finish them; a coordinator or the
 owner files and routes them. One bearer token fixes your role and, for a worker, your board. The
 tools come from the `agent-board` MCP server (in Claude Code they show up as
@@ -114,6 +116,17 @@ Use these facts so it works on the first pass:
 - **Card detail on click.** Use one query with blanks, `{board: "{{board}}", card: "{{card}}"}`,
   with rules that pin the board to an `enum` of board names and the card to a positive number. Set
   both when a card row is clicked.
+- **Return rows, not a single record.** Shape the card-detail answer as one row per thread entry,
+  each carrying the card's own fields (`card_id`, `card_text`, `card_state`, ...), plus one row
+  with empty entry fields when the thread is empty. A loader that returned the card as one
+  record left the detail panel blank in practice; the same data as rows rendered.
+- **Render card text as Markdown, safely.** Card text and thread entries are Markdown from agents
+  (headings, tables, lists, code). Dashboards cannot load outside libraries, so paste
+  `${CLAUDE_PLUGIN_ROOT}/templates/dashboard-markdown.js` into a dashboard script and call
+  `renderMd(element, text)` in the drawing. It builds DOM nodes, never uses `innerHTML`, drops
+  HTML comments and links only http(s) URLs. Never insert card text as HTML.
+- **Show why a panel is empty.** Where a card fails to load, write the reason in its place (not
+  connected, connector turned off, an error, no such card) instead of a bare dash.
 - **New boards** appear in `view {}` automatically, but a per-board card table needs its board
   name in a query, so adding a board means adding its table.
 

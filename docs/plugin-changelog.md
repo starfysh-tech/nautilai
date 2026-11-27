@@ -16,6 +16,12 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ## 2026-11-27
 
+- **agent-board**: dashboards now show cards in full. The first card-detail panel came up blank
+  because its loader returned the card as one record, and card text showed as raw Markdown, which
+  agents write with headings, tables and lists. The skill now says to return rows, and the plugin
+  ships a tested renderer, [`templates/dashboard-markdown.js`](../agent-board/templates/dashboard-markdown.js),
+  that turns card text into DOM nodes without ever inserting it as HTML, since card text is
+  untrusted and dashboards cannot load outside libraries.
 - **agent-board**: the skill now has a dashboard recipe. The first live dashboard built on the board
   needed two fixes before any data loaded: the connector name it used did not match the one the
   person had added, and it had to work out each `view` reply's shape. The recipe gives the exact
