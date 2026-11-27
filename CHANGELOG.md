@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.42.0](https://github.com/starfysh-tech/nautilai/compare/v2.41.0...v2.42.0) (2026-11-27)
+
+
+### Features
+
+* **agent-board:** add dashboard recipe to the skill ([#196](https://github.com/starfysh-tech/nautilai/issues/196)) ([e50d11a](https://github.com/starfysh-tech/nautilai/commit/e50d11ae86e27c5813839371905430ceea5e8911))
+
 ## [2.41.0](https://github.com/starfysh-tech/nautilai/compare/v2.40.0...v2.41.0) (2026-11-27)
 
 
