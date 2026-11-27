@@ -46,6 +46,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [sentry-hygiene](https://starfysh-tech.github.io/nautilai/plugins/sentry-hygiene.html): Audits a repo's Sentry setup against official SDK docs fetched at runtime, and instruments capture behind a hard PII boundary. Repo-only (no Sentry MCP). Deliberately complements the official `sentry` plugin, which owns SDK setup and fixing production issues. **Not currently ported to Hermes.**
 - [action-first](https://starfysh-tech.github.io/nautilai/plugins/action-first.html): Persistent output-style skill — reshapes every response around one doable-now action (lead with the step, number/cap multi-step work at 5, restate progress each turn, cut preamble/recap). User-invoked only, stays on until "stop action-first."
 - [worktree-lanes](https://starfysh-tech.github.io/nautilai/plugins/worktree-lanes.html): Runs several branches at once, each in its own git worktree with a per-lane env file, ports, linked deps, and route. A bundled engine (`scripts/lane`: `open`, `pr`, `resume`, `rm`, `ls`, `gc`) driven by a per-repo `.lanerc` recipe; modes host (default, shared DB), `--proxy` (shared DB + per-lane hostnames), `--isolated` (own DB/stack, only if the recipe declares support). `/worktree-lanes --setup` drafts the recipe; writing it is always a user stop, so with no user to answer it writes `.lanerc.draft`, reports `awaiting_setup`, and stops. `rm` refuses a lane with uncommitted changes unless `--force`.
+- [agent-board](https://starfysh-tech.github.io/nautilai/plugins/agent-board.html): Connects Claude Code to an Agent Board, a shared work board served over HTTP MCP (`${AGENT_BOARD_URL:-https://board.starfysh.net}/mcp`, token from `AGENT_BOARD_TOKEN`). Workers lease one card with `next`, report with `progress`, and end with `done`, `block` or `release`; coordinators and the owner `create`, `edit`, `cancel`, `answer` and `view`. The token decides the role and the tools shown. **Not ported to Hermes**: the plugin is an MCP server declaration plus one skill, and Hermes would need its own MCP configuration (see Notes).
 
 ## Notes for agents — Hermes runtime
 
@@ -177,6 +178,28 @@ Both runtimes. The script and references live in the skill directory, so Hermes 
 - **Shallow clones under-report history.** Check `git.shallow_clone` in the inventory; history-based results are `PARTIAL` when it is true.
 - **semgrep fetches rule packs from its registry.** Offline, code security is `NOT RUN: semgrep registry unreachable`. An unknown pack name fails the whole scan (exit 7), so pass only the packs listed in `references/stacks.md`.
 - **Secret values are never printed or read.** gitleaks runs with `--redact`. Read environment files and any file `config_secrets.py scan` lists only through `config_secrets.py view`, which masks values; never `cat` them. Read gitleaks hits, including ones in history, only through `config_secrets.py context <repo> <gitleaks.json>`; never `git show` them, and never hand-roll a masker. gitleaks misses hand-picked passwords in TOML/YAML/env files, which is what the config scan is for.
+
+## Notes for agents — agent-board
+
+Claude Code only. The plugin's `.mcp.json` declares the server; Hermes does not read it, so
+the skill alone would describe tools a Hermes agent does not have.
+
+- **The tool list is the role.** A worker token shows `next`, `progress`, `block`, `done`,
+  `release`, `view` for one board and must never pass `board`; coordinator and owner name
+  `board` on every call except a cross-board `view`. A tool you were not shown is refused
+  `not permitted`: stop, do not route around it.
+- **`next` is not idempotent.** Every call leases another card. Never call it while holding one.
+- **The claim token comes only from the `next` reply.** Pass it back unchanged; never write it
+  into card text, commits, files or logs.
+- **An empty `next` has `retry: true`, but do not loop.** Stop and report the `empty` reason
+  (`no ready cards`, `waiting on owner`, `waiting on dependency`).
+- **`create` deduplicates on exact `source_ref` or identical text against open cards** and
+  returns the existing card with `repeat: true`. Two different cards filed from one card need
+  distinct refs (`discovered-from:card N: <slug>`).
+- **A missing `AGENT_BOARD_TOKEN` is sent literally** (Claude Code leaves an unset `${VAR}`
+  unexpanded), so the board answers 401 and `/mcp` shows a failed connection; no
+  missing-variable warning appears for this plugin server. The fix is the user's environment
+  (export the token, restart Claude Code), not the config.
 
 ## Optional
 

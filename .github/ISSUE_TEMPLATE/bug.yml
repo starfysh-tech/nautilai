@@ -31,6 +31,7 @@ body:
         - action-first
         - worktree-lanes
         - tech-due-diligence
+        - agent-board
     validations:
       required: true
   - type: input

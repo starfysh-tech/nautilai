@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "agent-board",
+  "displayName": "Agent Board",
+  "version": "2.40.0",
+  "description": "Connects Claude Code to an Agent Board, a shared work board served over MCP, and teaches the agent to use it: workers lease cards, report progress, and finish with a result, a question, or a release; coordinators and the owner file, answer, and cancel cards.",
+  "author": {
+    "name": "Randall Noval",
+    "email": "randall@starfysh.net",
+    "url": "https://github.com/starfysh-tech"
+  },
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/agent-board#readme",
+  "repository": "https://github.com/starfysh-tech/nautilai",
+  "license": "MIT",
+  "keywords": [
+    "agent-board",
+    "mcp",
+    "work-queue",
+    "multi-agent",
+    "claude-code"
+  ],
+  "skills": "./skills/"
+}
