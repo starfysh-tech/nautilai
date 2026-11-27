@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.41.0](https://github.com/starfysh-tech/nautilai/compare/v2.40.0...v2.41.0) (2026-11-27)
+
+
+### Features
+
+* **agent-board:** add agent-board plugin for the shared work board ([#194](https://github.com/starfysh-tech/nautilai/issues/194)) ([a0173a4](https://github.com/starfysh-tech/nautilai/commit/a0173a4117c03877eaff636688452c296636b898))
+
 ## [2.40.0](https://github.com/starfysh-tech/nautilai/compare/v2.39.0...v2.40.0) (2026-11-13)
 
 
