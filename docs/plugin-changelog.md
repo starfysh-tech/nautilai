@@ -14,6 +14,16 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-11-27
+
+- **agent-board** — new plugin. Agents working an Agent Board had to be handed a
+  per-session MCP config and re-taught the board's rules each time: lease one card, renew it
+  with `progress`, never call `next` while holding a card, never write the claim token down,
+  and stop rather than poll when the board is empty. The plugin ships the server declaration
+  (`AGENT_BOARD_TOKEN` and optional `AGENT_BOARD_URL` from the environment, so no token lives
+  in a repo) and a [skill](../agent-board/skills/agent-board/SKILL.md) that carries those rules,
+  the coordinator and owner calls, and one reaction per refusal reason. Claude Code only.
+
 ## 2026-11-13
 
 - **review-plan** — the review now checks its own claims. In 104 real runs the

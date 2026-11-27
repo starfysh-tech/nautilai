@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "agent-board": {
+      "type": "http",
+      "url": "${AGENT_BOARD_URL:-https://board.starfysh.net}/mcp",
+      "headers": {
+        "Authorization": "Bearer ${AGENT_BOARD_TOKEN}"
+      }
+    }
+  }
+}
