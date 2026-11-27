@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.43.0](https://github.com/starfysh-tech/nautilai/compare/v2.42.0...v2.43.0) (2026-11-27)
+
+
+### Features
+
+* **agent-board:** render dashboard cards as safe markdown ([#198](https://github.com/starfysh-tech/nautilai/issues/198)) ([3c62e82](https://github.com/starfysh-tech/nautilai/commit/3c62e82246ab28f8e1d7a24970dd62487fbaf37f))
+
 ## [2.42.0](https://github.com/starfysh-tech/nautilai/compare/v2.41.0...v2.42.0) (2026-11-27)
 
 
