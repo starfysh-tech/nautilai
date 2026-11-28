@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "ontology",
   "displayName": "Ontology",
-  "version": "2.43.0",
+  "version": "2.44.0",
   "description": "Local-first, technology-agnostic map of how an application works (areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, decisions) that coding agents query before reading code. An onboarding wizard seeds it from the repo, and every write is checked against a schema. The map holds behavior only, never code.",
   "author": {
     "name": "Randall Noval",
