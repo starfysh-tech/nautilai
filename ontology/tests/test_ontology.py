@@ -117,6 +117,15 @@ class WriteValidationTests(RepoFixture, unittest.TestCase):
         ids = [e["id"] for e in self.repo.ok("find")]
         self.assertEqual(ids, ["area:checkout", "cap:place-order", "term:order"])
 
+    def test_long_names_keep_full_slug(self):
+        name = "Diagnostic log holds no account identifier network name or password"
+        batch = "\n".join(json.dumps(o) for o in [
+            {"op": "add", "type": "Rule", "props": {"name": name, "statement": "x"}},
+            {"op": "link", "from": "rule:diagnostic-log-holds-no-account-identifier-network-name-or-password",
+             "rel": "constrains", "to": "area:checkout"},
+        ])
+        self.assertEqual(self.repo.ok("apply", "--file", "-", stdin=batch)["written"], 2)
+
     def test_id_collision_rejected(self):
         self.assertIn("already exists", self.repo.fails(
             "add", "--type", "Area", "--props", '{"name":"checkout","responsibility":"x"}'))

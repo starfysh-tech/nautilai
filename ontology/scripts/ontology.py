@@ -71,8 +71,9 @@ def git(args: list[str], cwd: Path, stdin: str | None = None) -> str | None:
 
 
 def slug(text: str) -> str:
-    s = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
-    return s[:48].rstrip("-")
+    # No length cap: ids must be predictable from the name alone, because agents
+    # write links to entities in the same batch before the engine has seen them.
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
 def parse_json(text: str, what: str) -> dict:
