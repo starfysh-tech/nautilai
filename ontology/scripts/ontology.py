@@ -32,7 +32,7 @@ from pathlib import Path
 try:
     import fcntl  # POSIX only; writes are unlocked where it is missing.
 except ImportError:  # pragma: no cover
-    fcntl = None
+    fcntl = None  # type: ignore[assignment]
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 TEMPLATE_DIRS = [SCRIPT_DIR.parent / "templates", SCRIPT_DIR / "templates"]
@@ -190,13 +190,13 @@ class Graph:
             e = {k: v for k, v in r["entity"].items() if k not in ("sources", "verified")}
             self.entities[e["id"]] = e
         elif op == "update":
-            e = self.entities.get(r["id"])
-            if e is None:
+            target = self.entities.get(r["id"])
+            if target is None:
                 return
-            e["props"].update(r.get("set", {}))
+            target["props"].update(r.get("set", {}))
             for k in r.get("unset", []):
-                e["props"].pop(k, None)
-            e["updated"] = r.get("ts", e.get("updated"))
+                target["props"].pop(k, None)
+            target["updated"] = r.get("ts", target.get("updated"))
         elif op == "remove":
             self.entities.pop(r["id"], None)
             self.edges = {k: v for k, v in self.edges.items() if r["id"] not in (k[0], k[2])}
@@ -309,6 +309,14 @@ def make_id(schema: dict, g: Graph, etype: str, props: dict) -> str:
     return f"{prefix}:{uuid.uuid4().hex[:6]}"
 
 
+def field(op: dict, name: str) -> str:
+    """A required string field of a batch op, or a clear error naming it."""
+    value = op.get(name)
+    if not isinstance(value, str) or not value:
+        raise OntologyError(f"missing or non-string field '{name}'")
+    return value
+
+
 def apply_ops(store: Store, ops: list[dict], dry_run: bool = False) -> dict:
     """Validate a batch against the current graph, then append it whole or not at all."""
     schema = store.schema()
@@ -336,7 +344,7 @@ def apply_ops(store: Store, ops: list[dict], dry_run: bool = False) -> dict:
                     rec = {"op": "add", "entity": entity, "ts": ts}
                     results.append({"added": eid})
                 elif kind == "update":
-                    eid = op.get("id")
+                    eid = field(op, "id")
                     e = g.entities.get(eid)
                     if e is None:
                         raise OntologyError(f"{eid}: not found")
@@ -350,14 +358,14 @@ def apply_ops(store: Store, ops: list[dict], dry_run: bool = False) -> dict:
                            "unset": op.get("unset", []), "ts": ts}
                     results.append({"updated": eid})
                 elif kind == "remove":
-                    eid = op.get("id")
+                    eid = field(op, "id")
                     if eid not in g.entities:
                         raise OntologyError(f"{eid}: not found")
                     dropped = len(g.out_edges(eid)) + len(g.in_edges(eid))
                     rec = {"op": "remove", "id": eid, "ts": ts}
                     results.append({"removed": eid, "edges_removed": dropped})
                 elif kind == "link":
-                    src, rel, dst = op.get("from"), op.get("rel"), op.get("to")
+                    src, rel, dst = field(op, "from"), field(op, "rel"), field(op, "to")
                     key = (src, rel, dst)
                     exists = key in g.edges
                     errs = check_link(schema, g, src, rel, dst, new=not exists)
@@ -370,7 +378,7 @@ def apply_ops(store: Store, ops: list[dict], dry_run: bool = False) -> dict:
                            "props": op.get("props", {}), "ts": ts}
                     results.append({"linked": f"{src} -{rel}-> {dst}"})
                 elif kind == "unlink":
-                    key = (op.get("from"), op.get("rel"), op.get("to"))
+                    key = (field(op, "from"), field(op, "rel"), field(op, "to"))
                     if key not in g.edges:
                         raise OntologyError(f"{key[0]} -{key[1]}-> {key[2]}: no such relation")
                     rec = {"op": "unlink", "from": key[0], "rel": key[1], "to": key[2], "ts": ts}

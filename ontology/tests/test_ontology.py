@@ -145,6 +145,12 @@ class WriteValidationTests(Base):
         self.assertIn("'framework' is not defined for Area", err)
         self.assertIn("behavior, not implementation", err)
 
+    def test_missing_op_fields_named(self):
+        err = self.repo.fails("apply", "--file", "-", stdin=json.dumps({"op": "link", "from": "area:checkout"}))
+        self.assertIn("missing or non-string field 'rel'", err)
+        err = self.repo.fails("apply", "--file", "-", stdin=json.dumps({"op": "remove", "id": 7}))
+        self.assertIn("missing or non-string field 'id'", err)
+
     def test_code_links_rejected(self):
         batch = json.dumps({"op": "add", "type": "Area", "sources": ["src/api"],
                             "props": {"name": "Search", "responsibility": "Find products"}})
