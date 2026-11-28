@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.44.0](https://github.com/starfysh-tech/nautilai/compare/v2.43.0...v2.44.0) (2026-11-28)
+
+
+### Features
+
+* **ontology:** add local-first application ontology plugin ([#200](https://github.com/starfysh-tech/nautilai/issues/200)) ([cc7b3bb](https://github.com/starfysh-tech/nautilai/commit/cc7b3bb3b0397fdb2ba009a10ea9ff89544d2062))
+
 ## [2.43.0](https://github.com/starfysh-tech/nautilai/compare/v2.42.0...v2.43.0) (2026-11-27)
 
 
