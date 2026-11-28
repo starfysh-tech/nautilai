@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "ontology",
+  "displayName": "Ontology",
+  "version": "2.43.0",
+  "description": "Local-first, technology-agnostic map of how an application works (areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, decisions) that coding agents query before reading code. An onboarding wizard seeds it from the repo; every write is checked against a schema, and every entity tracks the files it came from so drift shows up.",
+  "author": {
+    "name": "Randall Noval",
+    "email": "randall@starfysh.net",
+    "url": "https://github.com/starfysh-tech"
+  },
+  "homepage": "https://github.com/starfysh-tech/nautilai/tree/main/ontology#readme",
+  "repository": "https://github.com/starfysh-tech/nautilai",
+  "license": "MIT",
+  "keywords": [
+    "ontology",
+    "knowledge-graph",
+    "codebase-map",
+    "agent-context",
+    "claude-code"
+  ],
+  "skills": "./skills/"
+}

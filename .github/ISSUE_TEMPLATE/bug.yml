@@ -32,6 +32,7 @@ body:
         - worktree-lanes
         - tech-due-diligence
         - agent-board
+        - ontology
     validations:
       required: true
   - type: input

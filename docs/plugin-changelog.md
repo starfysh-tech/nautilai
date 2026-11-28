@@ -14,6 +14,19 @@ See [`CLAUDE.md`](../CLAUDE.md) → "Plugin changelog" for when and how to updat
 
 ---
 
+## 2026-11-28
+
+- **ontology** (new plugin): coding agents rebuild their picture of an application from scratch
+  every session, by reading files. This plugin gives them a typed map of how the application works
+  to orient with first, kept local by default. The map is technology-agnostic on purpose: it
+  records behavior in domain terms (who, what, which rules, why), so it stays true through a
+  rewrite, and code locations are kept beside it only as evidence for drift. It grew out of a review of a community knowledge-graph skill whose docs promised
+  checked writes and rollback but whose script checked nothing until a manual `validate`, and
+  whose types described a personal assistant rather than a codebase. Here the engine rejects
+  any write that breaks the repo's schema, batches are all or nothing, and each entity carries a
+  content fingerprint of its source files, so the map says where it has drifted instead of
+  silently going stale. The engine is new code; an onboarding wizard seeds the map. See [the skill](../ontology/skills/ontology/SKILL.md).
+
 ## 2026-11-27
 
 - **agent-board**: dashboards now show cards in full. The first card-detail panel came up blank
