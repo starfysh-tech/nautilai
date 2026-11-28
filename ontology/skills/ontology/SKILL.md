@@ -1,6 +1,6 @@
 ---
 name: ontology
-description: Local-first, technology-agnostic map of how an application works (areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, decisions) that coding agents query before reading code and keep current as they work. Use when the user runs /ontology, says "set up the ontology", "map this codebase", "what depends on X", "where is X handled", "how does X work", or when starting a coding task in a repo that has a .ontology/ directory. Subcommands: setup | refresh | (default) query.
+description: 'Local-first, technology-agnostic map of how an application works (areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, decisions) that coding agents query before reading code and keep current as they work. Use when the user runs /ontology, says "set up the ontology", "map this codebase", "what depends on X", "where is X handled", "how does X work", or when starting a coding task in a repo that has a .ontology/ directory. Subcommands: setup | refresh | (default) query.'
 argument-hint: "[setup | refresh | <question>]"
 ---
 
