@@ -226,6 +226,17 @@
       },
       "homepage": "https://starfysh-tech.github.io/nautilai/plugins/agent-board.html",
       "license": "MIT"
+    },
+    {
+      "name": "ontology",
+      "source": "./ontology",
+      "description": "Local-first, technology-agnostic map of how an application works (areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, decisions) that coding agents query before reading code. An onboarding wizard seeds it from the repo, and every write is checked against a schema. The map holds behavior only, never code.",
+      "version": "2.43.0",
+      "author": {
+        "name": "Randall Noval"
+      },
+      "homepage": "https://starfysh-tech.github.io/nautilai/plugins/ontology.html",
+      "license": "MIT"
     }
   ]
 }

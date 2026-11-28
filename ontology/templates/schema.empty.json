@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "template": "empty",
+  "description": "No types yet. Add types and relations to this file; every write is checked against it.",
+  "strict": true,
+  "summary_types": [],
+  "forbidden_properties": ["password", "secret", "token", "api_key", "private_key", "credential"],
+  "types": {},
+  "relations": {}
+}

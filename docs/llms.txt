@@ -47,6 +47,7 @@ they resolve through skills.sh, which indexes this public repo automatically.
 - [action-first](https://starfysh-tech.github.io/nautilai/plugins/action-first.html): Persistent output-style skill — reshapes every response around one doable-now action (lead with the step, number/cap multi-step work at 5, restate progress each turn, cut preamble/recap). User-invoked only, stays on until "stop action-first."
 - [worktree-lanes](https://starfysh-tech.github.io/nautilai/plugins/worktree-lanes.html): Runs several branches at once, each in its own git worktree with a per-lane env file, ports, linked deps, and route. A bundled engine (`scripts/lane`: `open`, `pr`, `resume`, `rm`, `ls`, `gc`) driven by a per-repo `.lanerc` recipe; modes host (default, shared DB), `--proxy` (shared DB + per-lane hostnames), `--isolated` (own DB/stack, only if the recipe declares support). `/worktree-lanes --setup` drafts the recipe; writing it is always a user stop, so with no user to answer it writes `.lanerc.draft`, reports `awaiting_setup`, and stops. `rm` refuses a lane with uncommitted changes unless `--force`.
 - [agent-board](https://starfysh-tech.github.io/nautilai/plugins/agent-board.html): Connects Claude Code to an Agent Board, a shared work board served over HTTP MCP (`${AGENT_BOARD_URL:-https://board.starfysh.net}/mcp`, token from `AGENT_BOARD_TOKEN`). Workers lease one card with `next`, report with `progress`, and end with `done`, `block` or `release`; coordinators and the owner `create`, `edit`, `cancel`, `answer` and `view`. The token decides the role and the tools shown. **Not ported to Hermes**: the plugin is an MCP server declaration plus one skill, and Hermes would need its own MCP configuration (see Notes).
+- [ontology](https://starfysh-tech.github.io/nautilai/plugins/ontology.html): Local-first, technology-agnostic map of how an application works (Area, Actor, Capability, Concept, Process, Event, Rule, Decision) in `<repo>/.ontology/`, which coding agents query before reading code. The graph holds behavior only, never code. A stdlib engine (`scripts/ontology.py`) checks every write against `schema.json`; `apply` batches are all or nothing. Nothing in the graph points at code, so there is no drift detection: `/ontology refresh` reviews areas whose behavior recent commits touched. `/ontology setup` is the onboarding wizard. Local-only (git-ignored) by default. **Not ported to Hermes** (see Notes).
 
 ## Notes for agents — Hermes runtime
 
@@ -208,6 +209,23 @@ the skill alone would describe tools a Hermes agent does not have.
   unexpanded), so the board answers 401 and `/mcp` shows a failed connection; no
   missing-variable warning appears for this plugin server. The fix is the user's environment
   (export the token, restart Claude Code), not the config.
+
+## Notes for agents — ontology
+
+Claude Code only (omp/pi via the adapter line). Hermes would need `scripts/` and `templates/`
+mirrored into the skill directory; that mirror does not exist yet.
+
+- **Run `status` first.** No store means no map: mention `/ontology setup` once and carry on.
+  Never start the wizard unasked.
+- **The map is not proof, and it has no code links.** It says what the system does, not
+  where. Find the code yourself and cite it as `file:line` from the code.
+- **A failed write changes nothing.** The engine exits 1 and names the failing op; a batch
+  is rejected whole. Fix the op rather than editing `graph.jsonl` by hand.
+- **Behavior only.** Never put a file path, language, framework, vendor, table, or endpoint
+  anywhere in the graph; each type rejects properties it does not define and `sources` is
+  refused.
+- **Ask before** removing an entity, changing a Decision or Rule, or editing
+  `schema.json`. Never store a secret's value in any property.
 
 ## Optional
 

@@ -54,7 +54,9 @@
         { "type": "json", "path": "tech-due-diligence/.claude-plugin/plugin.json", "jsonpath": "$.version" },
         { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[18].version" },
         { "type": "json", "path": "agent-board/.claude-plugin/plugin.json", "jsonpath": "$.version" },
-        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[19].version" }
+        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[19].version" },
+        { "type": "json", "path": "ontology/.claude-plugin/plugin.json", "jsonpath": "$.version" },
+        { "type": "json", "path": ".claude-plugin/marketplace.json", "jsonpath": "$.plugins[20].version" }
       ]
     }
   }

@@ -1,0 +1,195 @@
+{
+  "version": 1,
+  "template": "application",
+  "description": "How the application works, in its own domain terms: who uses it, what it can do, the things it deals with, the processes and events that move them, and the rules and decisions that constrain them. Technology-agnostic: no languages, frameworks, vendors, files, tables, or endpoints. Code locations belong in an entity's sources, never in its properties.",
+  "strict": true,
+  "summary_types": ["Area", "Actor", "Capability"],
+  "forbidden_properties": ["password", "secret", "token", "api_key", "private_key", "credential"],
+  "types": {
+    "Area": {
+      "description": "A part of the system grouped by the responsibility it owns, named in domain terms (e.g. Billing, Onboarding), not by how it is packaged",
+      "prefix": "area",
+      "required": ["name", "responsibility"],
+      "additional_properties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "responsibility": {"type": "string"},
+        "summary": {"type": "string"}
+      }
+    },
+    "Actor": {
+      "description": "Who or what acts on the system or is acted on by it: a person's role, an outside system named by its role (e.g. Payment provider, not a vendor), or the passage of time",
+      "prefix": "actor",
+      "required": ["name", "kind"],
+      "additional_properties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "kind": {"enum": ["person", "system", "time"]},
+        "summary": {"type": "string"},
+        "goals": {"type": "array"}
+      }
+    },
+    "Capability": {
+      "description": "Something the system lets an actor do or get, stated as an outcome (e.g. Refund an order)",
+      "prefix": "cap",
+      "required": ["name", "summary"],
+      "additional_properties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "summary": {"type": "string"},
+        "inputs": {"type": "array"},
+        "outcomes": {"type": "array"}
+      }
+    },
+    "Concept": {
+      "description": "A thing the domain deals with and what it means here (e.g. Order, Subscription), including the states it moves through",
+      "prefix": "term",
+      "required": ["name", "definition"],
+      "additional_properties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "definition": {"type": "string"},
+        "aliases": {"type": "array"},
+        "avoid": {"type": "array"},
+        "states": {"type": "array"}
+      }
+    },
+    "Process": {
+      "description": "An ordered sequence of steps that turns a trigger into an outcome, described as behavior, not as calls between parts",
+      "prefix": "proc",
+      "required": ["name", "outcome"],
+      "additional_properties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "trigger": {"type": "string"},
+        "outcome": {"type": "string"},
+        "steps": {"type": "array"},
+        "failure_modes": {"type": "array"}
+      }
+    },
+    "Event": {
+      "description": "Something that happens in the domain that other behavior reacts to, named in the past tense (e.g. Payment failed)",
+      "prefix": "evt",
+      "required": ["name"],
+      "additional_properties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "summary": {"type": "string"}
+      }
+    },
+    "Rule": {
+      "description": "A business rule or invariant the system must keep true; breaking it is a bug",
+      "prefix": "rule",
+      "required": ["statement"],
+      "id_from": ["name", "statement"],
+      "additional_properties": false,
+      "properties": {
+        "name": {"type": "string"},
+        "statement": {"type": "string"},
+        "severity": {"enum": ["must", "should"]},
+        "rationale": {"type": "string"}
+      }
+    },
+    "Decision": {
+      "description": "Why the system behaves the way it does: a recorded choice and its reasoning",
+      "prefix": "dec",
+      "required": ["title", "status"],
+      "additional_properties": false,
+      "properties": {
+        "title": {"type": "string"},
+        "status": {"enum": ["proposed", "accepted", "superseded", "rejected"]},
+        "rationale": {"type": "string"},
+        "alternatives": {"type": "array"}
+      }
+    }
+  },
+  "relations": {
+    "part_of": {
+      "description": "Belongs to a larger area of responsibility; each thing has one parent",
+      "from": ["Area", "Capability", "Process"],
+      "to": ["Area"],
+      "cardinality": "many_to_one",
+      "acyclic": true
+    },
+    "uses": {
+      "description": "An actor uses a capability or takes part in a process",
+      "from": ["Actor"],
+      "to": ["Capability", "Process"],
+      "cardinality": "many_to_many"
+    },
+    "realized_by": {
+      "description": "A capability is delivered by this process",
+      "from": ["Capability"],
+      "to": ["Process"],
+      "cardinality": "many_to_many"
+    },
+    "triggers": {
+      "description": "Starts a process",
+      "from": ["Actor", "Event", "Process"],
+      "to": ["Process"],
+      "cardinality": "many_to_many"
+    },
+    "emits": {
+      "description": "Causes an event to happen",
+      "from": ["Process", "Capability"],
+      "to": ["Event"],
+      "cardinality": "many_to_many"
+    },
+    "involves": {
+      "description": "A process step touches this; put the step in props, e.g. {\"step\": 2}",
+      "from": ["Process"],
+      "to": ["Actor", "Concept", "Capability"],
+      "cardinality": "many_to_many"
+    },
+    "reads": {
+      "description": "Relies on information about a concept without changing it",
+      "from": ["Capability", "Process"],
+      "to": ["Concept"],
+      "cardinality": "many_to_many"
+    },
+    "changes": {
+      "description": "Creates, changes, or ends a concept; put a state change in props, e.g. {\"to_state\": \"paid\"}",
+      "from": ["Capability", "Process"],
+      "to": ["Concept"],
+      "cardinality": "many_to_many"
+    },
+    "relates_to": {
+      "description": "One concept is associated with another; put the shape in props, e.g. {\"kind\": \"has_many\"}",
+      "from": ["Concept"],
+      "to": ["Concept"],
+      "cardinality": "many_to_many"
+    },
+    "is_a": {
+      "description": "A concept is a kind of another concept",
+      "from": ["Concept"],
+      "to": ["Concept"],
+      "cardinality": "many_to_many",
+      "acyclic": true
+    },
+    "depends_on": {
+      "description": "Cannot work without this other area, capability, or outside system",
+      "from": ["Area", "Capability"],
+      "to": ["Area", "Capability", "Actor"],
+      "cardinality": "many_to_many"
+    },
+    "constrains": {
+      "description": "A rule that applies to this",
+      "from": ["Rule"],
+      "to": ["*"],
+      "cardinality": "many_to_many"
+    },
+    "governs": {
+      "description": "A decision that shaped this",
+      "from": ["Decision"],
+      "to": ["*"],
+      "cardinality": "many_to_many"
+    },
+    "supersedes": {
+      "description": "A newer decision replacing an older one",
+      "from": ["Decision"],
+      "to": ["Decision"],
+      "cardinality": "one_to_one",
+      "acyclic": true
+    }
+  }
+}

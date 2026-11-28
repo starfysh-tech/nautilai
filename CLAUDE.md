@@ -150,3 +150,10 @@ This repo follows the CommitCraft conventions it ships (see `commitcraft/README.
 - **Pre-commit hooks take 60–90s** — run them in the foreground and wait; never background them.
 - **Branch from `main`**: branches are `<type>/<slugified-subject>[-<issue>]`. PR titles use Conventional Commits.
 - **Commits and PRs go through CommitCraft** (`/commitcraft commit`, `/commitcraft pr`) — never raw `git commit`/`gh pr create`, even when following its conventions by hand. Prefer `mcp__github__*` over `gh` for other GitHub operations.
+
+## Ontology
+
+This repo has a typed, technology-agnostic map of how the application works in
+`.ontology/`. Before reading code for a task, run `/ontology` (or the `ontology`
+skill's `summary` and `find`) to orient, and record behavior you confirm in code. The
+map holds behavior only; never add code details to it.
