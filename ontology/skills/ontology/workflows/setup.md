@@ -116,7 +116,9 @@ agent memory file makes that dependable. Ask with `AskUserQuestion`:
 - Shared storage: offer **Add to `CLAUDE.md` (Recommended)**, **Add to `AGENTS.md`**
   (only if that file exists), or **Skip**.
 
-Append this block unchanged. If it is already present, leave the file alone.
+Append this block unchanged. If it is already present, leave the file alone. The
+pointer changes no behavior, but entities that cite that file now look stale, so run
+`ontology.py find --source <file>` and `ontology.py verify --id <id>` for each one.
 
 ```markdown
 ## Ontology

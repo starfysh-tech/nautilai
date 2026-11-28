@@ -647,7 +647,8 @@ def summary_text(store: Store, limit: int) -> str:
         items = sorted((e for e in g.entities.values() if e["type"] == t), key=lambda e: e["id"])
         if not items:
             continue
-        lines += ["", f"## {t}s"]
+        plural = t[:-1] + "ies" if t.endswith("y") and t[-2:-1] not in "aeiou" else t + "s"
+        lines += ["", f"## {plural}"]
         for e in items[:limit]:
             b = brief(e)
             lines.append(f"- `{b['id']}` {b['label']}" + (f": {b['summary']}" if b.get("summary") else ""))

@@ -238,6 +238,7 @@ class ReadTests(Base):
     def test_summary_lists_components(self):
         text = self.repo.ok("summary")
         self.assertIn("`area:checkout` Checkout", text)
+        self.assertIn("## Capabilities", text)
         self.assertIn("3 entities, 2 relations", text)
 
     def test_validate_catches_schema_drift(self):
