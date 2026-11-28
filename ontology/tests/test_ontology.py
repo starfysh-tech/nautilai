@@ -45,7 +45,7 @@ class Repo:
     def run(self, *args, stdin=None):
         env = {k: v for k, v in os.environ.items() if k != "ONTOLOGY_DIR"}
         return subprocess.run([sys.executable, str(SCRIPT), *args], cwd=self.root, input=stdin,
-                              capture_output=True, text=True, env=env)
+                              capture_output=True, text=True, env=env, check=False)
 
     def ok(self, *args, stdin=None):
         r = self.run(*args, stdin=stdin)
@@ -72,7 +72,8 @@ def seed(repo):
     repo.ok("link", "--from", "cap:place-order", "--rel", "changes", "--to", "term:order")
 
 
-class Base(unittest.TestCase):
+class RepoFixture:
+    """Mixin: each test gets a throwaway repo. Combine with unittest.TestCase."""
     use_git = True
 
     def setUp(self):
@@ -82,7 +83,7 @@ class Base(unittest.TestCase):
         self.repo.cleanup()
 
 
-class InitTests(Base):
+class InitTests(RepoFixture, unittest.TestCase):
     def test_missing_store_is_usage_error(self):
         self.assertIn("setup wizard", self.repo.fails("summary", code=2))
         self.assertFalse(self.repo.ok("status")["exists"])
@@ -107,7 +108,7 @@ class InitTests(Base):
         self.assertIn("application", self.repo.fails("init", "--template", "nope", code=2))
 
 
-class WriteValidationTests(Base):
+class WriteValidationTests(RepoFixture, unittest.TestCase):
     def setUp(self):
         super().setUp()
         seed(self.repo)
@@ -199,7 +200,7 @@ class WriteValidationTests(Base):
         self.assertTrue(self.repo.ok("validate")["valid"])
 
 
-class BatchTests(Base):
+class BatchTests(RepoFixture, unittest.TestCase):
     def test_batch_is_atomic(self):
         self.repo.ok("init")
         batch = "\n".join(json.dumps(o) for o in [
@@ -219,7 +220,7 @@ class BatchTests(Base):
         self.assertEqual(self.repo.ok("status")["relations"], 1)
 
 
-class ReadTests(Base):
+class ReadTests(RepoFixture, unittest.TestCase):
     def setUp(self):
         super().setUp()
         seed(self.repo)
@@ -264,7 +265,7 @@ class ReadTests(Base):
         self.assertEqual(self.repo.ok("status")["relations"], 1)
 
 
-class NoGitTests(Base):
+class NoGitTests(RepoFixture, unittest.TestCase):
     use_git = False
 
     def test_works_without_git(self):
@@ -273,7 +274,7 @@ class NoGitTests(Base):
         self.assertEqual(self.repo.ok("status")["entities"], 3)
 
 
-class LegacyLogTests(Base):
+class LegacyLogTests(RepoFixture, unittest.TestCase):
     def test_old_code_links_are_dropped_on_read(self):
         seed(self.repo)
         log = self.repo.root / ".ontology/graph.jsonl"
