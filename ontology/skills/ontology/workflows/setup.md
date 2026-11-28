@@ -90,21 +90,26 @@ Use the ids the engine would generate (`<prefix>:<slug of name>`, prefixes in
 
 ## 5. Review gate
 
-1. Write the candidate batch to `.ontology/seed.jsonl`.
-2. Run `ontology.py apply --file .ontology/seed.jsonl --dry-run`. Fix mechanical
+1. If subagents surveyed separate areas, merge their batches and look for the same
+   behavior recorded twice under different names. Cross-area behavior (a Rule or
+   Decision that both a setup area and a payments area see) is the usual case; identical
+   ids are only the easy ones. Keep the clearer entry, move its duplicate's links onto
+   it, and list each merge in the review so the user can undo it.
+2. Write the candidate batch to `.ontology/seed.jsonl`.
+3. Run `ontology.py apply --file .ontology/seed.jsonl --dry-run`. Fix mechanical
    failures yourself: a wrong id in a link, a missing required property you can read
    from the code, a relation pointed the wrong way, an implementation detail that has
    to come out. If a fix needs a guess about the code, take the candidate out and list
    it as uncertain.
-3. Show the user a compact table per type: id, label, and where in the code you saw it.
+4. Show the user a compact table per type: id, label, and where in the code you saw it.
    That evidence column is for this review only and is never written to the graph.
    After the tables, list the uncertain candidates, each with its reason.
-4. Ask with `AskUserQuestion`:
+5. Ask with `AskUserQuestion`:
    - **Apply all (Recommended)**
    - **Let me remove some first**: wait for their list, edit `seed.jsonl`, dry-run
      again, and ask again.
    - **Cancel**: leave `seed.jsonl` in place and stop.
-5. On approval, run `ontology.py apply --file .ontology/seed.jsonl`, then delete
+6. On approval, run `ontology.py apply --file .ontology/seed.jsonl`, then delete
    `seed.jsonl`.
 
 ## 6. Point agents at it
