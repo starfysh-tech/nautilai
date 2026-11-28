@@ -6,9 +6,8 @@ The graph lives in <repo>/.ontology/ (override with --dir or ONTOLOGY_DIR):
   graph.jsonl   append-only log of operations, replayed on every read
 
 Every write is validated against the schema before anything is appended.
-A batch (`apply`) is all-or-nothing. Entities carry `sources` (repo-relative
-`path` or `path:line`) and the git commit they were last verified at, so
-`stale` can report entities whose code changed since.
+A batch (`apply`) is all-or-nothing. The graph records behavior only: no
+entity carries a file path or any other pointer into the code.
 
 Standard library only. Python 3.10+.
 
@@ -19,7 +18,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import hashlib
 import json
 import os
 import re
@@ -129,9 +127,6 @@ class Store:
         schema.setdefault("relations", {})
         return schema
 
-    def head(self) -> str | None:
-        return git(["rev-parse", "HEAD"], self.repo_root)
-
     def load(self) -> "Graph":
         graph = Graph()
         if not self.graph_path.exists():
@@ -191,7 +186,8 @@ class Graph:
     def replay(self, r: dict) -> None:
         op = r["op"]
         if op == "add":
-            e = r["entity"]
+            # Logs written before code links were removed may carry these; drop them.
+            e = {k: v for k, v in r["entity"].items() if k not in ("sources", "verified")}
             self.entities[e["id"]] = e
         elif op == "update":
             e = self.entities.get(r["id"])
@@ -200,10 +196,6 @@ class Graph:
             e["props"].update(r.get("set", {}))
             for k in r.get("unset", []):
                 e["props"].pop(k, None)
-            if "sources" in r:
-                e["sources"] = r["sources"]
-            if "verified" in r:
-                e["verified"] = r["verified"]
             e["updated"] = r.get("ts", e.get("updated"))
         elif op == "remove":
             self.entities.pop(r["id"], None)
@@ -260,7 +252,7 @@ def check_props(schema: dict, etype: str, props: dict, eid: str) -> list[str]:
             if tdef.get("additional_properties") is False:
                 errors.append(f"{eid}: property '{name}' is not defined for {etype} "
                               f"(allowed: {', '.join(sorted(pdefs)) or 'none'}); "
-                              "code locations go in sources, not properties")
+                              "the ontology records behavior, not implementation")
             continue
         if "enum" in pdef and value not in pdef["enum"]:
             errors.append(f"{eid}: '{name}' must be one of {pdef['enum']}, got {value!r}")
@@ -302,79 +294,6 @@ def check_link(schema: dict, g: Graph, src: str, rel: str, dst: str, new: bool) 
     return errors
 
 
-def normalize_sources(store: Store, sources: list[str]) -> list[str]:
-    out = []
-    for s in sources:
-        path, sep, loc = s.partition(":")
-        p = Path(path)
-        if p.is_absolute():
-            try:
-                p = p.resolve().relative_to(store.repo_root.resolve())
-            except ValueError:
-                raise OntologyError(f"source '{s}' is outside the repo ({store.repo_root})") from None
-        out.append(p.as_posix() + (sep + loc if sep else ""))
-    return out
-
-
-def source_path(s: str) -> str:
-    return s.split(":", 1)[0]
-
-
-def _under(child: str, parent: str) -> bool:
-    return child == parent or child.startswith(parent.rstrip("/") + "/")
-
-
-def _hash_fs(root: Path, rel: str) -> str:
-    """Content hash of a file or directory tree, for repos without git."""
-    h = hashlib.sha256()
-    target = root / rel
-    files = [target] if target.is_file() else sorted(
-        f for f in target.rglob("*") if f.is_file() and not any(part.startswith(".") for part in f.relative_to(target).parts))
-    for f in files:
-        h.update(f.relative_to(root).as_posix().encode() + b"\0")
-        try:
-            h.update(f.read_bytes())
-        except OSError:
-            h.update(b"<unreadable>")
-    return h.hexdigest()
-
-
-def fingerprints(store: Store, path_sets: list[list[str]]) -> list[str]:
-    """One content fingerprint per path set, computed from the working tree.
-
-    It changes when any file under those paths is edited, added (tracked or
-    untracked, not ignored) or deleted, and is identical before and after
-    committing the same content or switching to a branch with the same content.
-    """
-    root = store.repo_root
-    every = sorted({p for ps in path_sets for p in ps})
-    if not every:
-        return ["" for _ in path_sets]
-    listed = git(["ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", *every], root)
-    if listed is None:
-        cache = {p: _hash_fs(root, p) for p in every}
-        return [hashlib.sha256("\n".join(f"{p}={cache[p]}" for p in sorted(ps)).encode()).hexdigest()
-                for ps in path_sets]
-    files = sorted({f for f in listed.split("\0") if f and (root / f).is_file()})
-    ids = (git(["hash-object", "--stdin-paths"], root, "".join(f + "\n" for f in files)) or "").splitlines()
-    blob = dict(zip(files, ids))
-    out = []
-    for ps in path_sets:
-        h = hashlib.sha256()
-        for f in files:
-            if any(_under(f, p) for p in ps):
-                h.update(f"{f}={blob.get(f, '?')}\n".encode())
-        out.append(h.hexdigest())
-    return out
-
-
-def stamp(store: Store, sources: list[str], ts: str) -> dict | None:
-    paths = sorted({source_path(s) for s in sources})
-    if not paths:
-        return None
-    return {"fingerprint": fingerprints(store, [paths])[0], "commit": store.head(), "at": ts}
-
-
 # ---------------------------------------------------------------- operations
 
 def make_id(schema: dict, g: Graph, etype: str, props: dict) -> str:
@@ -401,6 +320,9 @@ def apply_ops(store: Store, ops: list[dict], dry_run: bool = False) -> dict:
             ts = now()
             where = f"op {i + 1} ({kind})"
             try:
+                if "sources" in op:
+                    raise OntologyError("'sources' is not accepted: file paths are implementation, "
+                                        "and the ontology records behavior only")
                 if kind == "add":
                     etype = op.get("type") or ""
                     props = op.get("props", {})
@@ -410,9 +332,7 @@ def apply_ops(store: Store, ops: list[dict], dry_run: bool = False) -> dict:
                     errs = check_props(schema, etype, props, eid)
                     if errs:
                         raise OntologyError("; ".join(errs))
-                    sources = normalize_sources(store, op.get("sources", []))
-                    entity = {"id": eid, "type": etype, "props": props, "sources": sources,
-                              "verified": stamp(store, sources, ts), "created": ts, "updated": ts}
+                    entity = {"id": eid, "type": etype, "props": props, "created": ts, "updated": ts}
                     rec = {"op": "add", "entity": entity, "ts": ts}
                     results.append({"added": eid})
                 elif kind == "update":
@@ -428,10 +348,6 @@ def apply_ops(store: Store, ops: list[dict], dry_run: bool = False) -> dict:
                         raise OntologyError("; ".join(errs))
                     rec = {"op": "update", "id": eid, "set": op.get("set", {}),
                            "unset": op.get("unset", []), "ts": ts}
-                    if "sources" in op:
-                        rec["sources"] = normalize_sources(store, op["sources"])
-                    if "sources" in op or op.get("verify"):
-                        rec["verified"] = stamp(store, rec.get("sources", e.get("sources", [])), ts)
                     results.append({"updated": eid})
                 elif kind == "remove":
                     eid = op.get("id")
@@ -498,32 +414,6 @@ def validate_all(store: Store) -> list[str]:
     return errors
 
 
-def stale_report(store: Store, ids: list[str] | None = None) -> list[dict]:
-    g = store.load()
-    report, pending = [], []
-    for eid, e in sorted(g.entities.items()):
-        if ids and eid not in ids:
-            continue
-        paths = sorted({source_path(s) for s in e.get("sources", [])})
-        if not paths:
-            continue
-        missing = [p for p in paths if not (store.repo_root / p).exists()]
-        if missing:
-            report.append({"id": eid, "status": "missing", "paths": missing})
-        elif not (e.get("verified") or {}).get("fingerprint"):
-            report.append({"id": eid, "status": "unverified", "paths": paths})
-        else:
-            pending.append((eid, paths, e["verified"]))
-    current = fingerprints(store, [ps for _, ps, _ in pending])
-    for (eid, paths, verified), fp in zip(pending, current):
-        if fp != verified["fingerprint"]:
-            row = {"id": eid, "status": "changed", "paths": paths, "verified_at": verified.get("at")}
-            if verified.get("commit"):
-                row["verified_commit"] = verified["commit"][:12]
-            report.append(row)
-    return sorted(report, key=lambda r: r["id"])
-
-
 # ---------------------------------------------------------------- reads
 
 def entity_view(g: Graph, eid: str) -> dict:
@@ -543,15 +433,12 @@ def brief(e: dict) -> dict:
     out = {"id": e["id"], "type": e["type"], "label": label}
     if isinstance(p.get("summary"), str):
         out["summary"] = p["summary"]
-    if e.get("sources"):
-        out["sources"] = e["sources"]
     return out
 
 
-def find(store: Store, etype, where, text, source) -> list[dict]:
+def find(store: Store, etype, where, text) -> list[dict]:
     g = store.load()
     needle = text.lower() if text else None
-    src = source.rstrip("/") if source else None
     hits = []
     for e in g.entities.values():
         if etype and e["type"] != etype:
@@ -562,11 +449,6 @@ def find(store: Store, etype, where, text, source) -> list[dict]:
             hay = [e["id"]] + [v for v in e["props"].values() if isinstance(v, str)]
             hay += [x for v in e["props"].values() if isinstance(v, list) for x in v if isinstance(x, str)]
             if not any(needle in h.lower() for h in hay):
-                continue
-        if src:
-            paths = [source_path(s) for s in e.get("sources", [])]
-            if not any(p == src or p.startswith(src + "/") or src.startswith(p.rstrip("/") + "/")
-                       for p in paths):
                 continue
         hits.append(brief(e))
     return sorted(hits, key=lambda h: h["id"])
@@ -654,9 +536,6 @@ def summary_text(store: Store, limit: int) -> str:
             lines.append(f"- `{b['id']}` {b['label']}" + (f": {b['summary']}" if b.get("summary") else ""))
         if len(items) > limit:
             lines.append(f"- … {len(items) - limit} more (`find --type {t}`)")
-    stale = stale_report(store)
-    if stale:
-        lines += ["", f"## Stale: {len(stale)} entities need re-checking (`stale`)"]
     return "\n".join(lines)
 
 
@@ -742,13 +621,11 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--type", required=True)
     s.add_argument("--props", default="{}")
     s.add_argument("--id")
-    s.add_argument("--source", action="append", default=[], help="repo path or path:line (repeatable)")
 
-    s = sub.add_parser("update", help="change an entity's properties or sources")
+    s = sub.add_parser("update", help="change an entity's properties")
     s.add_argument("--id", required=True)
     s.add_argument("--set", default="{}")
     s.add_argument("--unset", default="", help="comma-separated property names")
-    s.add_argument("--source", action="append", help="replace sources (repeatable)")
 
     s = sub.add_parser("remove", help="remove an entity and every relation touching it")
     s.add_argument("--id", required=True)
@@ -772,7 +649,6 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--type")
     s.add_argument("--where", default="{}", help="exact-match properties as JSON")
     s.add_argument("--text", help="case-insensitive substring over id and string properties")
-    s.add_argument("--source", help="entities whose sources touch this repo path")
 
     s = sub.add_parser("neighbors", help="walk relations out from an entity")
     s.add_argument("--id", required=True)
@@ -786,14 +662,6 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--max-depth", type=int, default=6)
 
     sub.add_parser("validate", help="re-check the whole graph against the schema")
-
-    s = sub.add_parser("stale", help="entities whose source files changed since last verified")
-    s.add_argument("--id", action="append")
-
-    s = sub.add_parser("verify", help="mark entities as re-checked at the current commit")
-    g = s.add_mutually_exclusive_group(required=True)
-    g.add_argument("--id", action="append")
-    g.add_argument("--all", action="store_true")
 
     sub.add_parser("compact", help="rewrite the log as a snapshot (keeps a .bak)")
     return p
@@ -826,12 +694,10 @@ def run(argv: list[str]) -> int:
         print(summary_text(store, args.limit))
     elif c == "add":
         emit(apply_ops(store, [{"op": "add", "type": args.type, "id": args.id,
-                                "props": parse_json(args.props, "--props"), "sources": args.source}]))
+                                "props": parse_json(args.props, "--props")}]))
     elif c == "update":
         op = {"op": "update", "id": args.id, "set": parse_json(args.set, "--set"),
               "unset": [k for k in args.unset.split(",") if k]}
-        if args.source is not None:
-            op["sources"] = args.source
         emit(apply_ops(store, [op]))
     elif c == "remove":
         emit(apply_ops(store, [{"op": "remove", "id": args.id}]))
@@ -847,7 +713,7 @@ def run(argv: list[str]) -> int:
         emit(entity_view(store.load(), args.id))
     elif c == "find":
         store.require()
-        emit(find(store, args.type, parse_json(args.where, "--where"), args.text, args.source))
+        emit(find(store, args.type, parse_json(args.where, "--where"), args.text))
     elif c == "neighbors":
         store.require()
         emit(neighbors(store, args.id, args.rel, args.direction, args.depth))
@@ -861,14 +727,6 @@ def run(argv: list[str]) -> int:
         errors = validate_all(store)
         emit({"valid": not errors, "errors": errors})
         return 1 if errors else 0
-    elif c == "stale":
-        store.require()
-        report = stale_report(store, args.id)
-        emit({"stale": len(report), "entities": report})
-    elif c == "verify":
-        store.require()
-        ids = sorted(e for e, v in store.load().entities.items() if v.get("sources")) if args.all else args.id
-        emit(apply_ops(store, [{"op": "update", "id": i, "verify": True} for i in ids]))
     elif c == "compact":
         emit(compact(store))
     return 0

@@ -13,8 +13,8 @@ before step 5's approval.
 2. Run `ontology.py status`.
    - `exists: false` → go to step 2.
    - `exists: true` → ask with `AskUserQuestion`:
-     - **Add to it (Recommended)**: skip to step 4 and survey only areas with no entities
-       (check with `find --source <dir>`).
+     - **Add to it (Recommended)**: run `summary`, then skip to step 4 and survey only
+       behavior the map does not yet describe.
      - **Change sharing**: rewrite `.ontology/.gitignore` (see step 3 for both contents),
        report, and stop.
      - **Start over**: rename `graph.jsonl` to `graph.jsonl.bak`, run `init --force`
@@ -53,14 +53,15 @@ With seed depth **None**, go to step 6.
 ## 4. Survey (read-only)
 
 Read the code to learn how the application behaves, then describe that behavior in the
-domain's own words. Every candidate needs at least one source path you actually opened.
+domain's own words. Base every candidate on code you actually read.
 Skip vendored, generated, and build-output directories (`node_modules`, `vendor`,
 `dist`, `build`, `.venv`, lockfiles, minified bundles).
 
-**Model behavior, not implementation.** Properties, names, and summaries never mention a
-language, framework, library, vendor, file, class, function, table, endpoint, or queue.
-Name outside systems by role ("Email sender", not a product). Code is evidence: it goes
-in `sources` only. Ask of every candidate: would this still be true if the code were
+**Model behavior, never code.** Nothing about the code enters the graph: no file paths,
+line numbers, languages, frameworks, libraries, vendors, classes, functions, tables,
+endpoints, or queues, in any property, name, or summary. Name outside systems by role
+("Email sender", not a product). The code is where you learn the behavior; it is not
+what you record. Ask of every candidate: would this still be true if the code were
 rewritten on a different stack? If not, rewrite it or drop it.
 
 | Type | What to look for | Where the evidence usually is |
@@ -92,11 +93,12 @@ Use the ids the engine would generate (`<prefix>:<slug of name>`, prefixes in
 1. Write the candidate batch to `.ontology/seed.jsonl`.
 2. Run `ontology.py apply --file .ontology/seed.jsonl --dry-run`. Fix mechanical
    failures yourself: a wrong id in a link, a missing required property you can read
-   from the source, a relation pointed the wrong way, an implementation detail that
-   belongs in `sources`. If a fix needs a guess about the
-   code, take the candidate out and list it as uncertain.
-3. Show the user a compact table per type: id, label, first source. After the tables,
-   list the uncertain candidates, each with its reason.
+   from the code, a relation pointed the wrong way, an implementation detail that has
+   to come out. If a fix needs a guess about the code, take the candidate out and list
+   it as uncertain.
+3. Show the user a compact table per type: id, label, and where in the code you saw it.
+   That evidence column is for this review only and is never written to the graph.
+   After the tables, list the uncertain candidates, each with its reason.
 4. Ask with `AskUserQuestion`:
    - **Apply all (Recommended)**
    - **Let me remove some first**: wait for their list, edit `seed.jsonl`, dry-run
@@ -116,18 +118,15 @@ agent memory file makes that dependable. Ask with `AskUserQuestion`:
 - Shared storage: offer **Add to `CLAUDE.md` (Recommended)**, **Add to `AGENTS.md`**
   (only if that file exists), or **Skip**.
 
-Append this block unchanged. If it is already present, leave the file alone. The
-pointer changes no behavior, but entities that cite that file now look stale, so run
-`ontology.py find --source <file>` and `ontology.py verify --id <id>` for each one.
+Append this block unchanged. If it is already present, leave the file alone.
 
 ```markdown
 ## Ontology
 
 This repo has a typed, technology-agnostic map of how the application works in
-`.ontology/`. Before reading code for
-a task, run `/ontology` (or the `ontology` skill's `summary` and `find --source <path>`)
-to orient, check `stale` before relying on an entity, and record durable facts you
-confirm in code.
+`.ontology/`. Before reading code for a task, run `/ontology` (or the `ontology`
+skill's `summary` and `find`) to orient, and record behavior you confirm in code. The
+map holds behavior only; never add code details to it.
 ```
 
 ## 7. Report
@@ -137,6 +136,6 @@ Run `ontology.py summary` and `ontology.py validate`. Tell the user:
 - entity counts by type, and the relation count
 - where the store is, and whether it is local or shared
 - the uncertain candidates left out in step 5
-- that `/ontology refresh` re-checks entities after the code changes
+- that `/ontology refresh` reviews the map against the code after behavior changes
 
 Then stop.

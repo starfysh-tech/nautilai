@@ -24,8 +24,7 @@ GIT_ENV = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.invalid",
 class Repo:
     def __init__(self, use_git=True):
         self.root = Path(tempfile.mkdtemp(prefix="ontology-test-"))
-        self.write("src/api/routes.py", "def routes(): pass\n")
-        self.write("src/billing/charge.py", "def charge(): pass\n")
+        self.write("README.md", "fixture\n")
         if use_git:
             self.git("init", "-q")
             self.commit("init")
@@ -40,7 +39,7 @@ class Repo:
                        env={**os.environ, **GIT_ENV})
 
     def commit(self, msg):
-        self.git("add", "-A", "--", "src")
+        self.git("add", "-A", "--", "README.md")
         self.git("commit", "-qm", msg)
 
     def run(self, *args, stdin=None):
@@ -65,10 +64,9 @@ class Repo:
 def seed(repo):
     repo.ok("init")
     repo.ok("add", "--type", "Area", "--props",
-            '{"name":"Checkout","responsibility":"Turns a cart into a paid order"}', "--source", "src/api")
+            '{"name":"Checkout","responsibility":"Turns a cart into a paid order"}')
     repo.ok("add", "--type", "Capability", "--props",
-            '{"name":"Place order","summary":"A customer buys what is in their cart"}',
-            "--source", "src/api/routes.py:1")
+            '{"name":"Place order","summary":"A customer buys what is in their cart"}')
     repo.ok("add", "--type", "Concept", "--props", '{"name":"Order","definition":"A customer request to buy"}')
     repo.ok("link", "--from", "cap:place-order", "--rel", "part_of", "--to", "area:checkout")
     repo.ok("link", "--from", "cap:place-order", "--rel", "changes", "--to", "term:order")
@@ -145,7 +143,13 @@ class WriteValidationTests(Base):
         err = self.repo.fails("add", "--type", "Area", "--props",
                               '{"name":"Search","responsibility":"Find products","framework":"django"}')
         self.assertIn("'framework' is not defined for Area", err)
-        self.assertIn("sources", err)
+        self.assertIn("behavior, not implementation", err)
+
+    def test_code_links_rejected(self):
+        batch = json.dumps({"op": "add", "type": "Area", "sources": ["src/api"],
+                            "props": {"name": "Search", "responsibility": "Find products"}})
+        self.assertIn("'sources' is not accepted", self.repo.fails("apply", "--file", "-", stdin=batch))
+        self.assertEqual(self.repo.run("add", "--type", "Area", "--props", "{}", "--source", "x").returncode, 2)
 
     def test_update_cannot_drop_required(self):
         self.assertIn("missing required", self.repo.fails("update", "--id", "area:checkout", "--unset", "responsibility"))
@@ -214,11 +218,6 @@ class ReadTests(Base):
         super().setUp()
         seed(self.repo)
 
-    def test_find_by_source_path(self):
-        self.assertEqual([e["id"] for e in self.repo.ok("find", "--source", "src/api/routes.py")],
-                         ["area:checkout", "cap:place-order"])
-        self.assertEqual(self.repo.ok("find", "--source", "src/billing"), [])
-
     def test_find_text_and_where(self):
         self.assertEqual([e["id"] for e in self.repo.ok("find", "--text", "request to")], ["term:order"])
         self.assertEqual([e["id"] for e in self.repo.ok("find", "--where", '{"name":"Order"}')], ["term:order"])
@@ -259,54 +258,28 @@ class ReadTests(Base):
         self.assertEqual(self.repo.ok("status")["relations"], 1)
 
 
-class StaleTests(Base):
-    def setUp(self):
-        super().setUp()
-        seed(self.repo)
-
-    def stale_ids(self):
-        return {e["id"]: e["status"] for e in self.repo.ok("stale")["entities"]}
-
-    def test_fresh_after_seed(self):
-        self.assertEqual(self.stale_ids(), {})
-
-    def test_uncommitted_edit_then_verify(self):
-        self.repo.write("src/api/routes.py", "def routes(): return 1\n")
-        self.assertEqual(self.stale_ids(), {"area:checkout": "changed", "cap:place-order": "changed"})
-        self.repo.ok("verify", "--id", "cap:place-order")
-        self.assertEqual(self.stale_ids(), {"area:checkout": "changed"})
-        self.repo.ok("verify", "--all")
-        self.assertEqual(self.stale_ids(), {})
-
-    def test_commit_of_verified_content_stays_fresh(self):
-        self.repo.write("src/api/routes.py", "def routes(): return 2\n")
-        self.repo.ok("verify", "--all")
-        self.repo.commit("change")
-        self.assertEqual(self.stale_ids(), {})
-
-    def test_untracked_file_in_source_dir(self):
-        self.repo.write("src/api/new_handler.py", "x = 1\n")
-        self.assertEqual(self.stale_ids(), {"area:checkout": "changed"})
-
-    def test_missing_source(self):
-        (self.repo.root / "src/api/routes.py").unlink()
-        self.assertEqual(self.stale_ids()["cap:place-order"], "missing")
-
-    def test_unrelated_change_ignored(self):
-        self.repo.write("src/billing/charge.py", "def charge(): return 0\n")
-        self.repo.commit("billing")
-        self.assertEqual(self.stale_ids(), {})
-
-
 class NoGitTests(Base):
     use_git = False
 
     def test_works_without_git(self):
         seed(self.repo)
-        self.assertEqual(self.repo.ok("stale")["stale"], 0)
-        self.repo.write("src/api/routes.py", "changed\n")
-        ids = {e["id"] for e in self.repo.ok("stale")["entities"]}
-        self.assertEqual(ids, {"area:checkout", "cap:place-order"})
+        self.assertEqual(Path(self.repo.ok("status")["dir"]).resolve(), (self.repo.root / ".ontology").resolve())
+        self.assertEqual(self.repo.ok("status")["entities"], 3)
+
+
+class LegacyLogTests(Base):
+    def test_old_code_links_are_dropped_on_read(self):
+        seed(self.repo)
+        log = self.repo.root / ".ontology/graph.jsonl"
+        lines = log.read_text().splitlines()
+        first = json.loads(lines[0])
+        first["entity"]["sources"] = ["src/api"]
+        first["entity"]["verified"] = {"fingerprint": "x"}
+        log.write_text("\n".join([json.dumps(first)] + lines[1:]) + "\n")
+        entity = self.repo.ok("get", "--id", "area:checkout")
+        self.assertNotIn("sources", entity)
+        self.repo.ok("compact")
+        self.assertNotIn("sources", log.read_text())
 
 
 if __name__ == "__main__":

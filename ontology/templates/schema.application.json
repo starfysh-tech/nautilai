@@ -1,7 +1,7 @@
 {
   "version": 1,
   "template": "application",
-  "description": "How the application works, in its own domain terms: who uses it, what it can do, the things it deals with, the processes and events that move them, and the rules and decisions that constrain them. Technology-agnostic: no languages, frameworks, vendors, files, tables, or endpoints. Code locations belong in an entity's sources, never in its properties.",
+  "description": "How the application works, in its own domain terms: who uses it, what it can do, the things it deals with, the processes and events that move them, and the rules and decisions that constrain them. Technology-agnostic: no code, languages, frameworks, vendors, files, tables, or endpoints anywhere in the graph.",
   "strict": true,
   "summary_types": ["Area", "Actor", "Capability"],
   "forbidden_properties": ["password", "secret", "token", "api_key", "private_key", "credential"],

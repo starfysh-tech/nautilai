@@ -4,9 +4,9 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>ontology — nautilai</title>
-<meta name="description" content="Local-first, technology-agnostic map of how an application works (areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, decisions) that coding agents query before reading code. An onboarding wizard seeds it from the repo; every write is checked against a schema, and every entity tracks the files it came from so drift shows up." />
+<meta name="description" content="Local-first, technology-agnostic map of how an application works (areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, decisions) that coding agents query before reading code. An onboarding wizard seeds it from the repo, and every write is checked against a schema. The map holds behavior only, never code." />
 <meta property="og:title" content="ontology — nautilai" />
-<meta property="og:description" content="Local-first, technology-agnostic map of how an application works (areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, decisions) that coding agents query before reading code. An onboarding wizard seeds it from the repo; every write is checked against a schema, and every entity tracks the files it came from so drift shows up." />
+<meta property="og:description" content="Local-first, technology-agnostic map of how an application works (areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, decisions) that coding agents query before reading code. An onboarding wizard seeds it from the repo, and every write is checked against a schema. The map holds behavior only, never code." />
 <meta property="og:type" content="website" />
 <meta name="theme-color" content="#0a141d" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -39,15 +39,15 @@
 
   <section id="what">
     <h2>What it does</h2>
-    <p>It keeps a typed graph of how the repo’s application works, in the domain’s own words: areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, and decisions. It records behavior, never the stack, so the map stays true through a rewrite. An onboarding wizard seeds the graph from the repo, and agents orient with it before opening files. Every write is checked against a schema, and every entity records the files it came from, so the map reports where it has drifted from the code.</p>
+    <p>It keeps a typed graph of how the repo’s application works, in the domain’s own words: areas of responsibility, actors, capabilities, domain concepts, processes, events, rules, and decisions. It records behavior, never the stack, so the map stays true through a rewrite. An onboarding wizard seeds the graph from the repo, and agents orient with it before opening files. Every write is checked against a schema. Nothing in the graph points at code, not even a file path.</p>
   </section>
 
   <section id="commands">
     <h2>Commands / skills</h2>
     <ul class="skill-list">
       <li><div class="sk-name">/ontology setup</div><p>Onboarding wizard: choose local or shared storage and a vocabulary, survey the repo, approve the seed, and optionally add a pointer to <code>CLAUDE.local.md</code> or <code>CLAUDE.md</code>.</p><div class="sk-triggers">“set up the ontology”, “map this codebase”</div></li>
-      <li><div class="sk-name">/ontology refresh</div><p>Re-check entities whose source files changed, fix or verify them, and report directories the map does not cover.</p><div class="sk-triggers">explicit slash form only</div></li>
-      <li><div class="sk-name">/ontology &lt;question&gt;</div><p>Answer from the map. The skill also loads on its own when a coding task starts in a repo with a <code>.ontology/</code> directory.</p><div class="sk-triggers">“what depends on X”, “where is X handled”, “how does X flow”, “what touches this file”</div></li>
+      <li><div class="sk-name">/ontology refresh</div><p>Review the map against the code: pick the areas whose behavior recent commits touched, compare, and fix the map behind an approval.</p><div class="sk-triggers">explicit slash form only</div></li>
+      <li><div class="sk-name">/ontology &lt;question&gt;</div><p>Answer from the map. The skill also loads on its own when a coding task starts in a repo with a <code>.ontology/</code> directory.</p><div class="sk-triggers">“what depends on X”, “where is X handled”, “how does X work”</div></li>
     </ul>
   </section>
 
@@ -69,21 +69,21 @@
       <div class="flow-arrow" aria-hidden="true"></div>
       <div class="flow-step"><span class="fs-num">7</span><span class="fs-body"><span class="fs-label">write the graph</span><span class="fs-sub">ontology.py apply</span></span></div>
     </div>
-    <p>Each entity records its source files and a content fingerprint. Editing, adding, or deleting a file under those sources marks the entity stale until it is re-checked.</p>
+    <p>The map has no links to code, so it cannot detect drift by itself. A refresh is a review the agent runs against recent changes.</p>
     <div class="flow">
-      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">entity verified</span><span class="fs-sub">verify</span></span></div>
+      <div class="flow-step"><span class="fs-num">1</span><span class="fs-body"><span class="fs-label">read recent commits</span><span class="fs-sub">/ontology refresh</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">code changes</span></span></div>
+      <div class="flow-step"><span class="fs-num">2</span><span class="fs-body"><span class="fs-label">pick affected areas</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">reported stale</span><span class="fs-sub">ontology.py stale</span></span></div>
+      <div class="flow-step"><span class="fs-num">3</span><span class="fs-body"><span class="fs-label">compare code with map</span></span></div>
       <div class="flow-arrow" aria-hidden="true"></div>
-      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">re-read and fix</span><span class="fs-sub">/ontology refresh</span></span></div>
+      <div class="flow-step"><span class="fs-num">4</span><span class="fs-body"><span class="fs-label">you approve fixes</span></span></div>
     </div>
     <ul>
       <li><code>.ontology/schema.json</code> defines the allowed types and relations; <code>.ontology/graph.jsonl</code> is an append-only log replayed on read.</li>
       <li>By default <code>.ontology/.gitignore</code> ignores the whole directory, so the map stays local. The wizard's Shared option makes it committable.</li>
-      <li>The agent adds entities it confirmed in code and fixes stale ones in the area it touched, then lists those writes. It asks before removing an entity, changing a Decision or Rule, or editing the schema.</li>
-      <li>Types accept only the properties they define, so a language, framework, vendor, file, table, or endpoint cannot be recorded as part of the model. Code locations live in each entity’s sources, as evidence.</li>
+      <li>The agent adds behavior it confirmed in code and corrects entities the code contradicts in the area it touched, then lists those writes. It asks before removing an entity, changing a Decision or Rule, or editing the schema.</li>
+      <li>The graph holds behavior only. Types accept only the properties they define and the engine refuses a <code>sources</code> field, so no file path, language, framework, vendor, table, or endpoint can be recorded.</li>
     </ul>
     <details class="tech">
       <summary>Under the hood</summary>
@@ -93,20 +93,16 @@
           <li>Writes are rejected for an unknown type or relation, a missing required property, a value outside an enum, the wrong endpoint types, a cardinality breach, a cycle in an acyclic relation, a link to a missing entity, or a property named like a secret.</li>
           <li><code>apply</code> checks a JSONL batch line by line against the graph as it would be after each earlier line, and writes nothing if any line fails.</li>
           <li>Removing an entity removes every relation touching it. A repeated link is a no-op.</li>
-          <li>The fingerprint hashes the working-tree content of the sources through git, so committing or switching branches without changing content does not mark an entity stale. Without git it hashes the files directly.</li>
           <li>Templates: <code>application</code> (Area, Actor, Capability, Concept, Process, Event, Rule, Decision) and <code>empty</code>.</li>
           <li><code>ONTOLOGY_DIR</code> overrides the store location. Exit codes: 0 success, 1 validation failure or not found, 2 bad usage or no store.</li>
         </ul>
       </div>
     </details>
-
-
-
   </section>
 
   <section id="requirements">
     <h2>Requirements</h2>
-    <p>Python 3.10 or later; the engine uses only the standard library. Git is optional: with git the engine finds the repo root and fingerprints files through it, and without git it uses the current directory and hashes files directly.</p>
+    <p>Python 3.10 or later; the engine uses only the standard library. Git is optional: with git the map is stored at the repo root, and without it in the current directory.</p>
   </section>
 
   <footer>
