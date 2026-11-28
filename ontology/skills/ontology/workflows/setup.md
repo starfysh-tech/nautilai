@@ -64,6 +64,12 @@ endpoints, or queues, in any property, name, or summary. Name outside systems by
 what you record. Ask of every candidate: would this still be true if the code were
 rewritten on a different stack? If not, rewrite it or drop it.
 
+**Rules and Decisions are business-level.** Record what the business or the owner would
+state as a promise or policy: what something costs, who is entitled to what, what data
+never leaves the device. Leave out how the app gets there: step order, retries, waits,
+timeouts, time windows, when a screen appears, or when a charge is settled. Those are
+implementation, even when they sound like behavior.
+
 | Type | What to look for | Where the evidence usually is |
 |---|---|---|
 | Area | Groups of behavior that share one responsibility | README, top-level structure, how code is split by domain |
@@ -72,7 +78,7 @@ rewritten on a different stack? If not, rewrite it or drop it.
 | Concept | The things the domain talks about, what they mean, the states they pass through | Models and schemas, status fields, glossaries, recurring names |
 | Process (Deep) | The steps from trigger to outcome for the two or three most important capabilities | Trace an entry point through to its effects |
 | Event (Deep) | Things that happen that other behavior reacts to | Emitted messages, hooks, notifications, audit records |
-| Rule (Deep) | What must always or never be true | Validations, guards, permission checks, constraints, tests named for a rule |
+| Rule (Deep) | Business promises and policies that must always or never hold (see above) | Validations, guards, permission checks, constraints, tests named for a rule |
 | Decision (Deep) | Why the system behaves as it does | `docs/adr/`, design docs, commit and PR rationale |
 
 Prefer fewer, broader entries over a list of every screen or route: a capability is an

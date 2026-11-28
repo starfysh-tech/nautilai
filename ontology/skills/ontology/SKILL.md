@@ -21,6 +21,10 @@ functions, tables, endpoints, or queues, in any property, name, or summary. Name
 outside system by its role ("Payment provider"), not its product. A good test: the entry
 should stay true if the code were rewritten on a different stack.
 
+A `Rule` or `Decision` is a business promise or policy, such as what something costs or
+what data never leaves the device. Step order, retries, waits, timeouts and when a charge
+is settled are implementation, so leave them out.
+
 The engine enforces the structural part. Each type accepts only its defined properties,
 so a property such as `framework` or `path` is rejected, and a `sources` field is
 refused. Free text it cannot police; keeping code out of names and summaries is on you.
